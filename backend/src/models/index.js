@@ -1,0 +1,167 @@
+const { DataTypes } = require('sequelize');
+const sequelize = require('../config/database');
+
+const User = sequelize.define('User', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  username: { type: DataTypes.STRING(50), allowNull: false, unique: true },
+  email: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+  password: { type: DataTypes.STRING(255), allowNull: false },
+  nickname: { type: DataTypes.STRING(50), defaultValue: '' },
+  avatar: { type: DataTypes.STRING(255), defaultValue: '' },
+  role: { type: DataTypes.ENUM('user', 'admin', 'super_admin'), defaultValue: 'user' },
+  exam_target: { type: DataTypes.STRING(50), defaultValue: '' },
+  province: { type: DataTypes.STRING(20), defaultValue: '' },
+  status: { type: DataTypes.ENUM('active', 'banned', 'inactive'), defaultValue: 'active' },
+  last_login_at: { type: DataTypes.DATE },
+  total_questions: { type: DataTypes.INTEGER, defaultValue: 0 },
+  correct_count: { type: DataTypes.INTEGER, defaultValue: 0 },
+}, { tableName: 'users' });
+
+const ArticleSource = sequelize.define('ArticleSource', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  name: { type: DataTypes.STRING(100), allowNull: false },
+  source_type: { type: DataTypes.ENUM('rss', 'web', 'api', 'manual'), defaultValue: 'web' },
+  base_url: { type: DataTypes.STRING(500) },
+  crawl_type: { type: DataTypes.STRING(50), defaultValue: 'auto' },
+  enabled: { type: DataTypes.BOOLEAN, defaultValue: true },
+  crawl_interval: { type: DataTypes.INTEGER, defaultValue: 3600 },
+  last_crawl_at: { type: DataTypes.DATE },
+  article_count: { type: DataTypes.INTEGER, defaultValue: 0 },
+}, { tableName: 'article_sources' });
+
+const Article = sequelize.define('Article', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  source_id: { type: DataTypes.INTEGER },
+  title: { type: DataTypes.STRING(500), allowNull: false },
+  url: { type: DataTypes.STRING(1000) },
+  publish_time: { type: DataTypes.DATE },
+  author: { type: DataTypes.STRING(100) },
+  content: { type: DataTypes.TEXT('long') },
+  summary: { type: DataTypes.TEXT },
+  content_hash: { type: DataTypes.STRING(64) },
+  tags: { type: DataTypes.JSON },
+  category: { type: DataTypes.STRING(50) },
+  region: { type: DataTypes.STRING(50) },
+  status: { type: DataTypes.ENUM('pending', 'processed', 'failed', 'archived'), defaultValue: 'pending' },
+  question_count: { type: DataTypes.INTEGER, defaultValue: 0 },
+}, { tableName: 'articles' });
+
+const Question = sequelize.define('Question', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  question_type: {
+    type: DataTypes.ENUM(
+      'verbal_main_idea', 'verbal_intent', 'verbal_detail', 'verbal_title',
+      'verbal_order', 'verbal_connection', 'verbal_fill', 'verbal_word',
+      'politics_single', 'politics_multi', 'politics_judge', 'politics_fill',
+      'politics_short', 'politics_policy', 'politics_current', 'politics_document',
+      'interview_analysis', 'interview_organize', 'interview_emergency',
+      'interview_interpersonal', 'interview_simulate', 'interview_position',
+      'interview_policy', 'interview_tax', 'interview_grassroots', 'interview_youth'
+    ),
+    allowNull: false
+  },
+  exam_type: { type: DataTypes.ENUM('national', 'provincial', 'institution', 'tax', 'selection'), defaultValue: 'national' },
+  stem: { type: DataTypes.TEXT, allowNull: false },
+  options: { type: DataTypes.JSON },
+  answer: { type: DataTypes.TEXT, allowNull: false },
+  analysis: { type: DataTypes.TEXT },
+  difficulty: { type: DataTypes.ENUM('easy', 'medium', 'hard'), defaultValue: 'medium' },
+  knowledge_points: { type: DataTypes.JSON },
+  source_article_id: { type: DataTypes.INTEGER },
+  status: { type: DataTypes.ENUM('pending', 'approved', 'rejected', 'archived'), defaultValue: 'pending' },
+  quality_score: { type: DataTypes.FLOAT, defaultValue: 0 },
+  usage_count: { type: DataTypes.INTEGER, defaultValue: 0 },
+  correct_rate: { type: DataTypes.FLOAT, defaultValue: 0 },
+}, { tableName: 'questions' });
+
+const PracticeSession = sequelize.define('PracticeSession', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id: { type: DataTypes.INTEGER, allowNull: false },
+  session_type: { type: DataTypes.ENUM('quick', 'special', 'hot_topic', 'wrong', 'mock', 'daily', 'sprint'), defaultValue: 'quick' },
+  config: { type: DataTypes.JSON },
+  total_questions: { type: DataTypes.INTEGER, defaultValue: 0 },
+  answered_count: { type: DataTypes.INTEGER, defaultValue: 0 },
+  correct_count: { type: DataTypes.INTEGER, defaultValue: 0 },
+  accuracy: { type: DataTypes.FLOAT, defaultValue: 0 },
+  total_duration: { type: DataTypes.INTEGER, defaultValue: 0 },
+  status: { type: DataTypes.ENUM('in_progress', 'completed', 'abandoned'), defaultValue: 'in_progress' },
+  started_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  submitted_at: { type: DataTypes.DATE },
+}, { tableName: 'practice_sessions' });
+
+const UserAnswer = sequelize.define('UserAnswer', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id: { type: DataTypes.INTEGER, allowNull: false },
+  session_id: { type: DataTypes.INTEGER },
+  question_id: { type: DataTypes.INTEGER, allowNull: false },
+  user_answer: { type: DataTypes.TEXT },
+  is_correct: { type: DataTypes.BOOLEAN },
+  score: { type: DataTypes.FLOAT, defaultValue: 0 },
+  duration: { type: DataTypes.INTEGER, defaultValue: 0 },
+  ai_feedback: { type: DataTypes.TEXT },
+}, { tableName: 'user_answers' });
+
+const WrongQuestion = sequelize.define('WrongQuestion', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id: { type: DataTypes.INTEGER, allowNull: false },
+  question_id: { type: DataTypes.INTEGER, allowNull: false },
+  wrong_count: { type: DataTypes.INTEGER, defaultValue: 1 },
+  last_wrong_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  error_reason: { type: DataTypes.STRING(50) },
+  is_mastered: { type: DataTypes.BOOLEAN, defaultValue: false },
+  notes: { type: DataTypes.TEXT },
+}, { tableName: 'wrong_questions' });
+
+const Favorite = sequelize.define('Favorite', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id: { type: DataTypes.INTEGER, allowNull: false },
+  question_id: { type: DataTypes.INTEGER, allowNull: false },
+}, { tableName: 'favorites' });
+
+const AiTask = sequelize.define('AiTask', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  task_type: { type: DataTypes.ENUM('generate_question', 'score_interview', 'generate_report', 'process_article'), defaultValue: 'generate_question' },
+  article_id: { type: DataTypes.INTEGER },
+  config: { type: DataTypes.JSON },
+  status: { type: DataTypes.ENUM('pending', 'processing', 'completed', 'failed'), defaultValue: 'pending' },
+  result: { type: DataTypes.JSON },
+  error_message: { type: DataTypes.TEXT },
+  token_usage: { type: DataTypes.INTEGER, defaultValue: 0 },
+  cost: { type: DataTypes.FLOAT, defaultValue: 0 },
+  started_at: { type: DataTypes.DATE },
+  completed_at: { type: DataTypes.DATE },
+  created_by: { type: DataTypes.INTEGER },
+}, { tableName: 'ai_tasks' });
+
+// Associations
+ArticleSource.hasMany(Article, { foreignKey: 'source_id' });
+Article.belongsTo(ArticleSource, { foreignKey: 'source_id' });
+
+Article.hasMany(Question, { foreignKey: 'source_article_id' });
+Question.belongsTo(Article, { foreignKey: 'source_article_id' });
+
+User.hasMany(PracticeSession, { foreignKey: 'user_id' });
+PracticeSession.belongsTo(User, { foreignKey: 'user_id' });
+
+PracticeSession.hasMany(UserAnswer, { foreignKey: 'session_id' });
+UserAnswer.belongsTo(PracticeSession, { foreignKey: 'session_id' });
+
+User.hasMany(UserAnswer, { foreignKey: 'user_id' });
+UserAnswer.belongsTo(User, { foreignKey: 'user_id' });
+
+Question.hasMany(UserAnswer, { foreignKey: 'question_id' });
+UserAnswer.belongsTo(Question, { foreignKey: 'question_id' });
+
+User.hasMany(WrongQuestion, { foreignKey: 'user_id' });
+WrongQuestion.belongsTo(User, { foreignKey: 'user_id' });
+Question.hasMany(WrongQuestion, { foreignKey: 'question_id' });
+WrongQuestion.belongsTo(Question, { foreignKey: 'question_id' });
+
+User.hasMany(Favorite, { foreignKey: 'user_id' });
+Question.hasMany(Favorite, { foreignKey: 'question_id' });
+Favorite.belongsTo(Question, { foreignKey: 'question_id' });
+
+module.exports = {
+  sequelize, User, ArticleSource, Article, Question,
+  PracticeSession, UserAnswer, WrongQuestion, Favorite, AiTask
+};
