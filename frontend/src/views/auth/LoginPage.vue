@@ -19,7 +19,7 @@ async function handleLogin() {
   try {
     await userStore.login(form.value.username, form.value.password)
     ElMessage.success('登录成功')
-    router.push(userStore.isAdmin ? '/admin' : '/')
+    router.push('/')
   } catch (e: any) {
     ElMessage.error(e.message || '登录失败')
   } finally {

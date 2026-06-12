@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import {
-  ArrowLeft,
-  Bell,
   CircleCheck,
   Collection,
   DataAnalysis,
@@ -147,9 +145,9 @@ const questions: Question[] = [
 ]
 
 const examOptions = [
-  { value: 'national', label: '历年国考', caption: '国家公务员' },
-  { value: 'province', label: '地方省考', caption: '多省联考/省直' },
-  { value: 'institution', label: '事业编', caption: '综合写作/结构化' },
+  { value: 'national', label: '历年国考', caption: '国家公务员考试', count: '452', icon: '国' },
+  { value: 'province', label: '地方省考', caption: '联考/省直/市县', count: '1208', icon: '省' },
+  { value: 'institution', label: '事业编', caption: '综合写作/结构化', count: '890', icon: '事' },
 ] as const
 
 const typeOptions = [
@@ -180,14 +178,10 @@ const selectedQuestion = computed(() => {
   return matched || filteredQuestions.value[0] || questions[0]
 })
 
+const selectedExamMeta = computed(() => examOptions.find(item => item.value === selectedExam.value) || examOptions[0])
 const wordCount = computed(() => answer.value.trim().replace(/\s/g, '').length)
-const answerPreview = computed(() => {
-  const text = answer.value.trim().replace(/\s+/g, '')
-  if (!text) return '提交作答后，系统会在这里标出你的核心表达，并提示哪些句子可以进一步优化。'
-  return text.length > 108 ? `${text.slice(0, 108)}...` : text
-})
-
 const scoreCircumference = 301.59
+
 const scoreRingStyle = computed(() => {
   const score = evaluation.value?.score ?? 0
   return {
@@ -213,12 +207,16 @@ function scoreStyle(score: number) {
   return { width: `${clampScore(score)}%` }
 }
 
+function resetReport() {
+  evaluation.value = null
+  errorMessage.value = ''
+}
+
 function selectExam(exam: ExamType) {
   selectedExam.value = exam
   const first = questions.find(item => item.exam === exam && item.type === selectedType.value)
   if (first) selectedQuestionId.value = first.id
-  evaluation.value = null
-  errorMessage.value = ''
+  resetReport()
 }
 
 function selectType(type: PracticeType) {
@@ -226,26 +224,22 @@ function selectType(type: PracticeType) {
   const first = questions.find(item => item.exam === selectedExam.value && item.type === type)
   if (first) selectedQuestionId.value = first.id
   answer.value = ''
-  evaluation.value = null
-  errorMessage.value = ''
+  resetReport()
 }
 
 function selectQuestion(id: number) {
   selectedQuestionId.value = id
-  evaluation.value = null
-  errorMessage.value = ''
+  resetReport()
 }
 
 function useTemplate() {
   answer.value = selectedQuestion.value.type === 'interview' ? sampleInterviewAnswer : sampleEssayAnswer
-  evaluation.value = null
-  errorMessage.value = ''
+  resetReport()
 }
 
 function restartPractice() {
   answer.value = ''
-  evaluation.value = null
-  errorMessage.value = ''
+  resetReport()
 }
 
 function revealReport() {
@@ -375,7 +369,7 @@ async function evaluate() {
     evaluation.value = normalizeEvaluation(res?.data ?? res)
     if (res?.message) errorMessage.value = res.message
     revealReport()
-  } catch (error: any) {
+  } catch {
     evaluation.value = localEvaluation()
     errorMessage.value = 'AI 服务暂未连接，已生成本地示例评分报告。'
     revealReport()
@@ -386,18 +380,8 @@ async function evaluate() {
 </script>
 
 <template>
-  <main class="policyquest-page">
-    <header class="mobile-app-bar">
-      <button class="icon-button" type="button" aria-label="返回">
-        <el-icon><ArrowLeft /></el-icon>
-      </button>
-      <h1>AI Exam Coach</h1>
-      <button class="icon-button" type="button" aria-label="消息">
-        <el-icon><Bell /></el-icon>
-      </button>
-    </header>
-
-    <header class="desktop-topbar">
+  <main class="coach-page">
+    <aside class="side-nav" aria-label="PolicyQuest 导航">
       <a class="brand" href="#/">
         <span class="brand-mark">PQ</span>
         <span>
@@ -405,79 +389,94 @@ async function evaluate() {
           <small>AI Exam Coach</small>
         </span>
       </a>
-      <nav class="desktop-nav" aria-label="主导航">
-        <a href="#library">真题选择</a>
-        <a href="#answer">作答区</a>
-        <a href="#report">评阅报告</a>
-        <a href="#materials">素材与范文</a>
-      </nav>
-      <div class="user-pill">
-        <el-icon><User /></el-icon>
-        <span>AI Coach</span>
-      </div>
-    </header>
 
-    <div class="page-shell">
-      <section class="workspace-head">
+      <nav class="side-links">
+        <a class="active" href="#answer"><el-icon><EditPen /></el-icon><span>AI评阅</span></a>
+        <a href="#library"><el-icon><Reading /></el-icon><span>真题库</span></a>
+        <a href="#report"><el-icon><DataAnalysis /></el-icon><span>评分报告</span></a>
+        <a href="#sample"><el-icon><DocumentChecked /></el-icon><span>示范答案</span></a>
+      </nav>
+
+      <section class="side-card">
+        <p>今日训练</p>
+        <strong>{{ selectedExamMeta.label }} · {{ selectedType === 'essay' ? '申论' : '面试' }}</strong>
+        <span>{{ selectedQuestion.duration }} · {{ selectedQuestion.difficulty }}</span>
+      </section>
+    </aside>
+
+    <section class="coach-main">
+      <header class="top-bar">
         <div>
           <p class="eyebrow">PolicyQuest AI Exam Coach</p>
-          <h2>国考、省考、事业编申论/面试真题，一次完成作答、评分、指导、建议和示范答案。</h2>
+          <h1>申论与面试真题 AI 精评工作台</h1>
         </div>
-        <div class="head-metrics" aria-label="产品指标">
+        <div class="profile-pill">
+          <el-icon><User /></el-icon>
+          <span>Coach Mode</span>
+        </div>
+      </header>
+
+      <section class="hero-panel">
+        <div>
+          <span class="status-chip">Evaluation Ready</span>
+          <h2>选择国考、省考、事业编真题，输入自己的答案，获得评分、指导、建议和示范。</h2>
+          <p>系统会按真实阅卷逻辑输出总分、分项维度、优缺点、提分路径、优质素材和一版可直接学习的示范答案。</p>
+        </div>
+        <div class="hero-metrics">
           <span><strong>3</strong>考试来源</span>
           <span><strong>2</strong>作答模式</span>
-          <span><strong>5</strong>维评分</span>
+          <span><strong>AI</strong>即时评阅</span>
         </div>
       </section>
 
-      <section class="practice-grid">
-        <aside id="library" class="library-panel surface-card">
-          <div class="panel-title">
-            <el-icon><Reading /></el-icon>
-            <span>题库筛选</span>
-          </div>
+      <section id="library" class="exam-grid" aria-label="考试类型">
+        <button
+          v-for="item in examOptions"
+          :key="item.value"
+          class="exam-card"
+          :class="{ active: selectedExam === item.value }"
+          type="button"
+          @click="selectExam(item.value)"
+        >
+          <span class="exam-icon">{{ item.icon }}</span>
+          <strong>{{ item.label }}</strong>
+          <small>{{ item.caption }}</small>
+          <em>{{ item.count }} 套题</em>
+        </button>
+      </section>
 
-          <div class="segmented-block">
-            <p>考试类型</p>
-            <button
-              v-for="item in examOptions"
-              :key="item.value"
-              class="choice-row"
-              :class="{ active: selectedExam === item.value }"
-              type="button"
-              @click="selectExam(item.value)"
-            >
-              <span>{{ item.label }}</span>
-              <small>{{ item.caption }}</small>
-            </button>
-          </div>
-
-          <div class="segmented-block">
-            <p>训练题型</p>
-            <div class="type-switch">
-              <button
-                v-for="item in typeOptions"
-                :key="item.value"
-                class="type-button"
-                :class="{ active: selectedType === item.value }"
-                type="button"
-                @click="selectType(item.value)"
-              >
-                <el-icon><component :is="item.icon" /></el-icon>
-                {{ item.label }}
-              </button>
+      <section class="workspace-grid">
+        <aside class="question-panel panel">
+          <div class="panel-head">
+            <div>
+              <p class="eyebrow">Question Bank</p>
+              <h2>真题选择</h2>
             </div>
           </div>
 
-          <div class="question-stack">
+          <div class="type-switch">
+            <button
+              v-for="item in typeOptions"
+              :key="item.value"
+              class="type-button"
+              :class="{ active: selectedType === item.value }"
+              type="button"
+              @click="selectType(item.value)"
+            >
+              <el-icon><component :is="item.icon" /></el-icon>
+              {{ item.label }}
+            </button>
+          </div>
+
+          <div class="question-list">
             <article
               v-for="item in filteredQuestions"
               :key="item.id"
               class="question-item"
-              :class="{ selected: selectedQuestionId === item.id }"
+              :class="{ active: selectedQuestionId === item.id }"
               @click="selectQuestion(item.id)"
             >
-              <div class="question-meta">
+              <div>
                 <span>{{ item.year }}</span>
                 <span>{{ item.duration }}</span>
               </div>
@@ -487,25 +486,24 @@ async function evaluate() {
           </div>
         </aside>
 
-        <section id="answer" class="answer-panel surface-card">
+        <section id="answer" class="answer-panel panel">
           <div class="answer-head">
             <div>
               <p class="eyebrow">{{ selectedQuestion.source }}</p>
-              <h1>{{ selectedQuestion.title }}</h1>
+              <h2>{{ selectedQuestion.title }}</h2>
             </div>
-            <button class="soft-button" type="button" @click="useTemplate">
+            <button class="secondary-button" type="button" @click="useTemplate">
               <el-icon><Refresh /></el-icon>
-              填入示范
+              插入示范
             </button>
           </div>
 
           <p class="prompt-text">{{ selectedQuestion.prompt }}</p>
 
-          <div class="requirement-list">
+          <div class="tag-row">
             <span v-for="item in selectedQuestion.requirements" :key="item">{{ item }}</span>
           </div>
-
-          <div class="tag-list">
+          <div class="topic-row">
             <span v-for="item in selectedQuestion.tags" :key="item">{{ item }}</span>
           </div>
 
@@ -513,7 +511,7 @@ async function evaluate() {
             <span>我的作答</span>
             <textarea
               v-model="answer"
-              placeholder="在这里输入你的申论作文或面试作答。提交后，PolicyQuest 会从总分、分项维度、优缺点、提分建议、优质素材和示范答案进行完整评阅。"
+              placeholder="请输入你的申论作文或面试作答。建议按真实考试状态完成后再提交评阅。"
             />
           </label>
 
@@ -523,122 +521,80 @@ async function evaluate() {
               <span>字</span>
               <em v-if="errorMessage">{{ errorMessage }}</em>
             </div>
-            <button class="primary-action" type="button" :disabled="loading" @click="evaluate">
+            <button class="primary-button" type="button" :disabled="loading" @click="evaluate">
               <el-icon><MagicStick /></el-icon>
-              {{ loading ? 'AI 评阅中...' : '提交 AI 评阅' }}
+              {{ loading ? 'AI 正在评阅...' : '提交 AI 评阅' }}
             </button>
           </div>
         </section>
 
-        <aside id="report" class="report-column">
-          <section class="score-card surface-card" :class="scoreTone">
-            <p class="eyebrow">AI Score</p>
+        <aside id="report" class="report-panel">
+          <section class="score-card panel" :class="scoreTone">
+            <p class="eyebrow">Overall Score</p>
             <div class="score-layout">
-              <div class="score-ring" aria-label="总分">
-                <svg viewBox="0 0 120 120" role="img">
+              <div class="score-ring">
+                <svg viewBox="0 0 120 120" role="img" aria-label="总分">
                   <circle class="ring-track" cx="60" cy="60" r="48" />
                   <circle class="ring-value" cx="60" cy="60" r="48" :style="scoreRingStyle" />
                 </svg>
                 <div class="score-number">
                   <strong>{{ evaluation?.score ?? '--' }}</strong>
-                  <span>总分</span>
+                  <span>/100</span>
                 </div>
               </div>
-              <div class="score-copy">
+              <div>
                 <h2>{{ evaluation?.level ?? '待评阅' }}</h2>
-                <p>
-                  {{
-                    evaluation?.summary ??
-                    '提交作答后，这里会生成总评、分项评分和清晰的提分路径。'
-                  }}
-                </p>
+                <p>{{ evaluation?.summary ?? '提交作答后，这里会生成总评、分项评分和提分路径。' }}</p>
               </div>
             </div>
           </section>
 
-          <section class="dimension-card surface-card">
+          <section class="panel mini-panel">
             <div class="panel-title">
-              <el-icon><DataAnalysis /></el-icon>
+              <el-icon><TrendCharts /></el-icon>
               <span>维度分析</span>
             </div>
             <template v-if="evaluation">
               <div v-for="item in evaluation.dimensions" :key="item.name" class="dimension-row">
-                <div>
-                  <strong>{{ item.name }}</strong>
-                  <span>{{ item.score }}/100</span>
-                </div>
-                <div class="progress-track">
-                  <i :style="scoreStyle(item.score)"></i>
-                </div>
+                <div><strong>{{ item.name }}</strong><span>{{ item.score }}/100</span></div>
+                <div class="progress-track"><i :style="scoreStyle(item.score)"></i></div>
                 <p>{{ item.comment }}</p>
               </div>
             </template>
-            <div v-else class="empty-note">
-              <el-icon><TrendCharts /></el-icon>
-              <p>维度评分会在评阅完成后展示。</p>
-            </div>
+            <p v-else class="empty-note">评阅完成后展示审题、结构、论证、表达等维度。</p>
           </section>
 
-          <section class="suggestion-card surface-card">
+          <section class="panel mini-panel">
             <div class="panel-title">
-              <el-icon><DocumentChecked /></el-icon>
-              <span>Coach 提分建议</span>
-            </div>
-            <template v-if="evaluation">
-              <ul class="check-list">
-                <li v-for="item in evaluation.suggestions" :key="item">
-                  <el-icon><CircleCheck /></el-icon>
-                  <span>{{ item }}</span>
-                </li>
-              </ul>
-              <button class="secondary-action" type="button" @click="restartPractice">重新练习此题</button>
-            </template>
-            <div v-else class="empty-note">
               <el-icon><Collection /></el-icon>
-              <p>建议会聚焦结构、论证、政策表达和语言规范。</p>
+              <span>Coach 建议</span>
             </div>
+            <ul v-if="evaluation" class="check-list">
+              <li v-for="item in evaluation.suggestions" :key="item">
+                <el-icon><CircleCheck /></el-icon>
+                <span>{{ item }}</span>
+              </li>
+            </ul>
+            <p v-else class="empty-note">提交后生成可执行的改写建议。</p>
           </section>
         </aside>
       </section>
 
-      <section v-if="evaluation" class="report-detail">
-        <article class="analysis-card surface-card">
-          <div class="panel-title">
-            <el-icon><EditPen /></el-icon>
-            <span>您的回答分析</span>
-          </div>
-          <p>
-            <mark>{{ answerPreview }}</mark>
-          </p>
+      <section v-if="evaluation" id="sample" class="detail-grid">
+        <article class="detail-card positive">
+          <div class="panel-title"><el-icon><CircleCheck /></el-icon><span>优点</span></div>
+          <ul><li v-for="item in evaluation.advantages" :key="item">{{ item }}</li></ul>
         </article>
 
-        <article class="detail-card surface-card positive">
-          <div class="panel-title">
-            <el-icon><CircleCheck /></el-icon>
-            <span>优点</span>
-          </div>
-          <ul>
-            <li v-for="item in evaluation.advantages" :key="item">{{ item }}</li>
-          </ul>
+        <article class="detail-card negative">
+          <div class="panel-title"><el-icon><Warning /></el-icon><span>缺点</span></div>
+          <ul><li v-for="item in evaluation.disadvantages" :key="item">{{ item }}</li></ul>
         </article>
 
-        <article class="detail-card surface-card negative">
-          <div class="panel-title">
-            <el-icon><Warning /></el-icon>
-            <span>缺点</span>
-          </div>
-          <ul>
-            <li v-for="item in evaluation.disadvantages" :key="item">{{ item }}</li>
-          </ul>
-        </article>
-
-        <article id="materials" class="materials-card surface-card">
-          <div class="panel-title">
-            <el-icon><Reading /></el-icon>
-            <span>优质素材</span>
-          </div>
+        <article class="detail-card materials">
+          <div class="panel-title"><el-icon><Reading /></el-icon><span>优质素材</span></div>
           <div class="material-grid">
-            <section v-for="item in evaluation.qualityMaterials" :key="item.title" class="material-item">
+            <section v-for="item in evaluation.qualityMaterials" :key="item.title">
               <strong>{{ item.title }}</strong>
               <p>{{ item.content }}</p>
               <small>{{ item.usage }}</small>
@@ -646,22 +602,20 @@ async function evaluate() {
           </div>
         </article>
 
-        <article class="sample-card surface-card">
-          <div class="panel-title">
-            <el-icon><MagicStick /></el-icon>
-            <span>示范范文</span>
-          </div>
+        <article class="detail-card sample">
+          <div class="panel-title"><el-icon><DocumentChecked /></el-icon><span>示范答案</span></div>
           <p>{{ evaluation.sampleEssay }}</p>
+          <button class="secondary-button" type="button" @click="restartPractice">重新练习此题</button>
         </article>
       </section>
-    </div>
+    </section>
   </main>
 </template>
 
 <style scoped>
-.policyquest-page {
+.coach-page {
   min-height: 100vh;
-  background: linear-gradient(180deg, #f8f9ff 0%, #f4f7ff 46%, #ffffff 100%);
+  background: #f8f9ff;
   color: #0b1c30;
   font-family: "Plus Jakarta Sans", Inter, "Noto Sans SC", system-ui, sans-serif;
   letter-spacing: 0;
@@ -677,57 +631,21 @@ button {
   cursor: pointer;
 }
 
-.mobile-app-bar {
+.side-nav {
   position: fixed;
-  inset: 0 0 auto;
+  inset: 0 auto 0 0;
   z-index: 30;
-  display: none;
-  align-items: center;
-  justify-content: space-between;
-  height: 72px;
-  padding: 0 16px;
-  border-bottom: 1px solid rgba(194, 198, 216, 0.6);
-  background: rgba(248, 249, 255, 0.92);
-  backdrop-filter: blur(16px);
-}
-
-.mobile-app-bar h1 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-}
-
-.icon-button {
-  display: inline-grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  border: 0;
-  border-radius: 20px;
-  background: transparent;
-  color: #0b1c30;
-}
-
-.icon-button:hover {
-  background: #eff4ff;
-}
-
-.desktop-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
   display: flex;
-  align-items: center;
-  gap: 28px;
-  height: 76px;
-  padding: 0 max(32px, calc((100vw - 1380px) / 2));
-  border-bottom: 1px solid rgba(194, 198, 216, 0.5);
-  background: rgba(255, 255, 255, 0.88);
-  backdrop-filter: blur(18px);
+  flex-direction: column;
+  width: 260px;
+  padding: 24px 16px;
+  border-right: 1px solid rgba(194, 198, 216, 0.46);
+  background: rgba(255, 255, 255, 0.86);
+  backdrop-filter: blur(20px);
 }
 
 .brand {
-  display: inline-flex;
+  display: flex;
   align-items: center;
   gap: 12px;
   color: inherit;
@@ -737,13 +655,12 @@ button {
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: #0050cb;
+  width: 44px;
+  height: 44px;
+  border-radius: 999px;
+  background: #0066ff;
   color: #ffffff;
-  font-size: 13px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .brand strong,
@@ -752,7 +669,8 @@ button {
 }
 
 .brand strong {
-  font-size: 17px;
+  color: #0050cb;
+  font-size: 18px;
 }
 
 .brand small {
@@ -761,204 +679,289 @@ button {
   font-size: 12px;
 }
 
-.desktop-nav {
+.side-links {
+  display: grid;
+  gap: 8px;
+  margin-top: 48px;
+}
+
+.side-links a {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex: 1;
-}
-
-.desktop-nav a {
-  padding: 10px 14px;
-  border-radius: 999px;
+  gap: 10px;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 16px;
   color: #424656;
-  font-size: 14px;
   text-decoration: none;
-}
-
-.desktop-nav a:hover {
-  background: #eff4ff;
-  color: #0050cb;
-}
-
-.user-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  height: 40px;
-  padding: 0 14px;
-  border: 1px solid #c2c6d8;
-  border-radius: 999px;
-  background: #ffffff;
-  color: #0b1c30;
   font-size: 14px;
+  font-weight: 800;
 }
 
-.page-shell {
-  width: min(1380px, calc(100vw - 40px));
-  margin: 0 auto;
-  padding: 26px 0 64px;
+.side-links a.active,
+.side-links a:hover {
+  background: #0066ff;
+  color: #ffffff;
 }
 
-.workspace-head {
+.side-card {
+  display: grid;
+  gap: 8px;
+  margin-top: auto;
+  padding: 18px;
+  border: 1px solid #d7ddf0;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #ffffff, #eff4ff);
+}
+
+.side-card p,
+.side-card span {
+  margin: 0;
+  color: #727687;
+  font-size: 12px;
+}
+
+.side-card strong {
+  color: #0b1c30;
+  line-height: 1.45;
+}
+
+.coach-main {
+  min-height: 100vh;
+  margin-left: 260px;
+  padding: 28px min(36px, 3vw) 64px;
+}
+
+.top-bar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 20px;
-  padding: 22px 24px;
-  border: 1px solid #d7ddf0;
-  border-radius: 16px;
-  background: #ffffff;
+  gap: 16px;
+  margin: -28px calc(min(36px, 3vw) * -1) 24px;
+  padding: 18px min(36px, 3vw);
+  border-bottom: 1px solid rgba(194, 198, 216, 0.46);
+  background: rgba(248, 249, 255, 0.86);
+  backdrop-filter: blur(20px);
+}
+
+.top-bar h1 {
+  margin: 3px 0 0;
+  font-size: 24px;
+  line-height: 1.25;
 }
 
 .eyebrow {
-  margin: 0 0 8px;
+  margin: 0;
   color: #0050cb;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 900;
   text-transform: uppercase;
 }
 
-.workspace-head h2 {
-  max-width: 760px;
-  margin: 0;
-  font-size: 28px;
-  line-height: 1.24;
+.profile-pill,
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 800;
 }
 
-.head-metrics {
+.profile-pill {
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid #c2c6d8;
+  background: #ffffff;
+}
+
+.status-chip {
+  min-height: 30px;
+  padding: 0 12px;
+  background: rgba(0, 106, 97, 0.12);
+  color: #006a61;
+}
+
+.hero-panel {
   display: grid;
-  grid-template-columns: repeat(3, minmax(84px, 1fr));
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 28px;
+  align-items: center;
+  padding: 32px;
+  border: 1px solid rgba(194, 198, 216, 0.5);
+  border-radius: 16px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(134, 242, 228, 0.25), transparent 30%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(239, 244, 255, 0.88));
+  box-shadow: 0 16px 44px rgba(19, 42, 74, 0.06);
+}
+
+.hero-panel h2 {
+  max-width: 850px;
+  margin: 14px 0 12px;
+  font-size: 32px;
+  line-height: 1.25;
+}
+
+.hero-panel p {
+  max-width: 760px;
+  margin: 0;
+  color: #424656;
+  font-size: 17px;
+  line-height: 1.75;
+}
+
+.hero-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
-.head-metrics span {
+.hero-metrics span {
   display: grid;
-  gap: 2px;
-  min-width: 96px;
-  padding: 14px 16px;
+  gap: 4px;
+  min-height: 82px;
+  place-content: center;
   border-radius: 16px;
-  background: #eff4ff;
+  background: #ffffff;
   color: #424656;
-  font-size: 13px;
+  text-align: center;
+  box-shadow: 0 8px 24px rgba(19, 42, 74, 0.05);
 }
 
-.head-metrics strong {
+.hero-metrics strong {
+  color: #0050cb;
+  font-size: 26px;
+}
+
+.exam-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-top: 18px;
+}
+
+.exam-card {
+  display: grid;
+  justify-items: start;
+  gap: 7px;
+  min-height: 150px;
+  padding: 22px;
+  border: 1px solid #d7ddf0;
+  border-radius: 16px;
+  background: #ffffff;
+  color: #0b1c30;
+  text-align: left;
+  box-shadow: 0 10px 30px rgba(19, 42, 74, 0.05);
+}
+
+.exam-card:hover,
+.exam-card.active {
+  border-color: rgba(0, 102, 255, 0.42);
+  background: #eff4ff;
+}
+
+.exam-icon {
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: #0050cb;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.exam-card strong {
+  font-size: 18px;
+}
+
+.exam-card small {
+  color: #424656;
+}
+
+.exam-card em {
+  margin-top: 4px;
   color: #006a61;
-  font-size: 24px;
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 900;
 }
 
-.practice-grid {
+.workspace-grid {
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr) 390px;
   gap: 18px;
   align-items: start;
+  margin-top: 18px;
 }
 
-.surface-card {
+.panel,
+.detail-card {
   border: 1px solid #d7ddf0;
   border-radius: 16px;
   background: #ffffff;
-  box-shadow: 0 18px 48px rgba(19, 42, 74, 0.06);
+  box-shadow: 0 12px 34px rgba(19, 42, 74, 0.055);
 }
 
-.library-panel,
+.question-panel,
 .answer-panel,
 .score-card,
-.dimension-card,
-.suggestion-card,
-.analysis-card,
-.detail-card,
-.materials-card,
-.sample-card {
+.mini-panel,
+.detail-card {
   padding: 22px;
 }
 
-.library-panel,
-.report-column {
+.question-panel,
+.report-panel {
   position: sticky;
-  top: 96px;
+  top: 92px;
 }
 
-.panel-title {
+.panel-head,
+.answer-head {
   display: flex;
-  align-items: center;
-  gap: 10px;
-  margin-bottom: 16px;
-  color: #0b1c30;
-  font-size: 17px;
-  font-weight: 800;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
 }
 
-.panel-title .el-icon {
-  color: #0050cb;
-}
-
-.segmented-block + .segmented-block,
-.question-stack {
-  margin-top: 22px;
-}
-
-.segmented-block p {
-  margin: 0 0 10px;
-  color: #424656;
-  font-size: 13px;
-  font-weight: 700;
-}
-
-.choice-row {
-  display: grid;
-  width: 100%;
-  gap: 3px;
-  padding: 13px 14px;
-  border: 1px solid transparent;
-  border-radius: 12px;
-  background: transparent;
-  color: #0b1c30;
-  text-align: left;
-}
-
-.choice-row + .choice-row {
-  margin-top: 8px;
-}
-
-.choice-row span {
-  font-size: 15px;
-  font-weight: 800;
-}
-
-.choice-row small {
-  color: #777b8c;
-  font-size: 12px;
-}
-
-.choice-row.active {
-  border-color: #0050cb;
-  background: #eff4ff;
+.panel-head h2,
+.answer-head h2 {
+  margin: 5px 0 0;
+  font-size: 22px;
+  line-height: 1.35;
 }
 
 .type-switch {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
+  gap: 6px;
+  margin-top: 18px;
   padding: 4px;
-  border-radius: 12px;
+  border-radius: 14px;
   background: #eff4ff;
 }
 
-.type-button {
+.type-button,
+.secondary-button,
+.primary-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  height: 42px;
+  gap: 8px;
   border: 0;
-  border-radius: 10px;
+  border-radius: 12px;
+  font-weight: 900;
+}
+
+.type-button {
+  height: 42px;
   background: transparent;
   color: #424656;
-  font-size: 14px;
-  font-weight: 800;
 }
 
 .type-button.active {
@@ -966,40 +969,36 @@ button {
   color: #ffffff;
 }
 
-.question-stack {
+.question-list {
   display: grid;
   gap: 10px;
+  margin-top: 16px;
 }
 
 .question-item {
   padding: 14px;
   border: 1px solid #dfe5f6;
-  border-radius: 12px;
+  border-radius: 14px;
   background: #ffffff;
-  transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+  transition: 0.18s ease;
 }
 
-.question-item:hover {
-  transform: translateY(-1px);
-  border-color: #8ca8e8;
-}
-
-.question-item.selected {
+.question-item:hover,
+.question-item.active {
   border-color: #006a61;
   background: #ebfffc;
 }
 
-.question-meta {
+.question-item div {
   display: flex;
   justify-content: space-between;
-  gap: 8px;
-  color: #777b8c;
+  color: #727687;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 800;
 }
 
 .question-item h3 {
-  margin: 10px 0 8px;
+  margin: 10px 0 6px;
   font-size: 15px;
   line-height: 1.45;
 }
@@ -1008,89 +1007,54 @@ button {
   margin: 0;
   color: #424656;
   font-size: 12px;
-  line-height: 1.5;
 }
 
-.answer-head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-}
-
-.answer-head h1 {
-  margin: 0;
-  font-size: 30px;
-  line-height: 1.25;
-}
-
-.soft-button,
-.primary-action,
-.secondary-action {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  border: 0;
-  border-radius: 12px;
-  font-weight: 800;
-  transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
-}
-
-.soft-button {
-  height: 42px;
-  padding: 0 16px;
+.secondary-button {
+  min-height: 40px;
+  padding: 0 14px;
   background: #eff4ff;
   color: #0050cb;
-}
-
-.soft-button:hover,
-.primary-action:hover,
-.secondary-action:hover {
-  transform: translateY(-1px);
 }
 
 .prompt-text {
   margin: 18px 0 0;
   padding: 16px;
-  border-radius: 12px;
+  border-radius: 14px;
   background: #eff4ff;
   color: #253246;
   line-height: 1.8;
 }
 
-.requirement-list,
-.tag-list {
+.tag-row,
+.topic-row {
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
 
-.requirement-list {
+.tag-row {
   margin-top: 16px;
 }
 
-.tag-list {
+.topic-row {
   margin-top: 10px;
 }
 
-.requirement-list span,
-.tag-list span {
-  display: inline-flex;
-  align-items: center;
+.tag-row span,
+.topic-row span {
   min-height: 30px;
-  padding: 0 11px;
+  padding: 6px 11px;
   border-radius: 999px;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
-.requirement-list span {
+.tag-row span {
   background: #e8fbf7;
   color: #006a61;
 }
 
-.tag-list span {
+.topic-row span {
   background: #fff2f6;
   color: #b40036;
 }
@@ -1102,14 +1066,13 @@ button {
 }
 
 .answer-editor span {
-  color: #0b1c30;
   font-size: 14px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .answer-editor textarea {
   width: 100%;
-  min-height: 420px;
+  min-height: 430px;
   padding: 18px;
   resize: vertical;
   border: 1px solid #c2c6d8;
@@ -1118,7 +1081,7 @@ button {
   background: #fbfcff;
   color: #0b1c30;
   font-size: 16px;
-  line-height: 1.88;
+  line-height: 1.85;
 }
 
 .answer-editor textarea:focus {
@@ -1137,64 +1100,58 @@ button {
 .count-line {
   display: flex;
   align-items: baseline;
-  gap: 5px;
-  color: #777b8c;
-  font-size: 13px;
+  flex-wrap: wrap;
+  gap: 6px;
+  color: #727687;
 }
 
 .count-line strong {
   color: #006a61;
-  font-size: 22px;
+  font-size: 24px;
 }
 
 .count-line em {
-  margin-left: 8px;
   color: #b40036;
   font-style: normal;
-  font-weight: 700;
+  font-weight: 800;
 }
 
-.primary-action {
-  min-width: 160px;
-  height: 48px;
+.primary-button {
+  min-height: 48px;
   padding: 0 20px;
   background: #0050cb;
   color: #ffffff;
   box-shadow: 0 12px 26px rgba(0, 80, 203, 0.18);
 }
 
-.primary-action:disabled {
+.primary-button:disabled {
   cursor: wait;
-  opacity: 0.72;
+  opacity: 0.7;
 }
 
-.report-column {
+.report-panel {
   display: grid;
   gap: 14px;
-  scroll-margin-top: 86px;
-}
-
-.score-card {
-  overflow: hidden;
 }
 
 .score-layout {
   display: grid;
-  grid-template-columns: 132px minmax(0, 1fr);
+  grid-template-columns: 126px minmax(0, 1fr);
   gap: 16px;
   align-items: center;
+  margin-top: 12px;
 }
 
 .score-ring {
   position: relative;
-  width: 132px;
-  height: 132px;
+  width: 126px;
+  height: 126px;
 }
 
 .score-ring svg {
   display: block;
-  width: 132px;
-  height: 132px;
+  width: 126px;
+  height: 126px;
   transform: rotate(-90deg);
 }
 
@@ -1211,15 +1168,12 @@ button {
 .ring-value {
   stroke: #0050cb;
   stroke-linecap: round;
-  transition: stroke-dashoffset 0.4s ease;
+  transition: stroke-dashoffset 0.35s ease;
 }
 
-.score-card.excellent .ring-value {
-  stroke: #006a61;
-}
-
+.score-card.excellent .ring-value,
 .score-card.good .ring-value {
-  stroke: #0050cb;
+  stroke: #006a61;
 }
 
 .score-card.normal .ring-value {
@@ -1239,27 +1193,39 @@ button {
 }
 
 .score-number strong {
-  font-size: 40px;
+  font-size: 34px;
   line-height: 1;
 }
 
 .score-number span {
-  margin-top: 6px;
-  color: #777b8c;
+  color: #727687;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
-.score-copy h2 {
+.score-layout h2 {
   margin: 0 0 8px;
-  font-size: 24px;
+  font-size: 22px;
 }
 
-.score-copy p {
+.score-layout p {
   margin: 0;
   color: #424656;
   font-size: 14px;
   line-height: 1.65;
+}
+
+.panel-title {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin-bottom: 14px;
+  color: #0b1c30;
+  font-weight: 900;
+}
+
+.panel-title .el-icon {
+  color: #0050cb;
 }
 
 .dimension-row + .dimension-row {
@@ -1269,14 +1235,12 @@ button {
 .dimension-row > div:first-child {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
-  color: #0b1c30;
   font-size: 14px;
 }
 
 .dimension-row > div:first-child span {
   color: #0050cb;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .progress-track {
@@ -1294,16 +1258,17 @@ button {
   background: linear-gradient(90deg, #006a61, #0050cb);
 }
 
-.dimension-row p {
+.dimension-row p,
+.empty-note {
   margin: 0;
-  color: #777b8c;
+  color: #727687;
   font-size: 13px;
-  line-height: 1.55;
+  line-height: 1.6;
 }
 
 .check-list {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -1323,57 +1288,11 @@ button {
   color: #006a61;
 }
 
-.secondary-action {
-  width: 100%;
-  height: 44px;
-  margin-top: 16px;
-  background: #86f2e4;
-  color: #063f39;
-}
-
-.empty-note {
+.detail-grid {
   display: grid;
-  place-items: center;
-  min-height: 144px;
-  text-align: center;
-  color: #777b8c;
-}
-
-.empty-note .el-icon {
-  margin-bottom: 8px;
-  color: #0050cb;
-  font-size: 26px;
-}
-
-.empty-note p {
-  max-width: 220px;
-  margin: 0;
-  line-height: 1.6;
-}
-
-.report-detail {
-  display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px;
   margin-top: 18px;
-}
-
-.analysis-card,
-.detail-card {
-  grid-column: span 2;
-}
-
-.analysis-card p {
-  margin: 0;
-  color: #424656;
-  line-height: 1.8;
-}
-
-.analysis-card mark {
-  padding: 2px 3px;
-  border-radius: 4px;
-  background: linear-gradient(transparent 58%, rgba(216, 41, 76, 0.18) 0);
-  color: inherit;
 }
 
 .detail-card ul {
@@ -1393,9 +1312,9 @@ button {
   color: #b40036;
 }
 
-.materials-card,
-.sample-card {
-  grid-column: span 6;
+.materials,
+.sample {
+  grid-column: span 2;
 }
 
 .material-grid {
@@ -1404,166 +1323,126 @@ button {
   gap: 12px;
 }
 
-.material-item {
+.material-grid section {
   padding: 16px;
   border: 1px solid #dfe5f6;
-  border-radius: 12px;
+  border-radius: 14px;
   background: #fbfcff;
 }
 
-.material-item strong {
-  color: #0b1c30;
+.material-grid strong {
   font-size: 16px;
 }
 
-.material-item p {
+.material-grid p {
   margin: 10px 0;
   color: #424656;
   line-height: 1.7;
 }
 
-.material-item small {
+.material-grid small {
   color: #0050cb;
   line-height: 1.6;
 }
 
-.sample-card p {
-  margin: 0;
+.sample p {
+  margin: 0 0 18px;
   color: #253246;
   font-size: 16px;
   line-height: 1.95;
 }
 
-@media (max-width: 1180px) {
-  .desktop-topbar {
-    display: none;
+@media (max-width: 1320px) {
+  .workspace-grid {
+    grid-template-columns: 280px minmax(0, 1fr);
   }
 
-  .mobile-app-bar {
-    display: flex;
-  }
-
-  .page-shell {
-    width: min(100% - 24px, 680px);
-    padding-top: 92px;
-  }
-
-  .workspace-head {
-    display: grid;
-    padding: 20px;
-    border-radius: 16px;
-  }
-
-  .workspace-head h2 {
-    font-size: 22px;
-  }
-
-  .head-metrics {
-    grid-template-columns: repeat(3, 1fr);
-  }
-
-  .practice-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .library-panel,
-  .report-column {
+  .report-panel {
+    grid-column: 1 / -1;
     position: static;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
-  .report-column {
-    order: -1;
-  }
-
-  .answer-panel {
-    order: 2;
-  }
-
-  .library-panel {
-    order: 1;
-  }
-
-  .report-detail {
-    grid-template-columns: 1fr;
-  }
-
-  .analysis-card,
-  .detail-card,
-  .materials-card,
-  .sample-card {
-    grid-column: auto;
-  }
-
-  .material-grid {
-    grid-template-columns: 1fr;
+  .score-card {
+    grid-column: span 1;
   }
 }
 
-@media (max-width: 720px) {
-  .page-shell {
-    width: 100%;
-    padding: 88px 14px 36px;
-  }
-
-  .workspace-head {
+@media (max-width: 980px) {
+  .side-nav {
     display: none;
   }
 
-  .surface-card {
-    border-radius: 16px;
+  .coach-main {
+    margin-left: 0;
+    padding: 18px 14px 42px;
   }
 
-  .library-panel,
-  .answer-panel,
-  .score-card,
-  .dimension-card,
-  .suggestion-card,
-  .analysis-card,
-  .detail-card,
-  .materials-card,
-  .sample-card {
-    padding: 18px;
+  .top-bar {
+    margin: -18px -14px 16px;
+    padding: 14px;
   }
 
-  .practice-grid,
-  .report-column,
-  .report-detail {
-    gap: 14px;
+  .top-bar h1 {
+    font-size: 20px;
+  }
+
+  .profile-pill {
+    display: none;
+  }
+
+  .hero-panel,
+  .workspace-grid,
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-metrics,
+  .exam-grid,
+  .report-panel,
+  .material-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .question-panel,
+  .report-panel {
+    position: static;
+  }
+
+  .materials,
+  .sample {
+    grid-column: auto;
+  }
+}
+
+@media (max-width: 640px) {
+  .hero-panel {
+    padding: 22px;
+  }
+
+  .hero-panel h2 {
+    font-size: 24px;
+  }
+
+  .submit-row,
+  .answer-head {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .answer-editor textarea {
+    min-height: 340px;
+  }
+
+  .primary-button,
+  .secondary-button {
+    width: 100%;
   }
 
   .score-layout {
     grid-template-columns: 1fr;
     justify-items: center;
     text-align: center;
-  }
-
-  .score-ring,
-  .score-ring svg {
-    width: 154px;
-    height: 154px;
-  }
-
-  .answer-head,
-  .submit-row {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .answer-head h1 {
-    font-size: 24px;
-  }
-
-  .answer-editor textarea {
-    min-height: 330px;
-    border-radius: 16px;
-  }
-
-  .primary-action {
-    width: 100%;
-  }
-
-  .count-line {
-    flex-wrap: wrap;
   }
 }
 </style>
