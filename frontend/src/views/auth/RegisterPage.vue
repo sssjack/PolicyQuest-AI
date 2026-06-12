@@ -1,38 +1,63 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '../../store/user'
 
+const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
-const form = ref({ username: '', email: '', password: '', confirmPw: '', nickname: '', exam_target: '', province: '' })
+const form = ref({
+  username: '',
+  email: '',
+  password: '',
+  confirmPw: '',
+  nickname: '',
+  exam_target: '申论',
+  province: '全国',
+})
 const loading = ref(false)
 
-const examOptions = ['历年国考', '地方省考', '事业编', '申论', '面试']
+const redirectTarget = computed(() => String(route.query.redirect || '/coach'))
+const examOptions = ['国考申论', '省考申论', '事业单位综合应用', '结构化面试', '税务面试']
 const provinceOptions = ['全国', '北京', '上海', '广东', '浙江', '山东', '江苏', '四川', '湖北', '河南']
 
+function isValidEmail(value: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
 async function handleRegister() {
-  if (!form.value.username || !form.value.email || !form.value.password) {
+  const username = form.value.username.trim()
+  const email = form.value.email.trim()
+
+  if (!username || !email || !form.value.password) {
     ElMessage.warning('请填写用户名、邮箱和密码')
     return
   }
-  if (form.value.password !== form.value.confirmPw) {
-    ElMessage.warning('两次密码不一致')
+  if (username.length < 3 || username.length > 24) {
+    ElMessage.warning('用户名需为 3-24 个字符')
+    return
+  }
+  if (!isValidEmail(email)) {
+    ElMessage.warning('请输入有效邮箱')
     return
   }
   if (form.value.password.length < 6) {
     ElMessage.warning('密码至少 6 位')
     return
   }
+  if (form.value.password !== form.value.confirmPw) {
+    ElMessage.warning('两次密码不一致')
+    return
+  }
 
   loading.value = true
   try {
-    await userStore.register(form.value)
-    ElMessage.success('注册成功')
-    router.push('/')
+    await userStore.register({ ...form.value, username, email })
+    ElMessage.success('备考档案已创建')
+    router.push(redirectTarget.value)
   } catch (e: any) {
-    ElMessage.error(e.message || '注册失败')
+    ElMessage.error(e.message || '注册失败，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -53,15 +78,15 @@ async function handleRegister() {
 
         <div class="story-copy">
           <p class="page-kicker">Create Study Profile</p>
-          <h1>建立你的公考能力档案</h1>
-          <p>填写备考方向后，系统会围绕国考、省考、事业编的申论与面试训练沉淀你的评阅记录。</p>
+          <h1>先建立备考档案，再进入 AI 学习指挥舱</h1>
+          <p>选择备考方向和地区后，系统会围绕你的训练记录沉淀评分、薄弱项和下一步建议。</p>
         </div>
 
         <div class="story-flow">
           <span>方向定位</span>
-          <span>真题选择</span>
+          <span>真题训练</span>
           <span>AI 评阅</span>
-          <span>示范改写</span>
+          <span>行动建议</span>
         </div>
       </aside>
 
@@ -69,24 +94,24 @@ async function handleRegister() {
         <div class="auth-header">
           <p class="page-kicker">Register</p>
           <h2>注册 PolicyQuest</h2>
-          <p>创建账号后即可进入 AI Exam Coach，开始第一次申论或面试评阅。</p>
+          <p>创建账号后自动进入工作台，后续训练记录会保存在你的档案中。</p>
         </div>
 
         <form class="auth-form" @submit.prevent="handleRegister">
           <div class="form-row">
             <label class="form-group">
               <span>用户名 *</span>
-              <input v-model="form.username" class="form-control" placeholder="请输入用户名" autocomplete="username" />
+              <input v-model="form.username" class="form-control" placeholder="3-24 个字符" autocomplete="username" />
             </label>
             <label class="form-group">
               <span>昵称</span>
-              <input v-model="form.nickname" class="form-control" placeholder="显示名称" />
+              <input v-model="form.nickname" class="form-control" placeholder="例如：Alex" />
             </label>
           </div>
 
           <label class="form-group">
             <span>邮箱 *</span>
-            <input v-model="form.email" class="form-control" type="email" placeholder="请输入邮箱" autocomplete="email" />
+            <input v-model="form.email" class="form-control" type="email" placeholder="用于登录和找回账号" autocomplete="email" />
           </label>
 
           <div class="form-row">
@@ -104,21 +129,19 @@ async function handleRegister() {
             <label class="form-group">
               <span>备考方向</span>
               <select v-model="form.exam_target" class="form-control">
-                <option value="">请选择</option>
                 <option v-for="item in examOptions" :key="item" :value="item">{{ item }}</option>
               </select>
             </label>
             <label class="form-group">
               <span>所在地区</span>
               <select v-model="form.province" class="form-control">
-                <option value="">请选择</option>
                 <option v-for="item in provinceOptions" :key="item" :value="item">{{ item }}</option>
               </select>
             </label>
           </div>
 
           <button class="btn-primary submit-btn" type="submit" :disabled="loading">
-            {{ loading ? '注册中...' : '创建账号并进入 AI Coach' }}
+            {{ loading ? '创建中...' : '创建账号并进入工作台' }}
           </button>
         </form>
 
@@ -126,7 +149,7 @@ async function handleRegister() {
           <span>已有账号？</span>
           <router-link to="/login">去登录</router-link>
           <span class="divider">|</span>
-          <router-link to="/">返回首页</router-link>
+          <router-link to="/">返回产品主页</router-link>
         </div>
       </section>
     </section>
@@ -140,9 +163,9 @@ async function handleRegister() {
   place-items: center;
   padding: 32px;
   background:
-    radial-gradient(circle at 16% 14%, rgba(0, 102, 255, 0.14), transparent 30%),
-    radial-gradient(circle at 84% 78%, rgba(216, 41, 76, 0.09), transparent 30%),
-    linear-gradient(180deg, #f8f9ff 0%, #ffffff 100%);
+    linear-gradient(90deg, rgba(0, 213, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+  background-size: 46px 46px, auto;
 }
 
 .auth-shell {
@@ -162,13 +185,13 @@ async function handleRegister() {
   flex-direction: column;
   justify-content: space-between;
   padding: 34px;
-  border: 1px solid rgba(194, 198, 216, 0.72);
+  border: 1px solid rgba(123, 189, 255, 0.38);
   border-radius: 24px;
   background:
-    linear-gradient(145deg, rgba(0, 80, 203, 0.94), rgba(0, 106, 97, 0.88)),
+    linear-gradient(145deg, rgba(0, 80, 203, 0.95), rgba(0, 181, 219, 0.88)),
     var(--primary);
   color: #ffffff;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 28px 70px rgba(0, 80, 203, 0.2);
 }
 
 .brand {
@@ -196,13 +219,12 @@ async function handleRegister() {
 }
 
 .brand small {
-  margin-top: 2px;
   color: rgba(255, 255, 255, 0.78);
   font-size: 12px;
 }
 
 .story-copy .page-kicker {
-  color: #bff8ef;
+  color: #bdf6ff;
 }
 
 .story-copy h1 {
@@ -214,7 +236,7 @@ async function handleRegister() {
 .story-copy p:last-child {
   max-width: 520px;
   margin: 18px 0 0;
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 255, 255, 0.84);
   font-size: 16px;
   line-height: 1.75;
 }

@@ -1,27 +1,30 @@
 <script setup lang="ts">
-import { ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { computed, ref } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '../../store/user'
 
+const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
-const form = ref({ username: '', password: '' })
+const form = ref({ account: '', password: '' })
 const loading = ref(false)
 
+const redirectTarget = computed(() => String(route.query.redirect || '/coach'))
+
 async function handleLogin() {
-  if (!form.value.username || !form.value.password) {
-    ElMessage.warning('请输入用户名和密码')
+  if (!form.value.account.trim() || !form.value.password) {
+    ElMessage.warning('请输入用户名/邮箱和密码')
     return
   }
 
   loading.value = true
   try {
-    await userStore.login(form.value.username, form.value.password)
-    ElMessage.success('登录成功')
-    router.push('/')
+    await userStore.login(form.value.account.trim(), form.value.password)
+    ElMessage.success('欢迎回来，已进入 AI 学习指挥舱')
+    router.push(redirectTarget.value)
   } catch (e: any) {
-    ElMessage.error(e.message || '登录失败')
+    ElMessage.error(e.message || '登录失败，请检查账号信息')
   } finally {
     loading.value = false
   }
@@ -41,15 +44,15 @@ async function handleLogin() {
         </router-link>
 
         <div class="story-copy">
-          <p class="page-kicker">Welcome Back</p>
-          <h1>继续你的公考训练节奏</h1>
-          <p>回到 PolicyQuest AI Exam Coach，选择历年真题，提交申论或面试作答，并获得可执行的提分路径。</p>
+          <p class="page-kicker">Secure Study Access</p>
+          <h1>登录后进入你的 AI 学习指挥舱</h1>
+          <p>继续查看今日建议、预测分数、薄弱项和申论/面试训练记录，让备考节奏不断档。</p>
         </div>
 
         <div class="story-metrics">
-          <div><strong>20</strong><span>今日推荐题量</span></div>
-          <div><strong>5</strong><span>评分维度</span></div>
-          <div><strong>AI</strong><span>实时评阅</span></div>
+          <div><strong>+4.2</strong><span>近 30 天预测涨分</span></div>
+          <div><strong>12%</strong><span>政策逻辑待补强</span></div>
+          <div><strong>1 套</strong><span>今日推荐训练</span></div>
         </div>
       </aside>
 
@@ -57,21 +60,33 @@ async function handleLogin() {
         <div class="auth-header">
           <p class="page-kicker">Sign In</p>
           <h2>登录 PolicyQuest</h2>
-          <p>输入账号信息，进入你的专属 AI Exam Coach。</p>
+          <p>支持用户名或邮箱登录。未登录用户不能进入训练工作台。</p>
         </div>
 
         <form class="auth-form" @submit.prevent="handleLogin">
           <label class="form-group">
-            <span>用户名</span>
-            <input v-model="form.username" class="form-control" type="text" placeholder="请输入用户名" autocomplete="username" />
+            <span>用户名 / 邮箱</span>
+            <input
+              v-model="form.account"
+              class="form-control"
+              type="text"
+              placeholder="请输入用户名或邮箱"
+              autocomplete="username"
+            />
           </label>
           <label class="form-group">
             <span>密码</span>
-            <input v-model="form.password" class="form-control" type="password" placeholder="请输入密码" autocomplete="current-password" />
+            <input
+              v-model="form.password"
+              class="form-control"
+              type="password"
+              placeholder="请输入密码"
+              autocomplete="current-password"
+            />
           </label>
 
           <button class="btn-primary submit-btn" type="submit" :disabled="loading">
-            {{ loading ? '登录中...' : '登录并进入 AI Coach' }}
+            {{ loading ? '登录中...' : '登录并进入 AI 指挥舱' }}
           </button>
         </form>
 
@@ -79,7 +94,7 @@ async function handleLogin() {
           <span>还没有账号？</span>
           <router-link to="/register">立即注册</router-link>
           <span class="divider">|</span>
-          <router-link to="/">返回首页</router-link>
+          <router-link to="/">返回产品主页</router-link>
         </div>
       </section>
     </section>
@@ -93,14 +108,14 @@ async function handleLogin() {
   place-items: center;
   padding: 32px;
   background:
-    radial-gradient(circle at 12% 16%, rgba(0, 102, 255, 0.14), transparent 32%),
-    radial-gradient(circle at 88% 84%, rgba(13, 148, 136, 0.12), transparent 30%),
-    linear-gradient(180deg, #f8f9ff 0%, #ffffff 100%);
+    linear-gradient(90deg, rgba(0, 213, 255, 0.06) 1px, transparent 1px),
+    linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+  background-size: 46px 46px, auto;
 }
 
 .auth-shell {
   display: grid;
-  grid-template-columns: minmax(360px, 0.9fr) minmax(380px, 480px);
+  grid-template-columns: minmax(360px, 0.92fr) minmax(380px, 480px);
   gap: 24px;
   width: min(1080px, 100%);
 }
@@ -115,13 +130,13 @@ async function handleLogin() {
   flex-direction: column;
   justify-content: space-between;
   padding: 34px;
-  border: 1px solid rgba(194, 198, 216, 0.72);
+  border: 1px solid rgba(123, 189, 255, 0.38);
   border-radius: 24px;
   background:
-    linear-gradient(145deg, rgba(0, 80, 203, 0.94), rgba(0, 106, 97, 0.88)),
+    linear-gradient(145deg, rgba(0, 80, 203, 0.95), rgba(0, 181, 219, 0.88)),
     var(--primary);
   color: #ffffff;
-  box-shadow: var(--shadow-md);
+  box-shadow: 0 28px 70px rgba(0, 80, 203, 0.2);
 }
 
 .brand {
@@ -149,7 +164,6 @@ async function handleLogin() {
 }
 
 .brand small {
-  margin-top: 2px;
   color: rgba(255, 255, 255, 0.78);
   font-size: 12px;
 }
@@ -159,7 +173,7 @@ async function handleLogin() {
 }
 
 .story-copy .page-kicker {
-  color: #bff8ef;
+  color: #bdf6ff;
 }
 
 .story-copy h1 {
@@ -170,7 +184,7 @@ async function handleLogin() {
 
 .story-copy p:last-child {
   margin: 18px 0 0;
-  color: rgba(255, 255, 255, 0.82);
+  color: rgba(255, 255, 255, 0.84);
   font-size: 16px;
   line-height: 1.75;
 }

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import {
   ArrowLeft,
   Bell,
@@ -26,10 +27,12 @@ import {
   Warning,
 } from '@element-plus/icons-vue'
 import { scoringApi } from '../../api'
+import { useUserStore } from '../../store/user'
 
 type ViewKey = 'dashboard' | 'library' | 'growth' | 'practice' | 'report'
 type PracticeType = 'essay' | 'interview'
 type ExamType = 'national' | 'province' | 'institution'
+type MobilePracticeTab = 'prompt' | 'materials' | 'answer'
 
 interface QuestionMaterial {
   title: string
@@ -85,10 +88,10 @@ const navItems = [
 ] as const
 
 const mobileNavItems = [
-  { key: 'dashboard', label: 'Dashboard', icon: Grid },
-  { key: 'library', label: 'Library', icon: Reading },
-  { key: 'growth', label: 'Growth', icon: TrendCharts },
-  { key: 'practice', label: 'Profile', icon: User },
+  { key: 'dashboard', label: '工作台', icon: Grid },
+  { key: 'library', label: '题库', icon: Reading },
+  { key: 'growth', label: '成长', icon: TrendCharts },
+  { key: 'practice', label: '练习', icon: EditPen },
 ] as const
 
 const trackCards = [
@@ -101,6 +104,22 @@ const recentPractices = [
   { title: '2023年国考副省级行测', type: '言语理解', date: '昨天', accuracy: 78, tone: 'blue' },
   { title: '2022年联考资料分析', type: '资料分析', date: '本周', accuracy: 100, tone: 'teal' },
   { title: '模拟考：逻辑判断 A 组', type: '判断推理', date: '3天前', accuracy: 30, tone: 'rose' },
+]
+
+const commandMetrics = [
+  { label: '预测分数', value: '78.6', delta: '+4.2 / 30天', tone: 'blue' },
+  { label: '薄弱项', value: '政策逻辑', delta: '准确率 -12%', tone: 'danger' },
+  { label: '今日强度', value: '45 分钟', delta: '1 套申论 + 复盘', tone: 'teal' },
+]
+
+const weakFocusCards = [
+  { title: '政策逻辑', reason: '分论点能成立，但论据和政策表达衔接不足。', action: '复习 3 个政策表达模板' },
+  { title: '论证充分性', reason: '材料转化偏少，容易出现“空泛正确”。', action: '补 1 组材料提炼训练' },
+]
+
+const growthInsights = [
+  { title: '为什么关注政策逻辑', desc: '最近三次申论训练中，政策逻辑维度平均下降 12%，主要失分在“政策高度”和“执行抓手”。', action: '进入政策逻辑专项' },
+  { title: '为什么建议限时写作', desc: '作答字数达标，但平均完成时间比目标多 14 分钟，需要训练开头定调和分论点展开速度。', action: '开始 45 分钟限时练习' },
 ]
 
 const heatCells = [
@@ -237,6 +256,7 @@ const sampleInterviewAnswer =
   '各位考官，我认为基层减负和必要留痕并不矛盾，关键在于把握“减无效负担、留关键记录”的原则。首先，要明确留痕边界。对于重复报表、形式主义截图、层层转发记录，应坚决压减；对于决策依据、群众诉求办理、风险隐患处置等关键环节，应规范留存。其次，要优化留痕方式。通过统一平台、一次采集、多方共享，减少基层重复填报，让数据多跑路、干部少折腾。再次，要完善评价机制。不能简单以材料厚薄衡量工作成效，而要看群众满意度、问题解决率和治理实效。总之，基层减负不是放松责任，而是让干部从无效事务中解放出来，把更多精力用在服务群众和抓落实上。'
 
 const activeView = ref<ViewKey>('dashboard')
+const activeMobilePracticeTab = ref<MobilePracticeTab>('prompt')
 const selectedQuestionId = ref(1)
 const answer = ref('')
 const loading = ref(false)
@@ -244,8 +264,11 @@ const errorMessage = ref('')
 const evaluation = ref<Evaluation | null>(null)
 const dashboardSearch = ref('')
 const scoreCircumference = 301.59
+const router = useRouter()
+const userStore = useUserStore()
 
 const selectedQuestion = computed(() => questions.find(item => item.id === selectedQuestionId.value) || questions[0])
+const currentUserName = computed(() => userStore.user?.nickname || userStore.user?.username || '同学')
 const wordCount = computed(() => answer.value.trim().replace(/\s/g, '').length)
 const targetWordLimit = computed(() => selectedQuestion.value.wordLimit)
 const progressPercent = computed(() => Math.min(100, Math.round((wordCount.value / targetWordLimit.value) * 100)))
@@ -274,12 +297,19 @@ const groupedLibrary = computed(() => [
 
 function goView(view: ViewKey) {
   activeView.value = view
+  if (view === 'practice') activeMobilePracticeTab.value = 'prompt'
 }
 
 function startQuestion(question: Question) {
   selectedQuestionId.value = question.id
   errorMessage.value = ''
+  activeMobilePracticeTab.value = 'prompt'
   activeView.value = 'practice'
+}
+
+function logout() {
+  userStore.logout()
+  router.push('/login')
 }
 
 function useTemplate() {
@@ -482,7 +512,7 @@ async function evaluate() {
         </button>
       </nav>
 
-      <button class="mock-button" type="button" @click="startQuestion(questions[0])">开始模拟考</button>
+      <button class="mock-button" type="button" @click="startQuestion(questions[0])">开始今日训练</button>
 
       <footer class="side-footer">
         <button type="button"><el-icon><CircleCheck /></el-icon><span>帮助与支持</span></button>
@@ -504,25 +534,49 @@ async function evaluate() {
         <div class="top-actions">
           <button class="icon-button" type="button" aria-label="通知"><el-icon><Bell /></el-icon></button>
           <button class="icon-button" type="button" aria-label="设置"><el-icon><Setting /></el-icon></button>
-          <button class="avatar-button" type="button" aria-label="个人中心"><el-icon><User /></el-icon></button>
+          <button class="avatar-button" type="button" :aria-label="`退出 ${currentUserName} 的账号`" @click="logout"><el-icon><User /></el-icon></button>
         </div>
       </header>
 
       <template v-if="activeView === 'dashboard'">
         <section class="dashboard-view">
           <section class="hero-card">
-            <h1>准备好迎接考试了吗，Alex?</h1>
-            <p>智能驱动，高效备考。开启今日练习。</p>
+            <div class="hero-command-copy">
+              <span class="ai-kicker">AI 学习指挥舱</span>
+              <h1>{{ currentUserName }}，今天先补政策逻辑，再完成一套申论模拟</h1>
+              <p>系统根据最近训练记录判断：你的作答结构稳定，但政策表达和材料转化正在拖慢提分效率。</p>
+              <div class="hero-command-actions">
+                <button class="primary-button" type="button" @click="startQuestion(selectedQuestion)">开始今日训练</button>
+                <button class="soft-button" type="button" @click="goView('growth')">查看提分原因</button>
+              </div>
+            </div>
+            <div class="command-panel">
+              <article v-for="item in commandMetrics" :key="item.label" :class="item.tone">
+                <span>{{ item.label }}</span>
+                <strong>{{ item.value }}</strong>
+                <small>{{ item.delta }}</small>
+              </article>
+            </div>
+          </section>
+
+          <section class="search-strip">
             <label class="search-box">
               <el-icon><Search /></el-icon>
               <input v-model="dashboardSearch" type="search" placeholder="搜索试卷、考点或关键词..." />
               <button type="button" @click="goView('library')">搜索</button>
             </label>
+            <div class="ai-signal">
+              <strong>今日薄弱项</strong>
+              <span>政策逻辑 · 论据充分性 · 限时表达</span>
+            </div>
           </section>
 
           <section class="section-block">
             <div class="section-heading">
-              <h2>目标赛道</h2>
+              <div>
+                <h2>目标赛道</h2>
+                <p>选择训练方向，AI 会把题目、评分和复盘串成一条提分路径。</p>
+              </div>
             </div>
             <div class="track-grid">
               <button
@@ -571,7 +625,17 @@ async function evaluate() {
                 <span>AI 预测分数趋势</span>
                 <strong>+4.2 分</strong>
               </div>
+              <button class="inline-action" type="button" @click="goView('growth')">查看为什么</button>
             </aside>
+          </section>
+
+          <section class="weak-focus-grid">
+            <article v-for="item in weakFocusCards" :key="item.title" class="weak-focus-card">
+              <span>AI 诊断</span>
+              <h3>{{ item.title }}</h3>
+              <p>{{ item.reason }}</p>
+              <button type="button" @click="goView('growth')">{{ item.action }}</button>
+            </article>
           </section>
         </section>
       </template>
@@ -628,10 +692,19 @@ async function evaluate() {
           <div class="page-title-row">
             <div>
               <h1>成长报告</h1>
-              <p>追踪您的备考进度与各学科掌握程度。</p>
+              <p>不只看数据，也解释为什么掉分，以及下一步怎么练。</p>
             </div>
             <button class="date-button" type="button"><el-icon><Calendar /></el-icon>最近30天</button>
           </div>
+
+          <section class="growth-explain-strip">
+            <article v-for="item in growthInsights" :key="item.title">
+              <span>AI 原因解释</span>
+              <h2>{{ item.title }}</h2>
+              <p>{{ item.desc }}</p>
+              <button type="button" @click="startQuestion(selectedQuestion)">{{ item.action }}</button>
+            </article>
+          </section>
 
           <div class="growth-top-grid">
             <article class="card heat-card">
@@ -647,14 +720,15 @@ async function evaluate() {
 
             <aside class="attention-card">
               <h2><el-icon><Warning /></el-icon>急需关注</h2>
-              <div>
+              <div class="attention-item">
                 <strong>政策逻辑</strong>
-                <p>最近三次模拟考试中，该项准确率下降了 12%。</p>
-                <button type="button">复习相关考点</button>
+                <p>最近三次模拟考试中，该项准确率下降了 12%。原因是分论点能写出，但“政策依据 + 执行抓手”不足。</p>
+                <button type="button" @click="startQuestion(questions[0])">复习相关考点</button>
               </div>
-              <div>
+              <div class="attention-item">
                 <strong>数量关系</strong>
-                <p>每道题平均耗时超出目标设定 45 秒。</p>
+                <p>每道题平均耗时超出目标设定 45 秒。建议先做限时训练，减少开头和分论点犹豫。</p>
+                <button type="button" @click="startQuestion(questions[3])">开始限时练习</button>
               </div>
             </aside>
           </div>
@@ -702,32 +776,58 @@ async function evaluate() {
             <span class="timer-pill"><el-icon><Timer /></el-icon>119:50</span>
           </header>
 
+          <div class="mobile-practice-tabs" aria-label="移动端练习分段">
+            <button
+              type="button"
+              :class="{ active: activeMobilePracticeTab === 'prompt' }"
+              @click="activeMobilePracticeTab = 'prompt'"
+            >
+              题目
+            </button>
+            <button
+              type="button"
+              :class="{ active: activeMobilePracticeTab === 'materials' }"
+              @click="activeMobilePracticeTab = 'materials'"
+            >
+              材料
+            </button>
+            <button
+              type="button"
+              :class="{ active: activeMobilePracticeTab === 'answer' }"
+              @click="activeMobilePracticeTab = 'answer'"
+            >
+              作答
+            </button>
+          </div>
+
           <div class="practice-layout">
             <section class="materials-panel">
-              <div class="practice-meta">
-                <span>{{ selectedQuestion.year }} {{ selectedQuestion.source }}</span>
-                <span class="danger">难度：{{ selectedQuestion.difficulty }}</span>
+              <div class="prompt-section" :class="{ 'mobile-hidden': activeMobilePracticeTab !== 'prompt' }">
+                <div class="practice-meta">
+                  <span>{{ selectedQuestion.year }} {{ selectedQuestion.source }}</span>
+                  <span class="danger">难度：{{ selectedQuestion.difficulty }}</span>
+                </div>
+                <h1>{{ selectedQuestion.title }}</h1>
+                <div class="requirement-card">
+                  <strong>问题：</strong>
+                  <span>{{ selectedQuestion.prompt }}</span>
+                  <ul>
+                    <li v-for="item in selectedQuestion.requirements" :key="item">{{ item }}</li>
+                  </ul>
+                </div>
               </div>
-              <h1>{{ selectedQuestion.title }}</h1>
 
-              <h3>背景材料</h3>
-              <article v-for="material in selectedQuestion.materials" :key="material.title" class="material-card">
-                <div><el-icon><DocumentChecked /></el-icon><strong>{{ material.title }}</strong></div>
-                <p>{{ material.content }}</p>
-                <button type="button">展开阅读</button>
-              </article>
-
-              <h3>作答要求</h3>
-              <div class="requirement-card">
-                <strong>问题：</strong>
-                <span>{{ selectedQuestion.prompt }}</span>
-                <ul>
-                  <li v-for="item in selectedQuestion.requirements" :key="item">{{ item }}</li>
-                </ul>
+              <div class="materials-section" :class="{ 'mobile-hidden': activeMobilePracticeTab !== 'materials' }">
+                <h3>背景材料</h3>
+                <article v-for="material in selectedQuestion.materials" :key="material.title" class="material-card">
+                  <div><el-icon><DocumentChecked /></el-icon><strong>{{ material.title }}</strong></div>
+                  <p>{{ material.content }}</p>
+                  <button type="button" @click="activeMobilePracticeTab = 'answer'">读完去作答</button>
+                </article>
               </div>
             </section>
 
-            <section class="editor-panel">
+            <section class="editor-panel" :class="{ 'mobile-hidden': activeMobilePracticeTab !== 'answer' }">
               <div class="editor-toolbar">
                 <button type="button">B</button>
                 <button type="button"><el-icon><Notebook /></el-icon></button>
@@ -1084,25 +1184,131 @@ button {
 
 .hero-card {
   display: grid;
-  justify-items: center;
-  min-height: 270px;
-  padding: 52px 32px;
+  grid-template-columns: minmax(0, 1.18fr) minmax(280px, 0.82fr);
+  align-items: stretch;
+  gap: 28px;
+  min-height: 292px;
+  padding: 34px;
   border: 1px solid #dfe6f5;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #f8faff, #eef5ff);
-  text-align: center;
+  border-radius: 20px;
+  background:
+    linear-gradient(90deg, rgba(0, 213, 255, 0.08) 1px, transparent 1px),
+    linear-gradient(135deg, #f8faff, #eef5ff 58%, #e8fbff);
+  background-size: 42px 42px, auto;
+  box-shadow: 0 20px 52px rgba(19, 42, 74, 0.08);
 }
 
-.hero-card h1 {
-  margin: 0;
-  font-size: 32px;
-  line-height: 1.25;
+.hero-command-copy {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
 }
 
-.hero-card p {
-  margin: 14px 0 34px;
+.ai-kicker {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 30px;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: rgba(0, 184, 217, 0.14);
+  color: #00758a;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.hero-command-copy h1 {
+  margin: 14px 0 0;
+  max-width: 680px;
+  color: #07182f;
+  font-size: 38px;
+  line-height: 1.18;
+}
+
+.hero-command-copy p {
+  max-width: 640px;
+  margin: 16px 0 0;
   color: #526071;
   font-size: 16px;
+  line-height: 1.75;
+}
+
+.hero-command-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.command-panel {
+  display: grid;
+  gap: 12px;
+}
+
+.command-panel article {
+  display: grid;
+  gap: 6px;
+  padding: 18px;
+  border: 1px solid rgba(207, 216, 234, 0.86);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 12px 30px rgba(7, 88, 216, 0.07);
+}
+
+.command-panel span {
+  color: #586474;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.command-panel strong {
+  color: #0758d8;
+  font-size: 28px;
+}
+
+.command-panel small {
+  color: #00796f;
+  font-weight: 800;
+}
+
+.command-panel .danger strong,
+.command-panel .danger small {
+  color: #b20f38;
+}
+
+.command-panel .teal strong,
+.command-panel .teal small {
+  color: #00796f;
+}
+
+.search-strip {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.ai-signal {
+  display: grid;
+  gap: 4px;
+  min-width: 280px;
+  padding: 14px 16px;
+  border: 1px solid rgba(0, 184, 217, 0.2);
+  border-radius: 14px;
+  background: #f0fcff;
+}
+
+.ai-signal strong {
+  color: #00758a;
+  font-size: 13px;
+}
+
+.ai-signal span {
+  color: #586474;
+  font-size: 12px;
+  font-weight: 800;
 }
 
 .search-box {
@@ -1343,6 +1549,54 @@ button {
   font-size: 22px;
 }
 
+.inline-action,
+.weak-focus-card button,
+.growth-explain-strip button {
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  color: #0758d8;
+  font-weight: 900;
+}
+
+.weak-focus-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 28px;
+}
+
+.weak-focus-card,
+.growth-explain-strip article {
+  display: grid;
+  gap: 10px;
+  padding: 22px;
+  border: 1px solid rgba(0, 184, 217, 0.2);
+  border-radius: 16px;
+  background: linear-gradient(145deg, #ffffff, #f0fcff);
+  box-shadow: 0 12px 32px rgba(19, 42, 74, 0.06);
+}
+
+.weak-focus-card span,
+.growth-explain-strip span {
+  color: #00758a;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.weak-focus-card h3,
+.growth-explain-strip h2 {
+  margin: 0;
+  color: #07182f;
+}
+
+.weak-focus-card p,
+.growth-explain-strip p {
+  margin: 0;
+  color: #586474;
+  line-height: 1.7;
+}
+
 .filter-row {
   display: flex;
   flex-wrap: wrap;
@@ -1452,6 +1706,13 @@ button {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 318px;
   gap: 24px;
+  margin-top: 28px;
+}
+
+.growth-explain-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
   margin-top: 28px;
 }
 
@@ -1613,6 +1874,10 @@ button {
   margin-bottom: 20px;
 }
 
+.mobile-practice-tabs {
+  display: none;
+}
+
 .back-button {
   width: 44px;
   height: 44px;
@@ -1678,13 +1943,13 @@ button {
   color: #b20f38;
 }
 
-.materials-panel h1 {
+.prompt-section h1 {
   margin: 22px 0 36px;
   font-size: 30px;
   line-height: 1.35;
 }
 
-.materials-panel h3 {
+.materials-section h3 {
   margin: 28px 0 16px;
 }
 
@@ -1837,6 +2102,7 @@ button {
   justify-content: center;
   min-height: 52px;
   gap: 8px;
+  padding: 0 18px;
   border: 0;
   border-radius: 10px;
   font-weight: 900;
@@ -2116,7 +2382,7 @@ button {
 
   .app-shell {
     margin-left: 0;
-    padding-bottom: 88px;
+    padding-bottom: calc(104px + env(safe-area-inset-bottom));
   }
 
   .topbar {
@@ -2151,22 +2417,41 @@ button {
   .practice-view,
   .report-view {
     width: min(100vw - 32px, 620px);
-    padding: 28px 0 36px;
+    padding: 28px 0 120px;
   }
 
   .hero-card {
-    display: block;
+    grid-template-columns: 1fr;
     min-height: auto;
-    padding: 0;
-    border: 0;
-    background: transparent;
-    box-shadow: none;
+    padding: 22px;
+    border-radius: 18px;
     text-align: left;
   }
 
-  .hero-card h1,
-  .hero-card p {
-    display: none;
+  .hero-command-copy h1 {
+    font-size: 26px;
+  }
+
+  .hero-command-copy p {
+    font-size: 14px;
+  }
+
+  .command-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .command-panel article {
+    padding: 16px;
+  }
+
+  .search-strip,
+  .weak-focus-grid,
+  .growth-explain-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .ai-signal {
+    min-width: 0;
   }
 
   .search-box {
@@ -2295,9 +2580,12 @@ button {
     font-size: 26px;
   }
 
-  .growth-view > .page-title-row,
-  .growth-top-grid {
+  .growth-view > .page-title-row {
     display: none;
+  }
+
+  .growth-top-grid {
+    display: grid;
   }
 
   .achievements-card {
@@ -2310,9 +2598,14 @@ button {
   }
 
   .practice-header {
+    position: sticky;
+    top: 82px;
+    z-index: 16;
     margin: 0 -16px 22px;
     padding: 0 16px 18px;
     border-bottom: 1px solid #e1e7f6;
+    background: rgba(248, 249, 255, 0.96);
+    backdrop-filter: blur(16px);
   }
 
   .practice-header strong {
@@ -2331,6 +2624,41 @@ button {
     background: transparent;
   }
 
+  .mobile-practice-tabs {
+    position: sticky;
+    top: 144px;
+    z-index: 15;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+    margin: -12px -4px 18px;
+    padding: 6px;
+    border: 1px solid #d7e3f6;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 12px 30px rgba(19, 42, 74, 0.08);
+    backdrop-filter: blur(18px);
+  }
+
+  .mobile-practice-tabs button {
+    min-height: 40px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: #526071;
+    font-weight: 900;
+  }
+
+  .mobile-practice-tabs button.active {
+    background: #0758d8;
+    color: #ffffff;
+    box-shadow: 0 10px 24px rgba(7, 88, 216, 0.2);
+  }
+
+  .mobile-hidden {
+    display: none !important;
+  }
+
   .materials-panel,
   .editor-panel {
     padding: 0;
@@ -2340,7 +2668,7 @@ button {
     border-right: 0;
   }
 
-  .materials-panel h1 {
+  .prompt-section h1 {
     font-size: 26px;
   }
 
@@ -2365,14 +2693,17 @@ button {
   }
 
   .editor-actions {
-    position: sticky;
-    bottom: 88px;
-    z-index: 10;
-    margin: 28px -16px -12px;
+    position: fixed;
+    right: 16px;
+    bottom: calc(86px + env(safe-area-inset-bottom));
+    left: 16px;
+    z-index: 42;
+    margin: 0;
     padding: 18px 16px;
-    border-radius: 20px 20px 0 0;
+    border: 1px solid #d7e3f6;
+    border-radius: 20px;
     background: rgba(255, 255, 255, 0.94);
-    box-shadow: 0 -12px 30px rgba(19, 42, 74, 0.08);
+    box-shadow: 0 18px 46px rgba(19, 42, 74, 0.15);
     backdrop-filter: blur(18px);
   }
 
@@ -2429,8 +2760,8 @@ button {
     inset: auto 0 0;
     z-index: 40;
     grid-template-columns: repeat(4, 1fr);
-    min-height: 76px;
-    padding: 8px 18px;
+    min-height: calc(76px + env(safe-area-inset-bottom));
+    padding: 8px 18px calc(8px + env(safe-area-inset-bottom));
     border-top: 1px solid #e1e7f6;
     background: rgba(255, 255, 255, 0.96);
     box-shadow: 0 -12px 30px rgba(19, 42, 74, 0.08);

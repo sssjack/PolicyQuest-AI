@@ -6,6 +6,9 @@
   --secondary: #006a61;
   --secondary-light: #0d9488;
   --secondary-soft: #e8fbf7;
+  --ai: #00b8d9;
+  --ai-strong: #008faf;
+  --ai-soft: #e5fbff;
   --accent: #d8294c;
   --accent-soft: #fff2f5;
   --warning: #d88a00;
@@ -27,7 +30,7 @@
   --shadow-sm: 0 8px 24px rgba(19, 42, 74, 0.06);
   --shadow-md: 0 18px 46px rgba(19, 42, 74, 0.09);
   --shadow-glow: 0 16px 36px rgba(0, 80, 203, 0.16);
-  --gradient-1: linear-gradient(135deg, #0050cb 0%, #0066ff 100%);
+  --gradient-1: linear-gradient(135deg, #0050cb 0%, #0066ff 58%, #00b8d9 100%);
   --gradient-2: linear-gradient(135deg, #006a61 0%, #0d9488 100%);
   --radius-sm: 8px;
   --radius-md: 12px;
