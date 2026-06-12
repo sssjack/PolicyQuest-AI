@@ -31,5 +31,6 @@ module.exports = {
   },
   llm,
   deepseek: llm,
+  crawlerSchedulerEnabled: process.env.ENABLE_CRAWLER_SCHEDULER === 'true',
   aiServiceUrl: process.env.AI_SERVICE_URL || 'http://localhost:8000'
 };

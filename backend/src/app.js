@@ -47,8 +47,12 @@ async function start() {
     app.listen(config.port, '0.0.0.0', () => {
       console.log(`PolicyQuest API running on port ${config.port}`);
 
-      const { startScheduler } = require('./services/scheduler');
-      startScheduler();
+      if (config.crawlerSchedulerEnabled) {
+        const { startScheduler } = require('./services/scheduler');
+        startScheduler();
+      } else {
+        console.log('Crawler scheduler disabled for PolicyQuest AI Exam Coach');
+      }
     });
   } catch (e) {
     console.error('Failed to start:', e);

@@ -19,7 +19,7 @@ async function handleLogin() {
   try {
     await userStore.login(form.value.username, form.value.password)
     ElMessage.success('登录成功')
-    router.push(userStore.isAdmin ? '/admin' : '/app/dashboard')
+    router.push(userStore.isAdmin ? '/admin' : '/')
   } catch (e: any) {
     ElMessage.error(e.message || '登录失败')
   } finally {
@@ -43,7 +43,7 @@ async function handleLogin() {
         <div class="story-copy">
           <p class="page-kicker">Welcome Back</p>
           <h1>继续你的公考训练节奏</h1>
-          <p>回到工作台，查看今日任务、继续未完成练习，并让 AI 把每一次作答沉淀为下一步提分路径。</p>
+          <p>回到 PolicyQuest AI Exam Coach，选择历年真题，提交申论或面试作答，并获得可执行的提分路径。</p>
         </div>
 
         <div class="story-metrics">
@@ -57,7 +57,7 @@ async function handleLogin() {
         <div class="auth-header">
           <p class="page-kicker">Sign In</p>
           <h2>登录 PolicyQuest</h2>
-          <p>输入账号信息，进入你的专属备考工作台。</p>
+          <p>输入账号信息，进入你的专属 AI Exam Coach。</p>
         </div>
 
         <form class="auth-form" @submit.prevent="handleLogin">
@@ -71,7 +71,7 @@ async function handleLogin() {
           </label>
 
           <button class="btn-primary submit-btn" type="submit" :disabled="loading">
-            {{ loading ? '登录中...' : '登录并进入工作台' }}
+            {{ loading ? '登录中...' : '登录并进入 AI Coach' }}
           </button>
         </form>
 

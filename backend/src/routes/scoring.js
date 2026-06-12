@@ -104,6 +104,13 @@ router.post('/evaluate', async (req, res) => {
   }
 
   try {
+    const examLabelMap = {
+      national: '历年国考',
+      province: '地方省考',
+      institution: '事业编',
+    };
+    const examLabel = examLabelMap[question?.exam] || question?.exam || '公职考试';
+    const typeLabel = type === 'interview' ? '结构化面试' : '申论';
     const response = await fetch(config.llm.apiUrl, {
       method: 'POST',
       headers: {
@@ -117,11 +124,11 @@ router.post('/evaluate', async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: '你是资深公考申论与结构化面试阅卷老师。请严格按 JSON 输出，不要输出 Markdown。',
+            content: '你是 PolicyQuest AI Exam Coach 的资深公考阅卷官，专门批改历年国考、地方省考、事业编的申论与结构化面试作答。你的反馈要像真实教研老师：评分严格、诊断具体、建议可改写、示范答案可直接学习。请严格按 JSON 输出，不要输出 Markdown。',
           },
           {
             role: 'user',
-            content: `请批改以下${type === 'interview' ? '面试' : '申论'}作答，并输出 JSON：
+            content: `请批改以下${examLabel}${typeLabel}作答，并输出 JSON：
 {
   "score": 0-100,
   "level": "优秀/良好/中等/待提升",
@@ -134,8 +141,13 @@ router.post('/evaluate', async (req, res) => {
   "sampleEssay": "完整示范范文或面试示范答案"
 }
 
+考试类型：${examLabel}
+训练题型：${typeLabel}
 题目：${question?.title || ''}
+来源：${question?.source || ''}
 题干：${question?.prompt || ''}
+作答要求：${Array.isArray(question?.requirements) ? question.requirements.join('；') : ''}
+标签：${Array.isArray(question?.tags) ? question.tags.join('、') : ''}
 作答：${answer}`,
           },
         ],

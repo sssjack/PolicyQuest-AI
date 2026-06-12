@@ -8,21 +8,21 @@ const router = useRouter()
 const userStore = useUserStore()
 
 const features = [
-  { icon: 'hot', title: '热点驱动出题', desc: '围绕政策文件、时政评论和基层案例生成训练内容，题目保持新鲜度。' },
-  { icon: 'brain', title: 'AI 智能评阅', desc: '申论、面试、客观题统一沉淀为可复盘的评分报告和能力标签。' },
-  { icon: 'chart', title: '个人能力画像', desc: '跟踪正确率、题型短板、练习节奏，给出下一步学习建议。' },
-  { icon: 'timer', title: '沉浸式训练', desc: '计时答题、题目导航、错题回练，让日常训练更接近真实考场。' },
+  { icon: 'practice', title: '历年真题选择', desc: '按国考、省考、事业编快速切换训练来源，聚焦申论与结构化面试。' },
+  { icon: 'brain', title: 'AI 智能评阅', desc: '提交自己的作答后生成总分、维度评分、优缺点和提分建议。' },
+  { icon: 'chart', title: '示范改写', desc: '给出可直接学习的高分表达、优质素材和完整示范答案。' },
+  { icon: 'timer', title: '考场节奏', desc: '围绕申论字数和面试时长组织训练，让表达更接近真实考试。' },
 ]
 
 const stats = [
   { value: '6', label: '备考方向' },
   { value: '5', label: '评分维度' },
-  { value: '24h', label: '热点更新' },
+  { value: '2', label: '作答模式' },
   { value: 'AI', label: '专属教练' },
 ]
 
 function goStart() {
-  router.push(userStore.isLoggedIn ? '/app/dashboard' : '/login')
+  router.push('/')
 }
 </script>
 
@@ -39,7 +39,7 @@ function goStart() {
       <nav class="site-nav">
         <a href="#features">功能</a>
         <a href="#workflow">流程</a>
-        <button v-if="userStore.isLoggedIn" class="btn-ghost" type="button" @click="router.push('/app/dashboard')">进入工作台</button>
+        <button v-if="userStore.isLoggedIn" class="btn-ghost" type="button" @click="router.push('/')">进入 AI Coach</button>
         <button v-if="!userStore.isLoggedIn" class="btn-ghost" type="button" @click="router.push('/login')">登录</button>
         <button v-if="!userStore.isLoggedIn" class="btn-primary" type="button" @click="router.push('/register')">注册</button>
       </nav>
@@ -47,15 +47,15 @@ function goStart() {
 
     <section class="hero">
       <div class="hero-copy">
-        <p class="page-kicker">Hot Topic Driven AI Training</p>
+        <p class="page-kicker">PolicyQuest AI Exam Coach</p>
         <h1>PolicyQuest</h1>
-        <p class="hero-subtitle">面向公考、事业编、税务与基层治理方向的智能训练工作台，把热点题库、限时练习、AI 评阅和成长报告合在一个清晰的学习流里。</p>
+        <p class="hero-subtitle">面向国考、省考、事业编考生的申论与面试 AI 评阅工具，把真题选择、用户作答、评分诊断、提分建议和示范答案放在一个清晰流程里。</p>
         <div class="hero-actions">
           <button class="btn-primary hero-btn" type="button" @click="goStart">
-            <span>开始今日训练</span>
+            <span>进入 AI 评阅</span>
             <SvgIcon name="arrow-right" :size="18" />
           </button>
-          <button class="btn-ghost hero-btn" type="button" @click="router.push('/app/report')">查看能力报告</button>
+          <button class="btn-ghost hero-btn" type="button" @click="router.push('/')">选择真题</button>
         </div>
         <div class="hero-stats">
           <div v-for="item in stats" :key="item.label" class="stat-pill">
@@ -65,10 +65,10 @@ function goStart() {
         </div>
       </div>
 
-      <div class="hero-visual" aria-label="PolicyQuest 工作台预览">
+      <div class="hero-visual" aria-label="PolicyQuest AI Exam Coach 预览">
         <img :src="heroImage" alt="PolicyQuest 产品预览" />
         <div class="floating-panel">
-          <span class="chip success">今日已完成 68%</span>
+          <span class="chip success">AI Coach Ready</span>
           <strong>申论评阅：82 分</strong>
           <small>建议补强“执行主体 + 闭环机制”表达。</small>
         </div>
@@ -78,7 +78,7 @@ function goStart() {
     <section id="features" class="features">
       <div class="section-head">
         <p class="page-kicker">Core Modules</p>
-        <h2 class="page-title">从刷题到复盘，保持同一条学习路径</h2>
+        <h2 class="page-title">从真题作答到示范改写，保持同一条提分路径</h2>
       </div>
       <div class="feature-grid">
         <article v-for="item in features" :key="item.title" class="feature-card glass-card">
@@ -92,13 +92,13 @@ function goStart() {
     <section id="workflow" class="workflow glass-card">
       <div>
         <p class="page-kicker">Study Flow</p>
-        <h2>选择方向、限时作答、查看报告、回练错题</h2>
+        <h2>选择真题、输入作答、查看评分、按示范改写</h2>
       </div>
       <div class="workflow-steps">
         <span>1. 选题</span>
         <span>2. 作答</span>
         <span>3. 评阅</span>
-        <span>4. 复盘</span>
+        <span>4. 改写</span>
       </div>
     </section>
   </main>

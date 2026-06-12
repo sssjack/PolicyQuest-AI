@@ -9,7 +9,7 @@ const userStore = useUserStore()
 const form = ref({ username: '', email: '', password: '', confirmPw: '', nickname: '', exam_target: '', province: '' })
 const loading = ref(false)
 
-const examOptions = ['国考', '省考', '事业编', '税务', '选调生', '基层治理']
+const examOptions = ['历年国考', '地方省考', '事业编', '申论', '面试']
 const provinceOptions = ['全国', '北京', '上海', '广东', '浙江', '山东', '江苏', '四川', '湖北', '河南']
 
 async function handleRegister() {
@@ -30,7 +30,7 @@ async function handleRegister() {
   try {
     await userStore.register(form.value)
     ElMessage.success('注册成功')
-    router.push('/app/dashboard')
+    router.push('/')
   } catch (e: any) {
     ElMessage.error(e.message || '注册失败')
   } finally {
@@ -54,14 +54,14 @@ async function handleRegister() {
         <div class="story-copy">
           <p class="page-kicker">Create Study Profile</p>
           <h1>建立你的公考能力档案</h1>
-          <p>填写备考方向与地区后，系统会优先推荐更贴近目标岗位、考试类型和热点主题的训练内容。</p>
+          <p>填写备考方向后，系统会围绕国考、省考、事业编的申论与面试训练沉淀你的评阅记录。</p>
         </div>
 
         <div class="story-flow">
           <span>方向定位</span>
-          <span>智能组卷</span>
+          <span>真题选择</span>
           <span>AI 评阅</span>
-          <span>错题回练</span>
+          <span>示范改写</span>
         </div>
       </aside>
 
@@ -69,7 +69,7 @@ async function handleRegister() {
         <div class="auth-header">
           <p class="page-kicker">Register</p>
           <h2>注册 PolicyQuest</h2>
-          <p>创建账号后即可进入工作台，开始第一组训练。</p>
+          <p>创建账号后即可进入 AI Exam Coach，开始第一次申论或面试评阅。</p>
         </div>
 
         <form class="auth-form" @submit.prevent="handleRegister">
@@ -118,7 +118,7 @@ async function handleRegister() {
           </div>
 
           <button class="btn-primary submit-btn" type="submit" :disabled="loading">
-            {{ loading ? '注册中...' : '创建账号并进入工作台' }}
+            {{ loading ? '注册中...' : '创建账号并进入 AI Coach' }}
           </button>
         </form>
 

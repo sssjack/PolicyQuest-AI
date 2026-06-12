@@ -166,7 +166,7 @@ const sampleInterviewAnswer =
 const selectedExam = ref<ExamType>('national')
 const selectedType = ref<PracticeType>('essay')
 const selectedQuestionId = ref(1)
-const answer = ref(sampleEssayAnswer)
+const answer = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
 const evaluation = ref<Evaluation | null>(null)
@@ -225,7 +225,7 @@ function selectType(type: PracticeType) {
   selectedType.value = type
   const first = questions.find(item => item.exam === selectedExam.value && item.type === type)
   if (first) selectedQuestionId.value = first.id
-  answer.value = type === 'interview' ? sampleInterviewAnswer : sampleEssayAnswer
+  answer.value = ''
   evaluation.value = null
   errorMessage.value = ''
 }
@@ -391,7 +391,7 @@ async function evaluate() {
       <button class="icon-button" type="button" aria-label="返回">
         <el-icon><ArrowLeft /></el-icon>
       </button>
-      <h1>AI 评估报告</h1>
+      <h1>AI Exam Coach</h1>
       <button class="icon-button" type="button" aria-label="消息">
         <el-icon><Bell /></el-icon>
       </button>
@@ -402,7 +402,7 @@ async function evaluate() {
         <span class="brand-mark">PQ</span>
         <span>
           <strong>PolicyQuest</strong>
-          <small>申论与面试 AI 评阅</small>
+          <small>AI Exam Coach</small>
         </span>
       </a>
       <nav class="desktop-nav" aria-label="主导航">
@@ -413,19 +413,19 @@ async function evaluate() {
       </nav>
       <div class="user-pill">
         <el-icon><User /></el-icon>
-        <span>训练档案</span>
+        <span>AI Coach</span>
       </div>
     </header>
 
     <div class="page-shell">
       <section class="workspace-head">
         <div>
-          <p class="eyebrow">PolicyQuest Studio</p>
-          <h2>选择历年真题，提交答案，生成一份可直接改写的 AI 评阅报告。</h2>
+          <p class="eyebrow">PolicyQuest AI Exam Coach</p>
+          <h2>国考、省考、事业编申论/面试真题，一次完成作答、评分、指导、建议和示范答案。</h2>
         </div>
         <div class="head-metrics" aria-label="产品指标">
-          <span><strong>3</strong>类考试</span>
-          <span><strong>2</strong>种题型</span>
+          <span><strong>3</strong>考试来源</span>
+          <span><strong>2</strong>作答模式</span>
           <span><strong>5</strong>维评分</span>
         </div>
       </section>
@@ -495,7 +495,7 @@ async function evaluate() {
             </div>
             <button class="soft-button" type="button" @click="useTemplate">
               <el-icon><Refresh /></el-icon>
-              示例
+              填入示范
             </button>
           </div>
 
@@ -513,7 +513,7 @@ async function evaluate() {
             <span>我的作答</span>
             <textarea
               v-model="answer"
-              placeholder="在这里输入你的申论作文或面试作答，系统会从总分、维度、优缺点、建议、素材和示范范文进行完整评阅。"
+              placeholder="在这里输入你的申论作文或面试作答。提交后，PolicyQuest 会从总分、分项维度、优缺点、提分建议、优质素材和示范答案进行完整评阅。"
             />
           </label>
 
@@ -582,7 +582,7 @@ async function evaluate() {
           <section class="suggestion-card surface-card">
             <div class="panel-title">
               <el-icon><DocumentChecked /></el-icon>
-              <span>AI 优化建议</span>
+              <span>Coach 提分建议</span>
             </div>
             <template v-if="evaluation">
               <ul class="check-list">
@@ -739,7 +739,7 @@ button {
   place-items: center;
   width: 42px;
   height: 42px;
-  border-radius: 14px;
+  border-radius: 12px;
   background: #0050cb;
   color: #ffffff;
   font-size: 13px;
@@ -808,7 +808,7 @@ button {
   margin-bottom: 20px;
   padding: 22px 24px;
   border: 1px solid #d7ddf0;
-  border-radius: 28px;
+  border-radius: 16px;
   background: #ffffff;
 }
 
@@ -838,7 +838,7 @@ button {
   gap: 2px;
   min-width: 96px;
   padding: 14px 16px;
-  border-radius: 18px;
+  border-radius: 16px;
   background: #eff4ff;
   color: #424656;
   font-size: 13px;
@@ -858,7 +858,7 @@ button {
 
 .surface-card {
   border: 1px solid #d7ddf0;
-  border-radius: 28px;
+  border-radius: 16px;
   background: #ffffff;
   box-shadow: 0 18px 48px rgba(19, 42, 74, 0.06);
 }
@@ -913,7 +913,7 @@ button {
   gap: 3px;
   padding: 13px 14px;
   border: 1px solid transparent;
-  border-radius: 18px;
+  border-radius: 12px;
   background: transparent;
   color: #0b1c30;
   text-align: left;
@@ -943,7 +943,7 @@ button {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   padding: 4px;
-  border-radius: 18px;
+  border-radius: 12px;
   background: #eff4ff;
 }
 
@@ -954,7 +954,7 @@ button {
   gap: 7px;
   height: 42px;
   border: 0;
-  border-radius: 15px;
+  border-radius: 10px;
   background: transparent;
   color: #424656;
   font-size: 14px;
@@ -974,7 +974,7 @@ button {
 .question-item {
   padding: 14px;
   border: 1px solid #dfe5f6;
-  border-radius: 18px;
+  border-radius: 12px;
   background: #ffffff;
   transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
 }
@@ -1032,7 +1032,7 @@ button {
   justify-content: center;
   gap: 8px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 12px;
   font-weight: 800;
   transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
@@ -1053,7 +1053,7 @@ button {
 .prompt-text {
   margin: 18px 0 0;
   padding: 16px;
-  border-radius: 18px;
+  border-radius: 12px;
   background: #eff4ff;
   color: #253246;
   line-height: 1.8;
@@ -1113,7 +1113,7 @@ button {
   padding: 18px;
   resize: vertical;
   border: 1px solid #c2c6d8;
-  border-radius: 22px;
+  border-radius: 16px;
   outline: none;
   background: #fbfcff;
   color: #0b1c30;
@@ -1407,7 +1407,7 @@ button {
 .material-item {
   padding: 16px;
   border: 1px solid #dfe5f6;
-  border-radius: 20px;
+  border-radius: 12px;
   background: #fbfcff;
 }
 
@@ -1451,7 +1451,7 @@ button {
   .workspace-head {
     display: grid;
     padding: 20px;
-    border-radius: 24px;
+    border-radius: 16px;
   }
 
   .workspace-head h2 {
@@ -1510,7 +1510,7 @@ button {
   }
 
   .surface-card {
-    border-radius: 24px;
+    border-radius: 16px;
   }
 
   .library-panel,
@@ -1555,7 +1555,7 @@ button {
 
   .answer-editor textarea {
     min-height: 330px;
-    border-radius: 20px;
+    border-radius: 16px;
   }
 
   .primary-action {

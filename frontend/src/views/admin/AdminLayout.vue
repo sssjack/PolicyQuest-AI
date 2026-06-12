@@ -11,10 +11,7 @@ import SvgIcon from '../../components/SvgIcon.vue'
 const navItems = [
   { path: '/admin/dashboard', label: '数据概览', icon: 'dashboard' },
   { path: '/admin/questions', label: '题库管理', icon: 'practice' },
-  { path: '/admin/ai-generate', label: 'AI出题', icon: 'robot' },
   { path: '/admin/users', label: '用户管理', icon: 'users' },
-  { path: '/admin/articles', label: '文章管理', icon: 'article' },
-  { path: '/admin/crawler', label: '内容采集', icon: 'hot' },
 ]
 
 function logout() { userStore.logout(); router.push('/') }
@@ -35,7 +32,7 @@ function logout() { userStore.logout(); router.push('/') }
           <span class="nav-icon"><SvgIcon :name="item.icon" :size="16" /></span><span>{{ item.label }}</span>
         </router-link>
         <div style="border-top:1px solid var(--border);margin:8px 0"></div>
-        <router-link to="/app/dashboard" class="nav-item">
+        <router-link to="/" class="nav-item">
           <span class="nav-icon"><SvgIcon name="home" :size="16" /></span><span>返回用户端</span>
         </router-link>
       </nav>

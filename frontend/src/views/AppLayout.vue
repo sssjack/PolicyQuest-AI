@@ -9,12 +9,8 @@ const route = useRoute()
 const userStore = useUserStore()
 
 const navItems = [
-  { path: '/app/dashboard', label: '工作台', caption: '今日任务', icon: 'dashboard' },
-  { path: '/app/practice', label: '练习中心', caption: '专项/模考', icon: 'practice' },
-  { path: '/app/articles', label: '时政素材', caption: '政策热点', icon: 'article' },
-  { path: '/app/wrongbook', label: '错题本', caption: '弱项复盘', icon: 'wrong' },
-  { path: '/app/report', label: '成长报告', caption: '能力画像', icon: 'report' },
-  { path: '/app/profile', label: '个人中心', caption: '档案设置', icon: 'user' },
+  { path: '/', label: 'AI评阅', caption: '申论/面试', icon: 'robot' },
+  { path: '/profile', label: '训练档案', caption: '记录与设置', icon: 'user' },
 ]
 
 const currentTitle = computed(() => {
@@ -23,6 +19,7 @@ const currentTitle = computed(() => {
 })
 
 function isActive(path: string) {
+  if (path === '/') return route.path === '/' || route.path === '/scoring'
   return route.path === path || route.path.startsWith(`${path}/`)
 }
 
@@ -35,7 +32,7 @@ function logout() {
 <template>
   <div class="app-layout">
     <aside class="sidebar" aria-label="主导航">
-      <router-link to="/app/dashboard" class="brand">
+      <router-link to="/" class="brand">
         <span class="brand-mark">PQ</span>
         <span>
           <strong>PolicyQuest</strong>
@@ -66,9 +63,9 @@ function logout() {
 
       <section class="sidebar-card">
         <span class="card-kicker">Daily Goal</span>
-        <strong>完成 20 道训练题</strong>
+        <strong>完成 1 次 AI 精评</strong>
         <div class="mini-progress"><i></i></div>
-        <small>今日建议保持 35 分钟专注练习</small>
+        <small>建议先完成一篇申论或一次结构化面试作答，再按建议改写。</small>
       </section>
 
       <footer class="sidebar-footer">
@@ -87,11 +84,11 @@ function logout() {
     </aside>
 
     <div class="mobile-topbar">
-      <router-link to="/app/dashboard" class="mobile-brand">
+      <router-link to="/" class="mobile-brand">
         <span class="brand-mark">PQ</span>
       </router-link>
       <strong>{{ currentTitle }}</strong>
-      <button class="mobile-avatar" type="button" @click="router.push('/app/profile')">
+      <button class="mobile-avatar" type="button" @click="router.push('/profile')">
         {{ userStore.user?.nickname?.[0] || userStore.user?.username?.[0] || 'U' }}
       </button>
     </div>
@@ -415,7 +412,7 @@ function logout() {
     inset: auto 10px 10px;
     z-index: 40;
     display: grid;
-    grid-template-columns: repeat(5, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
     gap: 4px;
     padding: 8px;
     border: 1px solid rgba(194, 198, 216, 0.72);
