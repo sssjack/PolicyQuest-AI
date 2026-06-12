@@ -13,6 +13,20 @@ const articleTotal = ref(0)
 const articlePage = ref(1)
 const articleLoading = ref(false)
 
+function fmtDate(d: string | null) {
+  if (!d) return '-'
+  const date = new Date(d)
+  if (isNaN(date.getTime())) return '-'
+  return date.toLocaleDateString('zh-CN', { year: 'numeric', month: '2-digit', day: '2-digit' })
+}
+
+function fmtTime(t: string | null) {
+  if (!t) return '尚未执行'
+  const d = new Date(t)
+  if (isNaN(d.getTime())) return '尚未执行'
+  return d.toLocaleString('zh-CN')
+}
+
 async function loadStatus() {
   try {
     const res: any = await adminApi.crawlerStatus()
@@ -60,10 +74,6 @@ async function processOne(articleId: number) {
 }
 
 onMounted(() => { loadStatus(); loadArticles(); loading.value = false })
-
-function fmtTime(t: string | null) {
-  return t ? new Date(t).toLocaleString('zh-CN') : '尚未执行'
-}
 </script>
 
 <template>
@@ -117,7 +127,7 @@ function fmtTime(t: string | null) {
 
     <div style="margin-top:32px">
       <h2 style="font-size:18px;font-weight:600;margin-bottom:16px">待处理文章</h2>
-      <el-table :data="articles" v-loading="articleLoading" stripe>
+      <el-table :data="articles" v-loading="articleLoading">
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column prop="title" label="标题" min-width="300">
           <template #default="{ row }">
@@ -128,7 +138,9 @@ function fmtTime(t: string | null) {
         <el-table-column label="来源" width="120">
           <template #default="{ row }">{{ row.ArticleSource?.name || '-' }}</template>
         </el-table-column>
-        <el-table-column label="分类" width="100" prop="category" />
+        <el-table-column label="发布日期" width="120">
+          <template #default="{ row }">{{ fmtDate(row.publish_time) }}</template>
+        </el-table-column>
         <el-table-column label="状态" width="90">
           <template #default="{ row }">
             <el-tag :type="row.status === 'processed' ? 'success' : row.status === 'failed' ? 'danger' : 'warning'" size="small">

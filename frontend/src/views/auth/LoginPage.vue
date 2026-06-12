@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { useUserStore } from '../../store/user'
 import { ElMessage } from 'element-plus'
+import { useUserStore } from '../../store/user'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -10,81 +10,304 @@ const form = ref({ username: '', password: '' })
 const loading = ref(false)
 
 async function handleLogin() {
-  if (!form.value.username || !form.value.password) return ElMessage.warning('请输入用户名和密码')
+  if (!form.value.username || !form.value.password) {
+    ElMessage.warning('请输入用户名和密码')
+    return
+  }
+
   loading.value = true
   try {
     await userStore.login(form.value.username, form.value.password)
     ElMessage.success('登录成功')
-    if (userStore.isAdmin) router.push('/admin')
-    else router.push('/app/dashboard')
+    router.push(userStore.isAdmin ? '/admin' : '/app/dashboard')
   } catch (e: any) {
     ElMessage.error(e.message || '登录失败')
-  } finally { loading.value = false }
+  } finally {
+    loading.value = false
+  }
 }
 </script>
 
 <template>
-  <div class="auth-page">
-    <div class="auth-bg" />
-    <div class="auth-container">
-      <div class="auth-card glass-card">
-        <div class="auth-header">
-          <div class="logo-icon">
-            <svg viewBox="0 0 40 40" width="24" height="24" fill="none">
-              <path d="M10 8h7c4 0 6 2.5 6 5.5S21 19 17 19h-3v8h-4V8zm4 3.5v4h2.5c1.3 0 2-.8 2-2s-.7-2-2-2H14z" fill="white"/>
-              <path d="M34 27c0 .5-.4.9-.9.9H21.9c-.5 0-.9-.4-.9-.9V17.9c0-.5.4-.9.9-.9H24l2-2.5h-4a3.4 3.4 0 00-3.4 3.4V27a3.4 3.4 0 003.4 3.4h11.2A3.4 3.4 0 0037 27v-7l-3 2.5V27z" fill="rgba(255,255,255,.85)"/>
-            </svg>
-          </div>
-          <h1>Welcome Back</h1>
-          <p>登录 PolicyQuest AI，继续你的备考之旅</p>
+  <main class="auth-page">
+    <section class="auth-shell">
+      <aside class="auth-story">
+        <router-link to="/" class="brand">
+          <span class="brand-mark">PQ</span>
+          <span>
+            <strong>PolicyQuest</strong>
+            <small>AI Exam Coach</small>
+          </span>
+        </router-link>
+
+        <div class="story-copy">
+          <p class="page-kicker">Welcome Back</p>
+          <h1>继续你的公考训练节奏</h1>
+          <p>回到工作台，查看今日任务、继续未完成练习，并让 AI 把每一次作答沉淀为下一步提分路径。</p>
         </div>
-        <form @submit.prevent="handleLogin" class="auth-form">
-          <div class="form-group">
-            <label>用户名</label>
-            <input v-model="form.username" type="text" placeholder="请输入用户名" autocomplete="username" />
-          </div>
-          <div class="form-group">
-            <label>密码</label>
-            <input v-model="form.password" type="password" placeholder="请输入密码" autocomplete="current-password" />
-          </div>
-          <button type="submit" class="btn-primary" style="width:100%;margin-top:8px" :disabled="loading">
-            {{ loading ? '登录中...' : '登 录' }}
+
+        <div class="story-metrics">
+          <div><strong>20</strong><span>今日推荐题量</span></div>
+          <div><strong>5</strong><span>评分维度</span></div>
+          <div><strong>AI</strong><span>实时评阅</span></div>
+        </div>
+      </aside>
+
+      <section class="auth-card glass-card">
+        <div class="auth-header">
+          <p class="page-kicker">Sign In</p>
+          <h2>登录 PolicyQuest</h2>
+          <p>输入账号信息，进入你的专属备考工作台。</p>
+        </div>
+
+        <form class="auth-form" @submit.prevent="handleLogin">
+          <label class="form-group">
+            <span>用户名</span>
+            <input v-model="form.username" class="form-control" type="text" placeholder="请输入用户名" autocomplete="username" />
+          </label>
+          <label class="form-group">
+            <span>密码</span>
+            <input v-model="form.password" class="form-control" type="password" placeholder="请输入密码" autocomplete="current-password" />
+          </label>
+
+          <button class="btn-primary submit-btn" type="submit" :disabled="loading">
+            {{ loading ? '登录中...' : '登录并进入工作台' }}
           </button>
         </form>
+
         <div class="auth-footer">
-          还没有账号？<router-link to="/register">立即注册</router-link>
-          <span style="margin:0 12px;color:var(--text-muted)">|</span>
+          <span>还没有账号？</span>
+          <router-link to="/register">立即注册</router-link>
+          <span class="divider">|</span>
           <router-link to="/">返回首页</router-link>
         </div>
-      </div>
-    </div>
-  </div>
+      </section>
+    </section>
+  </main>
 </template>
 
 <style scoped>
-.auth-page { min-height: 100vh; display: flex; align-items: center; justify-content: center; position: relative; }
-.auth-bg {
-  position: fixed; inset: 0;
-  background: radial-gradient(ellipse at 30% 20%, rgba(99,102,241,0.15) 0%, transparent 50%),
-              radial-gradient(ellipse at 70% 80%, rgba(6,182,212,0.1) 0%, transparent 50%),
-              var(--bg-dark);
+.auth-page {
+  display: grid;
+  min-height: 100vh;
+  place-items: center;
+  padding: 32px;
+  background:
+    radial-gradient(circle at 12% 16%, rgba(0, 102, 255, 0.14), transparent 32%),
+    radial-gradient(circle at 88% 84%, rgba(13, 148, 136, 0.12), transparent 30%),
+    linear-gradient(180deg, #f8f9ff 0%, #ffffff 100%);
 }
-.auth-container { position: relative; z-index: 1; width: 100%; max-width: 440px; padding: 24px; }
-.auth-card { padding: 40px; }
-.auth-header { text-align: center; margin-bottom: 32px; }
-.auth-header .logo-icon { margin: 0 auto 16px; width: 56px; height: 56px; font-size: 24px; border-radius: 14px; background: var(--gradient-1); display: flex; align-items: center; justify-content: center; font-weight: 900; color: #fff; }
-.auth-header h1 { font-size: 24px; font-weight: 700; margin-bottom: 8px; }
-.auth-header p { font-size: 14px; color: var(--text-muted); }
-.auth-form { display: flex; flex-direction: column; gap: 20px; }
-.form-group { display: flex; flex-direction: column; gap: 8px; }
-.form-group label { font-size: 14px; color: var(--text-secondary); font-weight: 500; }
-.form-group input {
-  padding: 12px 16px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1);
-  background: rgba(255,255,255,0.05); color: var(--text-primary); font-size: 15px;
-  outline: none; transition: all 0.3s;
+
+.auth-shell {
+  display: grid;
+  grid-template-columns: minmax(360px, 0.9fr) minmax(380px, 480px);
+  gap: 24px;
+  width: min(1080px, 100%);
 }
-.form-group input:focus { border-color: var(--primary); background: rgba(99,102,241,0.05); }
-.form-group input::placeholder { color: var(--text-muted); }
-.auth-footer { text-align: center; margin-top: 24px; font-size: 14px; color: var(--text-muted); }
-.auth-footer a { color: var(--primary-light); }
+
+.auth-story,
+.auth-card {
+  min-height: 620px;
+}
+
+.auth-story {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 34px;
+  border: 1px solid rgba(194, 198, 216, 0.72);
+  border-radius: 24px;
+  background:
+    linear-gradient(145deg, rgba(0, 80, 203, 0.94), rgba(0, 106, 97, 0.88)),
+    var(--primary);
+  color: #ffffff;
+  box-shadow: var(--shadow-md);
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  color: #ffffff;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  font-weight: 900;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
+}
+
+.brand strong,
+.brand small {
+  display: block;
+}
+
+.brand small {
+  margin-top: 2px;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+}
+
+.story-copy {
+  max-width: 520px;
+}
+
+.story-copy .page-kicker {
+  color: #bff8ef;
+}
+
+.story-copy h1 {
+  margin: 0;
+  font-size: 42px;
+  line-height: 1.16;
+}
+
+.story-copy p:last-child {
+  margin: 18px 0 0;
+  color: rgba(255, 255, 255, 0.82);
+  font-size: 16px;
+  line-height: 1.75;
+}
+
+.story-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.story-metrics div {
+  display: grid;
+  gap: 5px;
+  padding: 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.13);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
+}
+
+.story-metrics strong {
+  font-size: 26px;
+}
+
+.story-metrics span {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 12px;
+}
+
+.auth-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 44px;
+  border-radius: 24px;
+}
+
+.auth-header {
+  margin-bottom: 28px;
+}
+
+.auth-header h2 {
+  margin: 0;
+  font-size: 30px;
+  line-height: 1.2;
+}
+
+.auth-header p:last-child {
+  margin: 10px 0 0;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+.auth-form {
+  display: grid;
+  gap: 18px;
+}
+
+.form-group {
+  display: grid;
+  gap: 8px;
+}
+
+.form-group span {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.submit-btn {
+  width: 100%;
+  min-height: 50px;
+  margin-top: 6px;
+}
+
+.auth-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 24px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.auth-footer a {
+  font-weight: 800;
+}
+
+.divider {
+  color: var(--border-strong);
+}
+
+@media (max-width: 900px) {
+  .auth-page {
+    padding: 20px;
+  }
+
+  .auth-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-story {
+    min-height: 360px;
+  }
+
+  .auth-card {
+    min-height: auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .auth-page {
+    padding: 0;
+  }
+
+  .auth-shell {
+    gap: 0;
+  }
+
+  .auth-story {
+    min-height: 310px;
+    border-radius: 0 0 24px 24px;
+    padding: 24px 20px;
+  }
+
+  .story-copy h1 {
+    font-size: 32px;
+  }
+
+  .story-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .auth-card {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    padding: 30px 20px 40px;
+  }
+}
 </style>

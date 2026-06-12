@@ -1,6 +1,6 @@
 const express = require('express');
 const { Op, literal } = require('sequelize');
-const { PracticeSession, UserAnswer, Question, User, WrongQuestion, sequelize } = require('../models');
+const { PracticeSession, UserAnswer, Question, User, WrongQuestion, Article, sequelize } = require('../models');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
@@ -11,28 +11,47 @@ const QUESTION_CATEGORIES = {
   interview: ['interview_analysis', 'interview_organize', 'interview_emergency', 'interview_interpersonal', 'interview_simulate', 'interview_position', 'interview_policy', 'interview_tax', 'interview_grassroots', 'interview_youth'],
 };
 
+const VERBAL_SUBTYPES = {
+  logic_fill: ['verbal_fill', 'verbal_word'],
+  passage_read: ['verbal_main_idea', 'verbal_intent', 'verbal_detail'],
+  sentence_exp: ['verbal_title', 'verbal_order', 'verbal_connection'],
+};
+
 router.post('/start', auth, async (req, res) => {
   const t = await sequelize.transaction();
   try {
-    const { session_type = 'quick', count = 10, category, difficulty, exam_type, timed = false, time_limit } = req.body;
+    const { session_type = 'quick', count = 10, category, difficulty, exam_type, verbal_subtype, order } = req.body;
     const where = { status: 'approved' };
-    if (category && QUESTION_CATEGORIES[category]) where.question_type = { [Op.in]: QUESTION_CATEGORIES[category] };
+
+    if (category && QUESTION_CATEGORIES[category]) {
+      if (category === 'verbal' && verbal_subtype && VERBAL_SUBTYPES[verbal_subtype]) {
+        where.question_type = { [Op.in]: VERBAL_SUBTYPES[verbal_subtype] };
+      } else {
+        where.question_type = { [Op.in]: QUESTION_CATEGORIES[category] };
+      }
+    }
     if (difficulty) where.difficulty = difficulty;
     if (exam_type) where.exam_type = exam_type;
 
     let questions;
     if (session_type === 'wrong') {
+      let wrongOrder = [['wrong_count', 'DESC']];
+      if (order === 'random') wrongOrder = literal('RAND()');
+      else if (order === 'chronological') wrongOrder = [['last_wrong_at', 'ASC']];
+
       const wrongIds = await WrongQuestion.findAll({
         where: { user_id: req.userId, is_mastered: false },
         attributes: ['question_id'], limit: Math.min(+count, 50),
-        order: [['wrong_count', 'DESC']],
+        order: wrongOrder,
       });
       questions = await Question.findAll({
         where: { id: { [Op.in]: wrongIds.map(w => w.question_id) } },
+        include: [{ model: Article, attributes: ['id', 'title', 'url'] }],
       });
     } else {
       questions = await Question.findAll({
         where, order: literal('RAND()'), limit: Math.min(+count, 50),
+        include: [{ model: Article, attributes: ['id', 'title', 'url'] }],
       });
     }
 
@@ -43,7 +62,7 @@ router.post('/start', auth, async (req, res) => {
 
     const session = await PracticeSession.create({
       user_id: req.userId, session_type,
-      config: { category, difficulty, exam_type, timed, time_limit },
+      config: { category, difficulty, exam_type, verbal_subtype, order },
       total_questions: questions.length, started_at: new Date(),
     }, { transaction: t });
 
@@ -51,6 +70,7 @@ router.post('/start', auth, async (req, res) => {
     const safeQuestions = questions.map(q => ({
       id: q.id, question_type: q.question_type, exam_type: q.exam_type,
       stem: q.stem, options: q.options, difficulty: q.difficulty, knowledge_points: q.knowledge_points,
+      source_article: q.Article ? { id: q.Article.id, title: q.Article.title, url: q.Article.url } : null,
     }));
     res.json({ code: 200, data: { session_id: session.id, questions: safeQuestions, total: questions.length } });
   } catch (e) {
@@ -124,7 +144,12 @@ router.post('/:sessionId/submit', auth, async (req, res) => {
 
     const answers = await UserAnswer.findAll({
       where: { session_id: session.id },
-      include: [{ model: Question, attributes: ['id', 'stem', 'options', 'answer', 'analysis', 'question_type', 'difficulty', 'knowledge_points'] }],
+      include: [{
+        model: Question,
+        attributes: ['id', 'stem', 'options', 'answer', 'analysis', 'question_type', 'difficulty', 'knowledge_points', 'source_article_id'],
+        include: [{ model: Article, attributes: ['id', 'title', 'url'] }],
+      }],
+      order: [['id', 'ASC']],
     });
 
     res.json({

@@ -8,6 +8,7 @@ const { sequelize } = require('./models');
 
 const app = express();
 
+app.set('trust proxy', 1);
 app.use(helmet({ contentSecurityPolicy: false }));
 app.use(cors());
 app.use(morgan('combined'));
@@ -22,6 +23,8 @@ app.use('/api/questions', require('./routes/questions'));
 app.use('/api/practice', require('./routes/practice'));
 app.use('/api/wrongbook', require('./routes/wrongbook'));
 app.use('/api/stats', require('./routes/stats'));
+app.use('/api/articles', require('./routes/articles'));
+app.use('/api/scoring', require('./routes/scoring'));
 app.use('/api/admin', require('./routes/admin'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));

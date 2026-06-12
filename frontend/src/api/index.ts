@@ -1,8 +1,8 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: '/PolicyQuest/api',
-  timeout: 30000,
+  baseURL: import.meta.env.DEV ? '/api' : '/PolicyQuest/api',
+  timeout: 70000,
 })
 
 api.interceptors.request.use(config => {
@@ -56,6 +56,15 @@ export const wrongbookApi = {
 
 export const statsApi = {
   overview: () => api.get('/stats/overview'),
+}
+
+export const articlesApi = {
+  list: (params: any) => api.get('/articles', { params }),
+  detail: (id: number) => api.get(`/articles/${id}`),
+}
+
+export const scoringApi = {
+  evaluate: (data: any) => api.post('/scoring/evaluate', data),
 }
 
 export const adminApi = {

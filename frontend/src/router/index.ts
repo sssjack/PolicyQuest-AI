@@ -1,7 +1,8 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 
 const routes = [
-  { path: '/', name: 'Home', component: () => import('../views/home/HomePage.vue') },
+  { path: '/', name: 'ScoringStudio', component: () => import('../views/scoring/ScoringStudio.vue') },
+  { path: '/legacy-home', name: 'Home', component: () => import('../views/home/HomePage.vue') },
   { path: '/login', name: 'Login', component: () => import('../views/auth/LoginPage.vue') },
   { path: '/register', name: 'Register', component: () => import('../views/auth/RegisterPage.vue') },
   {
@@ -13,6 +14,7 @@ const routes = [
       { path: 'practice', name: 'PracticeConfig', component: () => import('../views/practice/PracticeConfig.vue') },
       { path: 'practice/:sessionId', name: 'PracticeSession', component: () => import('../views/practice/PracticeSession.vue') },
       { path: 'practice/:sessionId/result', name: 'PracticeResult', component: () => import('../views/practice/PracticeResult.vue') },
+      { path: 'articles', name: 'Articles', component: () => import('../views/articles/ArticlesPage.vue') },
       { path: 'wrongbook', name: 'WrongBook', component: () => import('../views/wrongbook/WrongBook.vue') },
       { path: 'report', name: 'Report', component: () => import('../views/report/ReportPage.vue') },
       { path: 'profile', name: 'Profile', component: () => import('../views/auth/ProfilePage.vue') },

@@ -34,7 +34,7 @@ function logout() { userStore.logout(); router.push('/') }
           class="nav-item" :class="{ active: route.path === item.path }">
           <span class="nav-icon"><SvgIcon :name="item.icon" :size="16" /></span><span>{{ item.label }}</span>
         </router-link>
-        <div style="border-top:1px solid var(--border);margin:8px 0" />
+        <div style="border-top:1px solid var(--border);margin:8px 0"></div>
         <router-link to="/app/dashboard" class="nav-item">
           <span class="nav-icon"><SvgIcon name="home" :size="16" /></span><span>返回用户端</span>
         </router-link>

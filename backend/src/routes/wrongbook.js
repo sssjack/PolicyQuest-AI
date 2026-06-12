@@ -1,18 +1,27 @@
 const express = require('express');
-const { Op } = require('sequelize');
-const { WrongQuestion, Question, Favorite } = require('../models');
+const { Op, literal } = require('sequelize');
+const { WrongQuestion, Question, Favorite, Article } = require('../models');
 const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
 router.get('/wrong', auth, async (req, res) => {
   try {
-    const { page = 1, pageSize = 20, category } = req.query;
+    const { page = 1, pageSize = 20, order } = req.query;
     const where = { user_id: req.userId, is_mastered: false };
-    const include = [{ model: Question, attributes: ['id', 'stem', 'options', 'answer', 'analysis', 'question_type', 'difficulty'] }];
+    const include = [{
+      model: Question,
+      attributes: ['id', 'stem', 'options', 'answer', 'analysis', 'question_type', 'difficulty', 'source_article_id'],
+      include: [{ model: Article, attributes: ['id', 'title', 'url'] }],
+    }];
+
+    let orderClause;
+    if (order === 'random') orderClause = literal('RAND()');
+    else if (order === 'chronological') orderClause = [['last_wrong_at', 'DESC']];
+    else orderClause = [['wrong_count', 'DESC'], ['last_wrong_at', 'DESC']];
+
     const { count, rows } = await WrongQuestion.findAndCountAll({
-      where, include,
-      order: [['wrong_count', 'DESC'], ['last_wrong_at', 'DESC']],
+      where, include, order: orderClause,
       limit: +pageSize, offset: (+page - 1) * +pageSize,
     });
     res.json({ code: 200, data: { total: count, page: +page, list: rows } });
@@ -61,8 +70,8 @@ router.post('/favorites/:questionId', auth, async (req, res) => {
     const [fav, created] = await Favorite.findOrCreate({
       where: { user_id: req.userId, question_id: req.params.questionId },
     });
-    res.json({ code: 200, message: created ? '已收藏' : '已取消收藏' });
     if (!created) await fav.destroy();
+    res.json({ code: 200, message: created ? '已收藏' : '已取消收藏' });
   } catch (e) {
     res.status(500).json({ code: 500, message: '操作失败' });
   }

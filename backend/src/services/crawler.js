@@ -57,6 +57,20 @@ function contentHash(text) {
   return crypto.createHash('sha256').update(text || '').digest('hex');
 }
 
+function parseDate(raw) {
+  if (!raw) return null;
+  const d = new Date(raw);
+  if (!isNaN(d.getTime())) return d;
+  const m = String(raw).match(/(\d{4})[-\/年.](\d{1,2})[-\/月.](\d{1,2})/);
+  if (m) return new Date(+m[1], +m[2] - 1, +m[3]);
+  return null;
+}
+
+function isCurrentYear(d) {
+  if (!d) return true;
+  return d.getFullYear() === new Date().getFullYear();
+}
+
 function extractMainContent(html) {
   const $ = cheerio.load(html);
   $('script, style, nav, header, footer, .nav, .header, .footer, .sidebar, .ad, .comment, iframe, noscript').remove();
@@ -127,11 +141,14 @@ async function crawlRssSources() {
           const articleContent = fullContent.length > content.length ? fullContent : content;
           if (articleContent.length < 50) { results.skipped++; continue; }
 
+          const pubDate = parseDate(item.pubDate) || new Date();
+          if (!isCurrentYear(pubDate)) { results.skipped++; continue; }
+
           const article = await Article.create({
             source_id: sourceId,
             title,
             url: item.link || '',
-            publish_time: item.pubDate ? new Date(item.pubDate) : new Date(),
+            publish_time: pubDate,
             author: item.creator || item.author || src.name,
             content: articleContent.substring(0, 20000),
             summary: articleContent.substring(0, 300),
@@ -192,11 +209,14 @@ async function crawlWebSources() {
           }
           if (content.length < 50) { results.skipped++; continue; }
 
+          const pubDate = parseDate(item.date) || new Date();
+          if (!isCurrentYear(pubDate)) { results.skipped++; continue; }
+
           const article = await Article.create({
             source_id: sourceId,
             title,
             url: item.url || '',
-            publish_time: item.date ? new Date(item.date) : new Date(),
+            publish_time: pubDate,
             content: content.substring(0, 20000),
             summary: content.substring(0, 300),
             content_hash: hash,

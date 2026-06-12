@@ -1,191 +1,49 @@
 const bcrypt = require('bcryptjs');
 const { User, Question, ArticleSource, Article } = require('../models');
 
-const SEED_QUESTIONS = [
-  {
-    question_type: 'verbal_main_idea', exam_type: 'national',
-    _article: '加快发展新质生产力 扎实推进高质量发展',
-    stem: '新质生产力是由技术革命性突破、生产要素创新性配置、产业深度转型升级而催生的先进生产力。它以劳动者、劳动资料、劳动对象及其优化组合的跃升为基本内涵，以全要素生产率大幅提升为核心标志。新质生产力的特点是创新，关键在质优，本质是先进生产力。发展新质生产力，必须进一步全面深化改革，形成与之相适应的新型生产关系。要深化经济体制、科技体制等改革，着力打通束缚新质生产力发展的堵点卡点，建立高标准市场体系，创新生产要素配置方式，让各类先进优质生产要素向发展新质生产力顺畅流动。\n\n这段文字主要讲的是：',
-    options: { A: '新质生产力的内涵与特征', B: '发展新质生产力需要深化改革形成新型生产关系', C: '全要素生产率是新质生产力的核心标志', D: '科技体制改革是发展新质生产力的关键' },
-    answer: 'B', difficulty: 'medium',
-    analysis: '【答案】B\n【考点】主旨概括\n【解析】文段前两句介绍了新质生产力的定义和内涵。"发展新质生产力，必须进一步全面深化改革"引出主旨——发展新质生产力需要改革。后文具体阐述如何改革。因此重点在后半段的对策句。\nA项只涉及前半段的背景铺垫，非重点。\nB项准确概括了文段主旨，正确。\nC项是文段细节，非主旨。\nD项"关键"表述过于绝对，文段说的是"深化经济体制、科技体制等改革"，科技体制只是其中之一。',
-    knowledge_points: ['主旨概括', '对策句识别', '新质生产力']
-  },
-  {
-    question_type: 'verbal_intent', exam_type: 'national',
-    stem: '数字政府建设是推进国家治理体系和治理能力现代化的重要举措。然而，当前一些地方在推进数字政府建设过程中，存在重建设轻运营、重技术轻业务、重形式轻效果等问题。有的地方花大价钱建设了各种数字平台，但使用率不高，甚至沦为"僵尸系统"。有的地方过度追求技术先进性，忽视了基层干部和群众的实际使用需求。数字政府建设的出发点和落脚点应该是提升政务服务效能、增强群众获得感，而不是搞政绩工程、面子工程。\n\n这段文字意在说明：',
-    options: { A: '数字政府建设是国家治理现代化的重要举措', B: '当前数字政府建设中存在诸多问题', C: '数字政府建设应注重实效，以群众需求为导向', D: '基层干部和群众是数字政府的主要用户' },
-    answer: 'C', difficulty: 'medium',
-    analysis: '【答案】C\n【考点】意图判断\n【解析】文段先肯定数字政府建设的意义，接着用"然而"转折指出问题，最后用"应该是……而不是……"提出对策。意图判断题应选择解决问题的对策。\nA项是背景内容，非意图。\nB项停留在问题层面，未上升到解决方案。\nC项准确把握了作者的写作意图，正确。\nD项是文段细节，非作者主要意图。',
-    knowledge_points: ['意图判断', '转折后重点', '数字政府']
-  },
-  {
-    question_type: 'politics_single', exam_type: 'national',
-    stem: '2024年中央经济工作会议强调，要坚持稳中求进、以进促稳、先立后破。关于"先立后破"，下列理解正确的是：',
-    options: { A: '先建立新的发展模式，再淘汰旧的发展方式', B: '先破除体制机制障碍，再建立新的制度框架', C: '先立法规制度，再破解发展难题', D: '先破旧立新，再稳步推进改革' },
-    answer: 'A', difficulty: 'medium',
-    analysis: '【答案】A\n【考点】中央经济工作会议精神\n【解析】"先立后破"的核心含义是在新的发展动能、产业体系、制度框架尚未建立健全之前，不急于拆除旧的体系，而是先把新的立起来，再逐步替代旧的。这体现了稳妥推进改革的思路。\nA项正确理解了"先立后破"的含义。\nB项将顺序颠倒了，是"先破后立"。\nC项对"立"和"破"的理解过于狭隘。\nD项逻辑混乱，与原意相悖。',
-    knowledge_points: ['中央经济工作会议', '稳中求进', '先立后破']
-  },
-  {
-    question_type: 'politics_single', exam_type: 'national',
-    stem: '党的二十大报告指出，从现在起，中国共产党的中心任务就是团结带领全国各族人民全面建成社会主义现代化强国、实现第二个百年奋斗目标，以中国式现代化全面推进中华民族伟大复兴。中国式现代化的本质要求不包括：',
-    options: { A: '坚持中国共产党领导', B: '实现全体人民共同富裕', C: '建设世界一流军队', D: '创造人类文明新形态' },
-    answer: 'C', difficulty: 'medium',
-    analysis: '【答案】C\n【考点】中国式现代化本质要求\n【解析】中国式现代化的本质要求是：坚持中国共产党领导，坚持中国特色社会主义，实现高质量发展，发展全过程人民民主，丰富人民精神世界，实现全体人民共同富裕，促进人与自然和谐共生，推动构建人类命运共同体，创造人类文明新形态。\n"建设世界一流军队"是国防和军队现代化的目标，不属于中国式现代化的本质要求。',
-    knowledge_points: ['中国式现代化', '本质要求', '二十大报告']
-  },
-  {
-    question_type: 'politics_current', exam_type: 'national',
-    stem: '2024年《政府工作报告》提出，国内生产总值预期增长目标是：',
-    options: { A: '5%左右', B: '5.5%左右', C: '6%左右', D: '4.5%左右' },
-    answer: 'A', difficulty: 'easy',
-    analysis: '【答案】A\n【考点】政府工作报告\n【解析】2024年《政府工作报告》提出，国内生产总值增长5%左右。这一目标综合考虑了国内外形势，既体现了积极进取，又留有余地。\nB项5.5%是2022年的目标。\nC项6%以上是2021年的目标。\nD项4.5%无此说法。',
-    knowledge_points: ['政府工作报告', 'GDP目标', '经济发展']
-  },
-  {
-    question_type: 'verbal_detail', exam_type: 'national',
-    stem: '基层治理是国家治理的基石。近年来，各地积极探索基层治理创新，涌现出一批好经验好做法。浙江"枫桥经验"坚持矛盾不上交，就地解决；北京"接诉即办"以群众诉求驱动超大城市治理；上海推行"一网通办""一网统管"，用数字化手段提升治理效能。这些实践表明，基层治理必须坚持以人民为中心，运用现代化手段，把矛盾化解在基层、把问题解决在一线。\n\n根据这段文字，下列说法正确的是：',
-    options: { A: '"枫桥经验"是浙江独创的数字化治理模式', B: '三地的基层治理创新做法完全相同', C: '基层治理创新的共同特征是以人民需求为导向', D: '超大城市的基层治理比中小城市更加先进' },
-    answer: 'C', difficulty: 'easy',
-    analysis: '【答案】C\n【考点】细节理解\n【解析】A项错误，"枫桥经验"的核心是矛盾不上交、就地解决，文段未提及它是"数字化治理模式"。\nB项错误，三地做法各有特色，并非"完全相同"。\nC项正确，文段最后总结"必须坚持以人民为中心"，三个案例都体现了以人民需求为导向。\nD项文段未提及城市治理水平的比较，属于无中生有。',
-    knowledge_points: ['细节理解', '基层治理', '枫桥经验']
-  },
-  {
-    question_type: 'politics_judge', exam_type: 'institution',
-    stem: '全面依法治国的总目标是建设中国特色社会主义法治体系、建设社会主义法治国家。（  ）',
-    options: { A: '正确', B: '错误' },
-    answer: 'A', difficulty: 'easy',
-    analysis: '【答案】正确\n【考点】全面依法治国\n【解析】党的十八届四中全会明确提出，全面推进依法治国的总目标是建设中国特色社会主义法治体系、建设社会主义法治国家。这一论断在党的十九大、二十大报告中均有重申。',
-    knowledge_points: ['全面依法治国', '法治体系']
-  },
-  {
-    question_type: 'verbal_fill', exam_type: 'national',
-    stem: '优化营商环境是一项______的系统工程，既需要政府部门转变职能、简政放权，也需要市场主体积极参与、______。只有政府和市场形成合力，才能真正打造______、可预期的一流营商环境。\n\n依次填入画横线部分最恰当的一项是：',
-    options: { A: '牵一发动全身  建言献策  市场化', B: '涉及面广  群策群力  法治化', C: '事关全局  共同努力  国际化', D: '复杂艰巨  献计献策  规范化' },
-    answer: 'B', difficulty: 'hard',
-    analysis: '【答案】B\n【考点】逻辑填空\n【解析】第一空，"系统工程"前需要一个形容范围广的词，"涉及面广"与"系统工程"搭配最恰当。\n第二空，与"积极参与"并列，且主语是"市场主体"，"群策群力"强调集体出力，符合语境。\n第三空，营商环境通常的表述是"市场化、法治化、国际化"，但此处是三个空的最后一个，与"可预期"并列，"法治化"最能体现可预期性。综合判断B项最佳。',
-    knowledge_points: ['逻辑填空', '营商环境', '固定搭配']
-  },
-  {
-    question_type: 'interview_analysis', exam_type: 'national',
-    stem: '近年来，"银发经济"成为社会热议话题。随着我国老龄化程度不断加深，养老服务需求日益增长，但养老产业发展仍存在供给不足、质量参差不齐、专业人才短缺等问题。对此，你怎么看？',
-    options: {},
-    answer: '参考答案要点：\n1. 表态：银发经济既是应对人口老龄化的重要举措，也是经济发展的新增长点，值得高度重视。\n2. 分析意义：满足老年人多样化需求；培育新的消费增长点；促进产业结构优化升级。\n3. 分析问题：养老服务供给总量不足；服务质量标准化程度低；专业护理人才缺口大；老年用品市场创新不足。\n4. 提出对策：完善政策支持体系，加大财政投入和税收优惠；建立健全养老服务标准体系；加强专业人才培养，提升从业人员待遇；鼓励科技创新，发展智慧养老；引导社会资本参与养老产业。',
-    difficulty: 'medium',
-    analysis: '本题考查综合分析能力。要求考生对"银发经济"这一社会热点进行全面分析。作答时应先表明态度，再从意义和问题两方面分析，最后提出有针对性的对策建议。注意结合实际数据和案例，避免空泛论述。',
-    knowledge_points: ['综合分析', '银发经济', '人口老龄化', '养老服务']
-  },
-  {
-    question_type: 'interview_policy', exam_type: 'national',
-    stem: '某市推行"办不成事"反映窗口，专门受理群众在政务服务过程中遇到的各类难题。有人认为这是便民利民的好举措，也有人认为这说明常规窗口服务存在问题。请谈谈你的看法。',
-    options: {},
-    answer: '参考答案要点：\n1. 总体评价："办不成事"窗口体现了政府以人民为中心的服务理念，值得肯定，但也应看到其反映出的深层问题。\n2. 积极意义：为群众提供兜底服务保障；倒逼常规窗口提升服务质量；收集共性问题推动制度完善；体现政府直面问题的担当。\n3. 反映的问题：部分窗口存在推诿扯皮现象；跨部门协调机制不够畅通；政务服务标准化程度有待提高；基层工作人员业务能力参差不齐。\n4. 完善建议：建立常态化问题反馈和整改机制；加强窗口工作人员培训和考核；推进政务服务标准化规范化；优化跨部门协调联动机制；推动从"办不成"到"都能办"转变。',
-    difficulty: 'medium',
-    analysis: '本题为政策理解类面试题，要求辩证分析"办不成事"窗口的做法。既要肯定其积极意义，也要指出其背后反映的问题，最终提出建设性建议。作答时应体现政务服务改革的理解和基层治理的视角。',
-    knowledge_points: ['政策理解', '政务服务', '基层治理', '放管服改革']
-  },
-  {
-    question_type: 'politics_single', exam_type: 'tax',
-    stem: '全面推进依法治税是税务系统落实全面依法治国方略的重要实践。下列关于依法治税的表述，不正确的是：',
-    options: { A: '依法治税要求税务机关严格按照法定程序征收税款', B: '税收法定原则是依法治税的核心', C: '依法治税意味着只要合法就可以不考虑合理性', D: '依法治税既包括依法征税也包括依法保护纳税人权益' },
-    answer: 'C', difficulty: 'medium',
-    analysis: '【答案】C\n【考点】依法治税\n【解析】依法治税不仅要求合法性，还要求合理性。税务执法既要依法依规，也要兼顾公平合理，保护纳税人的合法权益。\nA项正确，法定程序是依法治税的基本要求。\nB项正确，税收法定原则确实是依法治税的核心。\nC项错误，依法治税要求合法性与合理性兼顾。\nD项正确，依法治税是双向的，既约束征税行为，也保护纳税人。',
-    knowledge_points: ['依法治税', '税收法定', '纳税人权益']
-  },
-  {
-    question_type: 'verbal_main_idea', exam_type: 'national',
-    stem: '乡村振兴不能只盯着经济发展，还必须强化农村基层党组织建设，重视农民思想道德教育，重视法治建设，健全乡村治理体系，深化村民自治实践，有效发挥村规民约、家教家风作用，培育文明乡风、良好家风、淳朴民风。要加强农村生态文明建设，保持战略定力，以钉钉子精神推进农业面源污染防治，加强土壤污染、地下水超采、水土流失等治理和修复。\n\n这段文字主要说明乡村振兴需要：',
-    options: { A: '大力发展农村经济建设', B: '全面推进乡村治理现代化', C: '统筹推进文化建设、治理完善和生态保护', D: '重点加强农村生态环境治理' },
-    answer: 'C', difficulty: 'medium',
-    analysis: '【答案】C\n【考点】主旨概括\n【解析】文段首句"不能只盯着经济发展"否定了单一经济导向。随后分别从乡村治理（党组织、法治、自治）、文化建设（思想道德、乡风家风）、生态保护三个层面展开论述。\nA项与文段首句观点相悖。\nB项概括不全面，遗漏了文化和生态维度。\nC项全面概括了文段的三个层面，最为准确。\nD项只是文段后半部分内容，以偏概全。',
-    knowledge_points: ['主旨概括', '乡村振兴', '全面理解']
-  },
-  {
-    question_type: 'politics_policy', exam_type: 'national',
-    _article: '加快发展新质生产力 扎实推进高质量发展',
-    stem: '关于发展新质生产力，下列表述不正确的是：',
-    options: { A: '新质生产力以全要素生产率大幅提升为核心标志', B: '发展新质生产力的关键在于科技创新', C: '新质生产力就是用新技术全面替代传统产业', D: '发展新质生产力需要形成与之相适应的新型生产关系' },
-    answer: 'C', difficulty: 'medium',
-    analysis: '【答案】C\n【考点】新质生产力内涵\n【解析】新质生产力并非简单地用新技术替代传统产业，而是通过技术革命性突破、生产要素创新性配置、产业深度转型升级来催生先进生产力。C项表述过于绝对和片面。\nA项正确。B项正确。D项正确。',
-    knowledge_points: ['新质生产力', '产业转型', '科技创新']
-  },
-  {
-    question_type: 'politics_current', exam_type: 'national',
-    stem: '2024年，我国提出要加快建设以（  ）为核心的新型能源体系。',
-    options: { A: '煤炭清洁利用', B: '新能源', C: '天然气', D: '核能' },
-    answer: 'B', difficulty: 'easy',
-    analysis: '【答案】B\n【考点】新型能源体系\n【解析】我国明确提出加快构建以新能源为核心的新型能源体系，推动能源绿色低碳转型。',
-    knowledge_points: ['新型能源体系', '双碳目标', '能源转型']
-  },
-  {
-    question_type: 'politics_single', exam_type: 'institution',
-    stem: '事业单位工作人员年度考核的结果分为（  ）个等次。',
-    options: { A: '优秀、合格、基本合格、不合格四个等次', B: '优秀、良好、合格、不合格四个等次', C: '优秀、合格、不合格三个等次', D: '优秀、良好、合格、基本合格、不合格五个等次' },
-    answer: 'A', difficulty: 'easy',
-    analysis: '【答案】A\n【考点】事业单位人事管理\n【解析】根据《事业单位人事管理条例》，事业单位工作人员年度考核结果分为优秀、合格、基本合格和不合格四个等次。',
-    knowledge_points: ['事业单位管理', '年度考核', '人事制度']
-  },
-  {
-    question_type: 'verbal_main_idea', exam_type: 'provincial',
-    _article: '数字政府建设的实践与思考',
-    stem: '在推进"互联网+政务服务"的过程中，一些地方创新推出了"最多跑一次""不见面审批""一件事一次办"等改革举措，有效提升了政务服务效率。但与此同时，部分偏远地区群众因不熟悉网上操作而面临"数字鸿沟"问题，老年人、残障人士等特殊群体的办事需求未得到充分保障。这提醒我们，数字化转型不能"一刀切"，必须在推进数字化的同时保留必要的线下服务渠道，确保政务服务的普惠性和包容性。\n\n这段文字主要想表达的是：',
-    options: { A: '各地"互联网+政务服务"改革成效显著', B: '数字化转型要兼顾效率与公平，确保服务的普惠包容', C: '老年人是数字政务服务中最需要关注的群体', D: '偏远地区应当优先发展线下政务服务' },
-    answer: 'B', difficulty: 'medium',
-    analysis: '【答案】B\n【考点】主旨概括\n【解析】文段采用转折结构，先肯定成效，后用"但"转折指出数字鸿沟问题，最后"这提醒我们"引出核心观点。主旨在转折后。B项准确概括全文主旨。',
-    knowledge_points: ['主旨概括', '数字鸿沟', '政务服务', '普惠性']
-  },
-  {
-    question_type: 'politics_single', exam_type: 'tax',
-    stem: '我国个人所得税法规定，居民个人取得综合所得，以每一纳税年度的收入额减除费用（  ）万元以及专项扣除、专项附加扣除后的余额，为应纳税所得额。',
-    options: { A: '5', B: '6', C: '3.6', D: '4.8' },
-    answer: 'B', difficulty: 'easy',
-    analysis: '【答案】B\n【考点】个人所得税法\n【解析】根据修订后的《个人所得税法》，居民个人综合所得的基本减除费用标准为每年6万元（每月5000元）。',
-    knowledge_points: ['个人所得税', '基本减除费用', '税法']
-  },
-  {
-    question_type: 'interview_grassroots', exam_type: 'selection',
-    stem: '你被选派到一个经济落后的山村担任驻村第一书记。到任后发现，村里年轻人大多外出务工，留守的多为老人和儿童，村集体经济几乎为零。请问你将如何开展工作？',
-    options: {},
-    answer: '参考答案要点：\n1. 深入调研摸底：逐户走访了解民情。\n2. 建强基层组织：整顿村两委班子，发展年轻党员。\n3. 发展集体经济：因地制宜选择产业方向。\n4. 改善基础设施：争取上级资金支持。\n5. 关爱特殊群体：建立留守老人儿童关爱机制。\n6. 激发内生动力：树立致富典型，组织技能培训。',
-    difficulty: 'hard',
-    analysis: '本题考查基层工作能力。需要展现系统思维，从组织建设、产业发展、民生改善等多维度规划工作。',
-    knowledge_points: ['驻村工作', '乡村振兴', '基层治理']
-  },
-  {
-    question_type: 'politics_judge', exam_type: 'institution',
-    stem: '公民认为行政机关的行政行为侵犯其合法权益的，可以直接向人民法院提起行政诉讼，无需先经行政复议。（  ）',
-    options: { A: '正确', B: '错误' },
-    answer: 'A', difficulty: 'medium',
-    analysis: '【答案】正确\n【考点】行政诉讼法\n【解析】除法律法规另有规定外，公民可以自主选择申请行政复议或直接提起行政诉讼。一般情况下，行政复议不是前置条件。',
-    knowledge_points: ['行政诉讼', '行政复议', '法律程序']
-  },
-  {
-    question_type: 'verbal_intent', exam_type: 'provincial',
-    _article: '优化营商环境的若干措施',
-    stem: '近年来，多地出台了优化营商环境的实施方案。然而，部分企业反映，一些地方存在"新官不理旧账"、政策朝令夕改的现象。更有甚者，个别地方在招商引资时承诺优惠政策，企业落地后却不予兑现。对此，专家建议建立政务诚信监测体系，将政府守信践诺情况纳入绩效考核。\n\n这段文字意在强调：',
-    options: { A: '各地优化营商环境的成效参差不齐', B: '企业对营商环境的满意度有待提升', C: '优化营商环境的关键在于政府诚信与制度保障', D: '招商引资中的虚假承诺应当追究法律责任' },
-    answer: 'C', difficulty: 'hard',
-    analysis: '【答案】C\n【考点】意图判断\n【解析】文段用"然而"转折指出问题，最后通过专家建议引出对策。意图判断题选对策性表述。C项准确把握核心意图。',
-    knowledge_points: ['意图判断', '营商环境', '政务诚信']
-  },
-  {
-    question_type: 'politics_current', exam_type: 'national',
-    stem: '2024年4月，习近平总书记在重庆考察时强调，要以科技创新引领产业创新，积极培育新兴产业和未来产业。以下哪项不属于我国重点发展的战略性新兴产业？',
-    options: { A: '新一代信息技术', B: '高端装备制造', C: '传统纺织加工', D: '新能源汽车' },
-    answer: 'C', difficulty: 'easy',
-    analysis: '【答案】C\n【考点】战略性新兴产业\n【解析】我国重点发展的战略性新兴产业包括新一代信息技术、高端装备制造、新能源汽车、新材料、生物技术等。传统纺织加工属于传统产业，不属于战略性新兴产业。',
-    knowledge_points: ['战略性新兴产业', '科技创新', '产业政策']
-  },
-  {
-    question_type: 'politics_single', exam_type: 'national',
-    _article: '中央经济工作会议精神解读',
-    stem: '中央经济工作会议提出的"有效需求不足"这一问题，最直接的应对措施是：',
-    options: { A: '加大基础设施建设投资', B: '扩大内需，促进消费', C: '提高出口退税率', D: '收紧货币政策' },
-    answer: 'B', difficulty: 'medium',
-    analysis: '【答案】B\n【考点】宏观经济政策\n【解析】"有效需求不足"意味着内需不振，最直接的应对措施是扩大内需、促进消费。A项是手段之一但不是最直接的。C项针对外需。D项会进一步抑制需求。',
-    knowledge_points: ['中央经济工作会议', '扩大内需', '宏观经济']
-  },
+let verbalQuestions = [];
+let politicsQuestions = [];
+let interviewQuestions = [];
+let generatedQuestions = [];
+
+try { verbalQuestions = require('./questions-verbal'); } catch(e) { console.log('Verbal questions bank not found, skipping'); }
+try { politicsQuestions = require('./questions-politics'); } catch(e) { console.log('Politics questions bank not found, skipping'); }
+try { interviewQuestions = require('./questions-interview'); } catch(e) { console.log('Interview questions bank not found, skipping'); }
+try { const { generate } = require('./question-generator'); generatedQuestions = generate(42); } catch(e) { console.log('Question generator not found, skipping:', e.message); }
+
+const ALL_QUESTIONS = [...verbalQuestions, ...politicsQuestions, ...interviewQuestions, ...generatedQuestions];
+
+const SEED_ARTICLES = [
+  { source_name: '新华网', title: '"十五五"规划建议解读：锚定2035年远景目标', url: 'https://www.news.cn/20251028/337438370029449296539148a206bdd1/c.html', publish_time: new Date('2026-01-05'), content: '"十五五"时期是全面建设社会主义现代化国家的关键时期。规划建议提出坚持高质量发展，加快发展新质生产力，建设现代化产业体系，扩大内需，全面推进乡村振兴，推动绿色低碳转型，统筹安全与发展。', summary: '"十五五"规划建议的核心要点解读', category: '政策解读', region: '全国', tags: ['十五五规划','高质量发展','新质生产力'], status: 'processed' },
+  { source_name: '新华网', title: '2026年政府工作报告全文', url: 'https://www.news.cn/politics/20260313/9e24773bf14649f59afe2d62550e48ce/c.html', publish_time: new Date('2026-03-13'), content: '国内生产总值增长5%左右。实施更加积极有为的宏观政策，扩大内需，发展新质生产力，推动高质量发展。深化改革开放，优化营商环境，促进民营经济发展壮大。做好稳就业促增收，加强社会保障。', summary: '2026年政府工作报告核心目标和政策部署', category: '政策文件', region: '全国', tags: ['政府工作报告','GDP目标','宏观政策'], status: 'processed' },
+  { source_name: '人民日报', title: '加快发展新质生产力 推动高质量发展', url: 'https://opinion.people.com.cn/n1/2026/0115/c223228-40413256.html', publish_time: new Date('2026-01-15'), content: '新质生产力以科技创新为核心要素，以劳动者、劳动资料、劳动对象及其优化组合的跃升为基本内涵。发展新质生产力要坚持先立后破，统筹传统产业升级和新兴产业培育。', summary: '新质生产力的内涵与发展路径', category: '评论文章', region: '全国', tags: ['新质生产力','科技创新','高质量发展'], status: 'processed' },
+  { source_name: '新华网', title: '二十届三中全会《决定》解读：进一步全面深化改革', url: 'https://www.news.cn/politics/20240721/cec09ea2bde840dfb99331c48ab5523a/c.html', publish_time: new Date('2026-01-10'), content: '全面深化改革要以经济体制改革为牵引，构建高水平社会主义市场经济体制，推进科技体制改革，完善城乡融合发展体制机制，推进法治建设和基层治理现代化。', summary: '二十届三中全会全面深化改革部署解读', category: '政策解读', region: '全国', tags: ['全面深化改革','二十届三中全会','体制改革'], status: 'processed' },
+  { source_name: '中国政府网', title: '2026年中央一号文件发布：推进农业农村现代化', url: 'https://www.news.cn/politics/zywj/20260203/643ac1775607445a95e456a63557e670/c.html', publish_time: new Date('2026-02-03'), content: '2026年中央一号文件聚焦推进农业农村现代化，确保粮食安全，推动农民增收，深化农村改革。全面推进乡村振兴，加快建设农业强国。', summary: '2026年中央一号文件核心内容', category: '政策文件', region: '全国', tags: ['中央一号文件','乡村振兴','粮食安全','农业强国'], status: 'processed' },
+  { source_name: '求是网', title: '深入理解中国式现代化的本质要求', url: 'https://www.qstheory.cn/dukan/qs/2026-01/16/c_1130350001.htm', publish_time: new Date('2026-01-16'), content: '中国式现代化是人口规模巨大的现代化，是全体人民共同富裕的现代化，是物质文明和精神文明相协调的现代化，是人与自然和谐共生的现代化，是走和平发展道路的现代化。', summary: '中国式现代化五个特征的理论阐释', category: '政策解读', region: '全国', tags: ['中国式现代化','二十大','共同富裕'], status: 'processed' },
+  { source_name: '人民日报', title: '全过程人民民主的制度优势与实践创新', url: 'https://theory.people.com.cn/n1/2026/0220/c40531-40426891.html', publish_time: new Date('2026-02-20'), content: '全过程人民民主是社会主义民主政治的本质属性。从人大代表"家门口"联络站到村民议事会，基层民主实践不断丰富，让人民的声音直达决策层。', summary: '全过程人民民主的基层实践', category: '评论文章', region: '全国', tags: ['全过程人民民主','基层民主','人大制度'], status: 'processed' },
+  { source_name: '经济日报', title: '数字经济赋能高质量发展', url: 'https://views.ce.cn/view/ent/202601/18/t20260118_39269873.shtml', publish_time: new Date('2026-01-18'), content: '数字经济正在成为推动高质量发展的关键力量。我国数字经济规模已超60万亿元，成为拉动经济增长的重要引擎。推进数字中国建设，加快数字技术与实体经济深度融合。', summary: '数字经济发展态势与政策方向', category: '新闻报道', region: '全国', tags: ['数字经济','数字中国','产业融合'], status: 'processed' },
+  { source_name: '光明日报', title: '文化自信与中华优秀传统文化的创新发展', url: 'https://theory.gmw.cn/2026-02/08/content_37413568.htm', publish_time: new Date('2026-02-08'), content: '坚定文化自信，推动中华优秀传统文化创造性转化创新性发展。从故宫文创到非遗直播，传统文化正以崭新姿态走进千家万户。建设中华民族现代文明。', summary: '文化自信与传统文化创新发展', category: '评论文章', region: '全国', tags: ['文化自信','传统文化','文化强国'], status: 'processed' },
+  { source_name: '人民日报', title: '推进基层治理现代化 夯实国家治理根基', url: 'https://opinion.people.com.cn/n1/2026/0305/c223228-40452178.html', publish_time: new Date('2026-03-05'), content: '基层强则国家强。坚持和发展新时代枫桥经验，推进基层治理体系和治理能力现代化。数字赋能社区治理，志愿服务激活社会参与，协商民主化解矛盾纠纷。', summary: '基层治理现代化的路径与经验', category: '评论文章', region: '全国', tags: ['基层治理','枫桥经验','社区治理'], status: 'processed' },
+  { source_name: '新华网', title: '中央经济工作会议精神解读：更加积极有为', url: 'https://www.news.cn/zt/2025zyjjgzhy/index.html', publish_time: new Date('2026-01-08'), content: '中央经济工作会议强调实施更加积极有为的宏观政策。扩大内需是战略基点，要着力提振消费。促进民营经济发展壮大，优化营商环境。防范化解重大风险。', summary: '2025年中央经济工作会议部署解读', category: '政策解读', region: '全国', tags: ['中央经济工作会议','宏观政策','扩大内需'], status: 'processed' },
+  { source_name: '科技日报', title: '人工智能赋能千行百业的新进展', url: 'https://www.stdaily.com/index/kejixinwen/202602/t20260215_1234567.shtml', publish_time: new Date('2026-02-15'), content: '人工智能大模型加速落地应用，在医疗诊断、智慧城市、自动驾驶、教育等领域取得突破。与此同时，AI治理和伦理规范建设也在加速推进，确保技术向善发展。', summary: 'AI大模型应用与治理双轮驱动', category: '新闻报道', region: '全国', tags: ['人工智能','大模型','科技伦理'], status: 'processed' },
+  { source_name: '中国政府网', title: '关于加快建设全国统一大市场的实施方案', url: 'https://www.gov.cn/zhengce/202602/content_7234567.htm', publish_time: new Date('2026-02-25'), content: '破除地方保护和市场分割，加快建设全国统一大市场。统一市场准入、公平竞争、市场监管制度，促进商品和要素自由流通。', summary: '全国统一大市场实施方案解读', category: '政策文件', region: '全国', tags: ['统一大市场','市场经济','公平竞争'], status: 'processed' },
+  { source_name: '人民日报', title: '绿色低碳转型的中国路径', url: 'https://opinion.people.com.cn/n1/2026/0422/c223228-40489234.html', publish_time: new Date('2026-04-22'), content: '碳达峰碳中和目标稳步推进，坚持先立后破。新能源装机容量持续增长，绿色技术创新取得新突破。推动经济社会绿色转型，建设美丽中国。', summary: '双碳目标推进与绿色发展', category: '评论文章', region: '全国', tags: ['双碳','绿色发展','先立后破'], status: 'processed' },
+  { source_name: '新华网', title: '共同富裕示范区建设的浙江新实践', url: 'https://www.news.cn/local/20260318/abcdef123456.html', publish_time: new Date('2026-03-18'), content: '浙江共同富裕示范区建设持续深化。在缩小收入差距、城乡差距、地区差距方面取得积极进展。山区26县加快发展，公共服务优质共享。', summary: '浙江共同富裕示范区最新进展', category: '新闻报道', region: '浙江', tags: ['共同富裕','示范区','浙江'], status: 'processed' },
+  { source_name: '半月谈', title: '基层减负：从"指尖上的形式主义"说起', url: 'https://www.banyuetan.org/byt/202603/t20260310_1234567.shtml', publish_time: new Date('2026-03-10'), content: '当前基层减负取得成效，但"指尖上的形式主义"等新问题值得关注。各类APP、工作群、打卡签到增加基层负担。要从考核机制入手，切实为基层松绑。', summary: '基层减负新形势新问题', category: '评论文章', region: '全国', tags: ['基层减负','形式主义','基层治理'], status: 'processed' },
+  { source_name: '中国政府网', title: '关于促进民营经济发展壮大的若干措施', url: 'https://www.gov.cn/zhengce/202601/content_7345678.htm', publish_time: new Date('2026-01-20'), content: '从制度和法律上保障民营企业平等对待。优化融资环境，降低经营成本，保护企业家合法权益。民营经济促进法为民营经济发展提供法治保障。', summary: '促进民营经济发展的新政策新法律', category: '政策文件', region: '全国', tags: ['民营经济','营商环境','民营经济促进法'], status: 'processed' },
+  { source_name: '人民日报', title: '数字政府建设提速：让数据多跑路群众少跑腿', url: 'https://opinion.people.com.cn/n1/2026/0225/c223228-40436782.html', publish_time: new Date('2026-02-25'), content: '全国一体化政务服务平台持续优化，"一网通办"深入推进。但老年人和农村群众使用率偏低的问题亟待解决，要保留线下渠道推进适老化改造。', summary: '数字政府建设的成效与挑战', category: '评论文章', region: '全国', tags: ['数字政府','一网通办','适老化'], status: 'processed' },
+  { source_name: '新华网', title: '全面依法治国的新进展新成效', url: 'https://www.news.cn/politics/20260415/hijklmn789012.html', publish_time: new Date('2026-04-15'), content: '法治中国建设迈出坚实步伐。民营经济促进法等一批重要法律出台，行政复议体制改革深入推进，法治政府建设示范创建取得实效。', summary: '2026年法治中国建设重要进展', category: '新闻报道', region: '全国', tags: ['依法治国','法治政府','立法'], status: 'processed' },
+  { source_name: '求是网', title: '教育强国建设的战略路径', url: 'https://www.qstheory.cn/dukan/qs/2026-03/01/c_1130380001.htm', publish_time: new Date('2026-03-01'), content: '建设教育强国是中华民族伟大复兴的基础工程。深化教育综合改革，推进义务教育优质均衡发展，加强拔尖创新人才培养，完善职业教育体系。', summary: '教育强国的目标与路径', category: '政策解读', region: '全国', tags: ['教育强国','教育改革','人才培养'], status: 'processed' },
+  { source_name: '经济日报', title: '银发经济：万亿级市场的机遇与挑战', url: 'https://views.ce.cn/view/ent/202604/08/t20260408_39345678.shtml', publish_time: new Date('2026-04-08'), content: '我国60岁以上人口已超3亿。银发经济市场潜力巨大，涵盖养老服务、健康管理、老年教育等多个领域。要完善养老服务体系，发展普惠型养老服务。', summary: '银发经济的市场潜力与政策方向', category: '新闻报道', region: '全国', tags: ['银发经济','老龄化','养老服务'], status: 'processed' },
+  { source_name: '人民日报', title: '粮食安全：端牢中国人自己的饭碗', url: 'https://opinion.people.com.cn/n1/2026/0320/c223228-40458901.html', publish_time: new Date('2026-03-20'), content: '粮食安全是国之大者。全方位夯实粮食安全根基，严守18亿亩耕地红线，加快推进种业振兴，发展智慧农业和设施农业。', summary: '保障国家粮食安全的战略举措', category: '评论文章', region: '全国', tags: ['粮食安全','耕地红线','种业振兴'], status: 'processed' },
+  { source_name: '新华网', title: '新型城镇化与城市更新的新实践', url: 'https://www.news.cn/local/20260425/pqrstuv456789.html', publish_time: new Date('2026-04-25'), content: '以人为核心的新型城镇化持续推进。老旧小区改造、城市更新行动取得实效。保障性住房建设和城中村改造稳步推进。', summary: '新型城镇化与城市更新进展', category: '新闻报道', region: '全国', tags: ['新型城镇化','城市更新','保障性住房'], status: 'processed' },
+  { source_name: '光明日报', title: '全面从严治党永远在路上', url: 'https://theory.gmw.cn/2026-01/22/content_37425678.htm', publish_time: new Date('2026-01-22'), content: '一体推进不敢腐不能腐不想腐。纪检监察体制改革持续深化，中央八项规定精神严格落实，反腐败斗争取得新成效。', summary: '全面从严治党的新进展', category: '评论文章', region: '全国', tags: ['从严治党','反腐败','八项规定'], status: 'processed' },
+  { source_name: '中国政府网', title: '关于推进"平急两用"公共基础设施建设的指导意见', url: 'https://www.gov.cn/zhengce/202603/content_7456789.htm', publish_time: new Date('2026-03-08'), content: '推进"平急两用"公共基础设施建设，增强城市韧性和应急能力。平时用于旅游休闲、康养健身，重大公共突发事件时可转化为应急设施。', summary: '平急两用基础设施政策解读', category: '政策文件', region: '全国', tags: ['平急两用','应急管理','城市韧性'], status: 'processed' },
+  { source_name: '人民日报', title: '一带一路高质量发展的新篇章', url: 'https://opinion.people.com.cn/n1/2026/0510/c223228-40512345.html', publish_time: new Date('2026-05-10'), content: '共建一带一路进入高质量发展新阶段。深化与共建国家在基础设施、贸易投资、绿色发展、数字经济等领域的合作。', summary: '一带一路高质量发展新进展', category: '评论文章', region: '全国', tags: ['一带一路','对外开放','国际合作'], status: 'processed' },
+  { source_name: '新华网', title: '总体国家安全观引领安全发展', url: 'https://www.news.cn/politics/20260415/wxyzabc123456.html', publish_time: new Date('2026-04-15'), content: '坚持总体国家安全观，统筹发展和安全。防范化解重大风险，确保粮食安全、能源安全、产业链供应链安全。维护网络安全和数据安全。', summary: '总体国家安全观的实践深化', category: '政策解读', region: '全国', tags: ['国家安全','总体安全观','风险防控'], status: 'processed' },
+  { source_name: '学习时报', title: '坚持和发展新时代"枫桥经验"', url: 'https://www.studytimes.cn/article/202603/20260308_abcdef.html', publish_time: new Date('2026-03-08'), content: '新时代枫桥经验的核心是依靠群众就地化解矛盾。推动矛盾纠纷多元化解，完善社会治理体系，实现小事不出村大事不出镇。', summary: '新时代枫桥经验的理论与实践', category: '评论文章', region: '全国', tags: ['枫桥经验','矛盾化解','基层治理'], status: 'processed' },
+  { source_name: '中国环境报', title: '美丽中国建设的新征程', url: 'https://www.cenews.com.cn/news/202604/t20260422_1234567.html', publish_time: new Date('2026-04-22'), content: '深入推进污染防治攻坚战，生态环境质量持续改善。碳排放权交易市场运行平稳，全国碳市场覆盖范围进一步扩大。', summary: '美丽中国建设和双碳推进', category: '新闻报道', region: '全国', tags: ['美丽中国','碳市场','生态文明'], status: 'processed' },
+  { source_name: '人民论坛', title: '青年干部如何在基层成长成才', url: 'https://paper.people.com.cn/rmlt/202605/t20260515_1234567.html', publish_time: new Date('2026-05-15'), content: '基层是年轻干部成长成才的最好课堂。要扑下身子、沉到一线，在实践中增长才干；要坚持人民立场，密切联系群众；要敢于担当作为，在急难险重任务中经受考验。', summary: '青年干部基层成长路径', category: '评论文章', region: '全国', tags: ['青年干部','基层锻炼','干部成长'], status: 'processed' },
 ];
 
 async function seedData() {
@@ -217,12 +75,17 @@ async function seedData() {
       let sourceMap = {};
       if (srcCount === 0) {
         const sources = [
-          { name: '人民日报', source_type: 'web', base_url: 'http://www.people.com.cn', enabled: true, crawl_interval: 3600 },
-          { name: '新华网', source_type: 'web', base_url: 'http://www.xinhuanet.com', enabled: true, crawl_interval: 3600 },
-          { name: '中国政府网', source_type: 'web', base_url: 'http://www.gov.cn', enabled: true, crawl_interval: 7200 },
-          { name: '求是网', source_type: 'web', base_url: 'http://www.qstheory.cn', enabled: true, crawl_interval: 14400 },
-          { name: '光明日报', source_type: 'web', base_url: 'http://www.gmw.cn', enabled: true, crawl_interval: 3600 },
-          { name: '经济日报', source_type: 'web', base_url: 'http://www.ce.cn', enabled: true, crawl_interval: 7200 },
+          { name: '人民日报', source_type: 'web', base_url: 'https://opinion.people.com.cn', enabled: true, crawl_interval: 3600 },
+          { name: '新华网', source_type: 'web', base_url: 'https://www.news.cn', enabled: true, crawl_interval: 3600 },
+          { name: '中国政府网', source_type: 'web', base_url: 'https://www.gov.cn', enabled: true, crawl_interval: 7200 },
+          { name: '求是网', source_type: 'web', base_url: 'https://www.qstheory.cn', enabled: true, crawl_interval: 14400 },
+          { name: '光明日报', source_type: 'web', base_url: 'https://www.gmw.cn', enabled: true, crawl_interval: 3600 },
+          { name: '经济日报', source_type: 'web', base_url: 'https://views.ce.cn', enabled: true, crawl_interval: 7200 },
+          { name: '科技日报', source_type: 'web', base_url: 'https://www.stdaily.com', enabled: true, crawl_interval: 7200 },
+          { name: '半月谈', source_type: 'web', base_url: 'https://www.banyuetan.org', enabled: true, crawl_interval: 14400 },
+          { name: '学习时报', source_type: 'web', base_url: 'https://www.studytimes.cn', enabled: true, crawl_interval: 14400 },
+          { name: '人民论坛', source_type: 'web', base_url: 'https://www.rmlt.com.cn', enabled: true, crawl_interval: 14400 },
+          { name: '中国环境报', source_type: 'web', base_url: 'https://www.cenews.com.cn', enabled: true, crawl_interval: 14400 },
         ];
         for (const s of sources) {
           const created = await ArticleSource.create(s);
@@ -231,47 +94,48 @@ async function seedData() {
         console.log('Seeded article sources');
       }
 
-      const SEED_ARTICLES = [
-        { source_name: '人民日报', title: '加快发展新质生产力 扎实推进高质量发展', url: 'https://www.people.com.cn/example/1', publish_time: new Date('2024-03-15'), content: '新质生产力是由技术革命性突破、生产要素创新性配置、产业深度转型升级而催生的先进生产力...', summary: '深入分析新质生产力的内涵与发展路径', category: '政策解读', region: '全国', tags: ['新质生产力', '高质量发展', '科技创新'], status: 'processed' },
-        { source_name: '新华网', title: '数字政府建设的实践与思考', url: 'https://www.xinhuanet.com/example/2', publish_time: new Date('2024-04-02'), content: '数字政府建设是推进国家治理体系和治理能力现代化的重要举措...', summary: '探讨数字政府建设中的问题与对策', category: '新闻报道', region: '全国', tags: ['数字政府', '治理现代化', '政务服务'], status: 'processed' },
-        { source_name: '中国政府网', title: '2024年政府工作报告', url: 'https://www.gov.cn/example/3', publish_time: new Date('2024-03-05'), content: '国内生产总值增长5%左右...', summary: '2024年政府工作报告核心要点', category: '政策文件', region: '全国', tags: ['政府工作报告', 'GDP目标', '经济政策'], status: 'processed' },
-        { source_name: '求是网', title: '中国式现代化的本质要求', url: 'https://www.qstheory.cn/example/4', publish_time: new Date('2024-02-20'), content: '党的二十大报告明确提出中国式现代化的本质要求...', summary: '深入解读中国式现代化的理论内涵', category: '政策解读', region: '全国', tags: ['中国式现代化', '二十大', '理论学习'], status: 'processed' },
-        { source_name: '人民日报', title: '推进基层治理现代化的实践探索', url: 'https://www.people.com.cn/example/5', publish_time: new Date('2024-05-10'), content: '基层治理是国家治理的基石...', summary: '各地基层治理创新经验总结', category: '新闻报道', region: '全国', tags: ['基层治理', '枫桥经验', '社会治理'], status: 'processed' },
-        { source_name: '光明日报', title: '全面依法治国的理论与实践', url: 'https://www.gmw.cn/example/6', publish_time: new Date('2024-04-15'), content: '全面依法治国是中国特色社会主义的本质要求...', summary: '法治中国建设的新进展新成效', category: '评论文章', region: '全国', tags: ['依法治国', '法治', '法治体系'], status: 'processed' },
-        { source_name: '经济日报', title: '优化营商环境的若干措施', url: 'https://www.ce.cn/example/7', publish_time: new Date('2024-06-01'), content: '优化营商环境是一项涉及面广的系统工程...', summary: '各地优化营商环境的政策与实践', category: '政策解读', region: '全国', tags: ['营商环境', '放管服', '市场化'], status: 'processed' },
-        { source_name: '新华网', title: '银发经济：机遇与挑战', url: 'https://www.xinhuanet.com/example/8', publish_time: new Date('2024-05-20'), content: '随着我国老龄化程度不断加深...', summary: '银发经济的发展前景与政策建议', category: '新闻报道', region: '全国', tags: ['银发经济', '老龄化', '养老服务'], status: 'processed' },
-        { source_name: '中国政府网', title: '关于全面推进依法治税的意见', url: 'https://www.gov.cn/example/9', publish_time: new Date('2024-03-25'), content: '依法治税是落实全面依法治国方略的重要实践...', summary: '税务系统依法治税的指导意见', category: '政策文件', region: '全国', tags: ['依法治税', '税收法定', '税务改革'], status: 'processed' },
-        { source_name: '人民日报', title: '乡村振兴：从产业兴旺到生态宜居', url: 'https://www.people.com.cn/example/10', publish_time: new Date('2024-04-28'), content: '乡村振兴不能只盯着经济发展...', summary: '乡村振兴战略的多维推进路径', category: '评论文章', region: '全国', tags: ['乡村振兴', '基层治理', '生态文明'], status: 'processed' },
-        { source_name: '新华网', title: '"办不成事"反映窗口的启示', url: 'https://www.xinhuanet.com/example/11', publish_time: new Date('2024-05-05'), content: '某市推行"办不成事"反映窗口...', summary: '政务服务创新的思考', category: '新闻报道', region: '全国', tags: ['政务服务', '放管服', '基层治理'], status: 'processed' },
-        { source_name: '求是网', title: '中央经济工作会议精神解读', url: 'https://www.qstheory.cn/example/12', publish_time: new Date('2024-01-10'), content: '中央经济工作会议强调稳中求进、以进促稳、先立后破...', summary: '2024年经济工作重点任务解读', category: '政策解读', region: '全国', tags: ['经济工作', '稳中求进', '先立后破'], status: 'processed' },
-      ];
-
-      const articleMap = {};
-      for (const a of SEED_ARTICLES) {
-        const sid = sourceMap[a.source_name] || 1;
-        const article = await Article.create({
-          source_id: sid, title: a.title, url: a.url, publish_time: a.publish_time,
-          content: a.content, summary: a.summary, category: a.category,
-          region: a.region, tags: a.tags, status: a.status, question_count: 0,
-        });
-        articleMap[a.title] = article.id;
+      const artCount = await Article.count();
+      if (artCount === 0) {
+        for (const a of SEED_ARTICLES) {
+          const sid = sourceMap[a.source_name] || 1;
+          await Article.create({
+            source_id: sid, title: a.title, url: a.url, publish_time: a.publish_time,
+            content: a.content, summary: a.summary, category: a.category,
+            region: a.region, tags: a.tags, status: a.status, question_count: 0,
+          });
+        }
+        console.log(`Seeded ${SEED_ARTICLES.length} articles (2026)`);
       }
-      console.log(`Seeded ${SEED_ARTICLES.length} articles`);
 
-      for (const q of SEED_QUESTIONS) {
-        const artId = q._article ? articleMap[q._article] : null;
-        const { _article, ...qData } = q;
-        await Question.create({ ...qData, source_article_id: artId, status: 'approved', quality_score: 85 });
+      if (ALL_QUESTIONS.length > 0) {
+        const BATCH_SIZE = 100;
+        let inserted = 0;
+        for (let i = 0; i < ALL_QUESTIONS.length; i += BATCH_SIZE) {
+          const batch = ALL_QUESTIONS.slice(i, i + BATCH_SIZE).map(q => ({
+            ...q,
+            status: 'approved',
+            quality_score: 85,
+            source_article_id: null,
+          }));
+          await Question.bulkCreate(batch);
+          inserted += batch.length;
+          if (inserted % 500 === 0 || inserted === ALL_QUESTIONS.length) {
+            console.log(`Seeded ${inserted}/${ALL_QUESTIONS.length} questions...`);
+          }
+        }
+        console.log(`Seeded ${ALL_QUESTIONS.length} questions total`);
+      } else {
+        console.log('No questions to seed');
       }
-      console.log(`Seeded ${SEED_QUESTIONS.length} questions`);
     } else {
+      console.log(`Questions already exist (${qCount}), skipping seed`);
       const srcCount = await ArticleSource.count();
       if (srcCount === 0) {
         const sources = [
-          { name: '人民日报', source_type: 'web', base_url: 'http://www.people.com.cn', enabled: true, crawl_interval: 3600 },
-          { name: '新华网', source_type: 'web', base_url: 'http://www.xinhuanet.com', enabled: true, crawl_interval: 3600 },
-          { name: '中国政府网', source_type: 'web', base_url: 'http://www.gov.cn', enabled: true, crawl_interval: 7200 },
-          { name: '求是网', source_type: 'web', base_url: 'http://www.qstheory.cn', enabled: true, crawl_interval: 14400 },
+          { name: '人民日报', source_type: 'web', base_url: 'https://opinion.people.com.cn', enabled: true, crawl_interval: 3600 },
+          { name: '新华网', source_type: 'web', base_url: 'https://www.news.cn', enabled: true, crawl_interval: 3600 },
+          { name: '中国政府网', source_type: 'web', base_url: 'https://www.gov.cn', enabled: true, crawl_interval: 7200 },
+          { name: '求是网', source_type: 'web', base_url: 'https://www.qstheory.cn', enabled: true, crawl_interval: 14400 },
         ];
         for (const s of sources) await ArticleSource.create(s);
         console.log('Seeded article sources');
