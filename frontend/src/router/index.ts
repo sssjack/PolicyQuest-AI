@@ -1,8 +1,9 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 
 const routes = [
-  { path: '/', name: 'ScoringStudio', component: () => import('../views/scoring/ScoringStudio.vue') },
-  { path: '/legacy-home', name: 'Home', component: () => import('../views/home/HomePage.vue') },
+  { path: '/', name: 'Home', component: () => import('../views/home/HomePage.vue') },
+  { path: '/scoring', name: 'ScoringStudio', component: () => import('../views/scoring/ScoringStudio.vue') },
+  { path: '/legacy-home', redirect: '/' },
   { path: '/login', name: 'Login', component: () => import('../views/auth/LoginPage.vue') },
   { path: '/register', name: 'Register', component: () => import('../views/auth/RegisterPage.vue') },
   {
@@ -43,6 +44,7 @@ const router = createRouter({
 router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('pq_token')
   const user = JSON.parse(localStorage.getItem('pq_user') || 'null')
+  if (to.path === '/' && token) return next('/app/dashboard')
   if (to.meta.requiresAuth && !token) return next('/login')
   if (to.meta.requiresAdmin && (!user || !['admin', 'super_admin'].includes(user.role))) return next('/app/dashboard')
   next()
