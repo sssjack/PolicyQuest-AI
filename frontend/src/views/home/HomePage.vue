@@ -1,27 +1,26 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { ArrowRight, CircleCheck, DataAnalysis, EditPen, Reading, Timer } from '@element-plus/icons-vue'
 import { useUserStore } from '../../store/user'
-import heroImage from '../../assets/hero.png'
 
 const router = useRouter()
 const userStore = useUserStore()
 
 const primaryTarget = computed(() => (userStore.isLoggedIn ? '/coach' : '/login'))
 
-const highlights = [
-  { value: '5 维', label: '申论与面试评分维度' },
-  { value: '120s', label: '生成诊断与改写方向' },
-  { value: '30 天', label: '追踪薄弱项变化' },
+const productStats = [
+  { value: '2', label: '申论 / 面试双主线' },
+  { value: '5+', label: 'AI 评阅维度' },
+  { value: '80', label: '本地历史记录上限' },
 ]
 
-const modules = [
-  { title: 'AI 学习指挥舱', desc: '把今日建议、预测分数、薄弱项和下一步训练放在第一屏。' },
-  { title: '真题与热点训练', desc: '覆盖国考、省考、事业编申论与结构化面试场景。' },
-  { title: '深度评阅报告', desc: '给出分项诊断、扣分原因、可执行建议和示范改写。' },
+const productFlow = [
+  { icon: Reading, title: '选择真题', desc: '按申论、面试、国考、省考、地区和年份快速定位。' },
+  { icon: Timer, title: '限时作答', desc: '进入题目即开始计时，材料、题目和作答区保持清晰。' },
+  { icon: DataAnalysis, title: 'AI 阅卷', desc: '提交后给分数、优点、缺点、建议、解读和参考范文。' },
+  { icon: EditPen, title: '复盘提升', desc: '个人报告沉淀雷达图、练习统计和下一步建议。' },
 ]
-
-const flow = ['选择题目', '完成作答', 'AI 评阅', '按建议重练']
 
 function goPrimary() {
   router.push(primaryTarget.value)
@@ -35,77 +34,102 @@ function goPrimary() {
         <span class="brand-mark">PQ</span>
         <span>
           <strong>PolicyQuest</strong>
-          <small>AI Exam Coach</small>
+          <small>AI 公考学习引擎</small>
         </span>
       </router-link>
+
       <nav class="landing-nav">
-        <a href="#modules">功能</a>
-        <a href="#flow">流程</a>
+        <a href="#flow">产品流程</a>
+        <a href="#report">个人报告</a>
         <button class="btn-ghost" type="button" @click="router.push('/login')">登录</button>
         <button class="btn-primary" type="button" @click="router.push(userStore.isLoggedIn ? '/coach' : '/register')">
-          {{ userStore.isLoggedIn ? '进入工作台' : '注册体验' }}
+          {{ userStore.isLoggedIn ? '进入学习中心' : '免费注册' }}
         </button>
       </nav>
     </header>
 
     <section class="landing-hero">
       <div class="hero-copy">
-        <p class="page-kicker">PolicyQuest AI Study Lab</p>
-        <h1>把申论与面试训练，变成每天可执行的 AI 提分计划</h1>
+        <p class="page-kicker">AI Study Command Center</p>
+        <h1>申论和面试，从刷题变成可复盘的提分系统</h1>
         <p class="hero-subtitle">
-          面向公考、事业编和结构化面试备考人群，PolicyQuest 会根据你的作答生成评分、薄弱项诊断、素材建议和示范改写，让每次练习都知道下一步怎么提分。
+          PolicyQuest 面向公考备考用户，把历年真题、限时作答、AI 阅卷和个人能力报告放在同一条训练链路里。
+          你每次作答都会留下记录，系统会告诉你为什么失分，以及下一步该练什么。
         </p>
+
         <div class="hero-actions">
           <button class="btn-primary hero-btn" type="button" @click="goPrimary">
             {{ userStore.isLoggedIn ? '进入 AI 学习指挥舱' : '登录后开始训练' }}
+            <el-icon><ArrowRight /></el-icon>
           </button>
           <button class="btn-ghost hero-btn" type="button" @click="router.push('/register')">创建备考档案</button>
         </div>
-        <div class="hero-highlights">
-          <article v-for="item in highlights" :key="item.label">
+
+        <div class="hero-stats">
+          <article v-for="item in productStats" :key="item.label">
             <strong>{{ item.value }}</strong>
             <span>{{ item.label }}</span>
           </article>
         </div>
       </div>
 
-      <div class="hero-visual" aria-label="PolicyQuest 产品预览">
-        <div class="visual-header">
-          <span>AI Coach Online</span>
-          <strong>预测分数 +4.2</strong>
+      <div class="command-preview" aria-label="PolicyQuest 产品预览">
+        <div class="preview-top">
+          <span>AI 学习建议</span>
+          <strong>预测分数 72 / 100</strong>
         </div>
-        <img :src="heroImage" alt="PolicyQuest 工作台预览" />
-        <aside class="ai-card">
-          <span>今日建议</span>
-          <strong>先补政策逻辑，再做 1 套申论模拟</strong>
-          <small>原因：最近三次训练中，论据充分性下降 12%。</small>
-        </aside>
+        <div class="preview-path-grid">
+          <article class="path-card essay">
+            <span>申论</span>
+            <h2>2026山东省考申论真题</h2>
+            <p>材料分析、提出对策、文章写作</p>
+            <button type="button">开始申论真题</button>
+          </article>
+          <article class="path-card interview">
+            <span>面试</span>
+            <h2>2025济南历城区面试真题</h2>
+            <p>综合分析、应急应变、岗位匹配</p>
+            <button type="button">开始面试真题</button>
+          </article>
+        </div>
+        <div class="preview-advice">
+          <div>
+            <small>今日建议</small>
+            <strong>先补“提出对策”，再做 1 套申论限时题</strong>
+          </div>
+          <ul>
+            <li><CircleCheck /> 弱项：贯彻执行 61 分</li>
+            <li><CircleCheck /> 下一步：45 分钟限时练习</li>
+            <li><CircleCheck /> 复盘：对比参考范文结构</li>
+          </ul>
+        </div>
       </div>
     </section>
 
-    <section id="modules" class="modules-section">
+    <section id="flow" class="flow-section">
       <div class="section-head">
-        <p class="page-kicker">Core Modules</p>
-        <h2>不是简单刷题，而是围绕薄弱项推进</h2>
+        <p class="page-kicker">How It Works</p>
+        <h2>一条完整训练链路</h2>
       </div>
-      <div class="module-grid">
-        <article v-for="item in modules" :key="item.title" class="module-card">
-          <span></span>
+      <div class="flow-grid">
+        <article v-for="item in productFlow" :key="item.title">
+          <el-icon><component :is="item.icon" /></el-icon>
           <h3>{{ item.title }}</h3>
           <p>{{ item.desc }}</p>
         </article>
       </div>
     </section>
 
-    <section id="flow" class="flow-section">
+    <section id="report" class="report-band">
       <div>
-        <p class="page-kicker">Training Flow</p>
-        <h2>一次练习形成一条可复盘的提分路径</h2>
+        <p class="page-kicker">Growth Report</p>
+        <h2>报告不只展示数据，还告诉你为什么和下一步</h2>
+        <p>
+          个人报告会按综合分析、提出对策、文章写作、贯彻执行、应变处置等维度生成雷达图，
+          并结合最近作答记录给出薄弱项、趋势和训练建议。
+        </p>
       </div>
-      <div class="flow-list">
-        <span v-for="(item, index) in flow" :key="item">{{ index + 1 }}. {{ item }}</span>
-      </div>
-      <button class="btn-primary" type="button" @click="goPrimary">进入训练</button>
+      <button class="btn-primary" type="button" @click="goPrimary">进入学习中心</button>
     </section>
   </main>
 </template>
@@ -115,8 +139,8 @@ function goPrimary() {
   min-height: 100vh;
   overflow: hidden;
   background:
-    linear-gradient(90deg, rgba(0, 221, 255, 0.07) 1px, transparent 1px),
-    linear-gradient(180deg, #f8fbff 0%, #ffffff 52%, #eef6ff 100%);
+    linear-gradient(90deg, rgba(0, 184, 217, 0.07) 1px, transparent 1px),
+    linear-gradient(180deg, #f7fbff 0%, #ffffff 54%, #eef6ff 100%);
   background-size: 48px 48px, auto;
 }
 
@@ -129,16 +153,15 @@ function goPrimary() {
   justify-content: space-between;
   height: 76px;
   padding: 0 max(24px, calc((100vw - 1240px) / 2));
-  border-bottom: 1px solid rgba(181, 198, 226, 0.58);
-  background: rgba(255, 255, 255, 0.88);
+  border-bottom: 1px solid rgba(198, 211, 232, 0.72);
+  background: rgba(255, 255, 255, 0.9);
   backdrop-filter: blur(18px);
 }
 
 .brand,
 .landing-nav,
 .hero-actions,
-.hero-highlights,
-.flow-list {
+.hero-stats {
   display: flex;
   align-items: center;
 }
@@ -153,11 +176,10 @@ function goPrimary() {
   place-items: center;
   width: 42px;
   height: 42px;
-  border-radius: 14px;
-  background: linear-gradient(135deg, #0050cb, #00d5ff);
+  border-radius: 12px;
+  background: linear-gradient(135deg, #0050cb, #00b8d9);
   color: #ffffff;
   font-weight: 900;
-  box-shadow: 0 16px 34px rgba(0, 102, 255, 0.22);
 }
 
 .brand strong,
@@ -183,26 +205,26 @@ function goPrimary() {
 
 .landing-hero {
   display: grid;
-  grid-template-columns: minmax(0, 0.9fr) minmax(460px, 1fr);
+  grid-template-columns: minmax(0, 0.9fr) minmax(480px, 1fr);
   align-items: center;
   gap: 48px;
   width: min(1240px, calc(100vw - 48px));
   min-height: calc(100vh - 76px);
   margin: 0 auto;
-  padding: 48px 0 36px;
+  padding: 52px 0 42px;
 }
 
 .hero-copy h1 {
-  max-width: 720px;
+  max-width: 760px;
   margin: 0;
   color: #07182f;
   font-size: 62px;
   font-weight: 900;
-  line-height: 1.05;
+  line-height: 1.08;
 }
 
 .hero-subtitle {
-  max-width: 680px;
+  max-width: 720px;
   margin: 24px 0 0;
   color: var(--text-secondary);
   font-size: 18px;
@@ -220,255 +242,295 @@ function goPrimary() {
   padding: 0 24px;
 }
 
-.hero-highlights {
+.hero-stats {
   flex-wrap: wrap;
   gap: 12px;
   margin-top: 34px;
 }
 
-.hero-highlights article,
-.module-card,
-.flow-section {
+.hero-stats article,
+.command-preview,
+.flow-grid article,
+.report-band {
   border: 1px solid rgba(196, 211, 238, 0.8);
-  background: rgba(255, 255, 255, 0.82);
+  background: rgba(255, 255, 255, 0.86);
   box-shadow: 0 18px 46px rgba(19, 42, 74, 0.08);
   backdrop-filter: blur(18px);
 }
 
-.hero-highlights article {
-  min-width: 150px;
+.hero-stats article {
+  min-width: 160px;
   padding: 16px;
-  border-radius: 16px;
+  border-radius: 14px;
 }
 
-.hero-highlights strong,
-.hero-highlights span {
+.hero-stats strong,
+.hero-stats span {
   display: block;
 }
 
-.hero-highlights strong {
+.hero-stats strong {
   color: #0050cb;
-  font-size: 26px;
+  font-size: 28px;
 }
 
-.hero-highlights span {
+.hero-stats span {
   margin-top: 4px;
   color: var(--text-muted);
   font-size: 12px;
   font-weight: 800;
 }
 
-.hero-visual {
-  position: relative;
+.command-preview {
   min-height: 560px;
   padding: 28px;
-  border: 1px solid rgba(160, 191, 244, 0.72);
-  border-radius: 28px;
-  background:
-    linear-gradient(145deg, rgba(0, 80, 203, 0.14), rgba(0, 213, 255, 0.16)),
-    #ffffff;
-  box-shadow: 0 30px 80px rgba(19, 42, 74, 0.16);
+  border-radius: 24px;
 }
 
-.visual-header {
+.preview-top {
   display: flex;
-  align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  margin-bottom: 18px;
+  gap: 16px;
+  margin-bottom: 22px;
   color: #0758d8;
   font-weight: 900;
 }
 
-.visual-header span {
+.preview-top span {
   padding: 8px 12px;
   border-radius: 999px;
-  background: rgba(0, 213, 255, 0.14);
+  background: #e5fbff;
   color: #006a75;
   font-size: 12px;
 }
 
-.hero-visual img {
-  width: 100%;
-  height: 420px;
-  object-fit: cover;
-  border: 1px solid rgba(196, 211, 238, 0.88);
-  border-radius: 22px;
-  background: #ffffff;
-}
-
-.ai-card {
-  position: absolute;
-  right: 34px;
-  bottom: 34px;
+.preview-path-grid {
   display: grid;
-  gap: 8px;
-  width: min(340px, calc(100% - 68px));
-  padding: 18px;
-  border: 1px solid rgba(0, 213, 255, 0.34);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.94);
-  box-shadow: 0 20px 44px rgba(0, 80, 203, 0.16);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
 }
 
-.ai-card span {
-  color: #007d8c;
+.path-card {
+  display: grid;
+  gap: 12px;
+  min-height: 248px;
+  padding: 22px;
+  border: 1px solid rgba(0, 102, 255, 0.2);
+  border-radius: 16px;
+  background: linear-gradient(145deg, #ffffff, #eef6ff);
+}
+
+.path-card.interview {
+  border-color: rgba(0, 184, 217, 0.26);
+  background: linear-gradient(145deg, #ffffff, #eafbff);
+}
+
+.path-card span {
+  justify-self: start;
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #e6efff;
+  color: #0758d8;
   font-size: 12px;
   font-weight: 900;
 }
 
-.ai-card strong {
+.path-card.interview span {
+  background: #dffbff;
+  color: #007a8c;
+}
+
+.path-card h2 {
+  margin: 0;
+  color: #07182f;
+  font-size: 24px;
+  line-height: 1.32;
+}
+
+.path-card p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+.path-card button {
+  align-self: end;
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--gradient-1);
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.path-card.interview button {
+  background: linear-gradient(135deg, #008faf, #00b8d9);
+}
+
+.preview-advice {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 20px;
+  border-radius: 16px;
+  background: #f7fbff;
+}
+
+.preview-advice small {
+  color: #007a8c;
+  font-weight: 900;
+}
+
+.preview-advice strong {
+  display: block;
+  margin-top: 6px;
   font-size: 20px;
 }
 
-.ai-card small {
+.preview-advice ul {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
   color: var(--text-secondary);
-  line-height: 1.5;
+  list-style: none;
 }
 
-.modules-section,
-.flow-section {
+.preview-advice li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.preview-advice .el-icon {
+  color: #08766c;
+}
+
+.flow-section,
+.report-band {
   width: min(1240px, calc(100vw - 48px));
   margin: 0 auto;
 }
 
-.modules-section {
-  padding: 42px 0 72px;
+.flow-section {
+  padding: 44px 0 74px;
 }
 
 .section-head h2,
-.flow-section h2 {
+.report-band h2 {
   margin: 0;
   color: #07182f;
   font-size: 34px;
 }
 
-.module-grid {
+.flow-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
   margin-top: 24px;
 }
 
-.module-card {
+.flow-grid article {
   display: grid;
-  gap: 14px;
-  min-height: 210px;
-  padding: 24px;
-  border-radius: 16px;
+  gap: 12px;
+  min-height: 204px;
+  padding: 22px;
+  border-radius: 14px;
 }
 
-.module-card span {
-  width: 44px;
-  height: 4px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, #0050cb, #00d5ff);
+.flow-grid .el-icon {
+  display: grid;
+  width: 42px;
+  height: 42px;
+  place-items: center;
+  border-radius: 12px;
+  background: #e6efff;
+  color: #0758d8;
+  font-size: 22px;
 }
 
-.module-card h3 {
+.flow-grid h3 {
   margin: 0;
-  font-size: 20px;
+  font-size: 19px;
 }
 
-.module-card p {
+.flow-grid p,
+.report-band p {
   margin: 0;
   color: var(--text-secondary);
   line-height: 1.7;
 }
 
-.flow-section {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+.report-band {
+  display: flex;
   align-items: center;
-  gap: 24px;
-  margin-bottom: 72px;
-  padding: 28px;
-  border-radius: 20px;
+  justify-content: space-between;
+  gap: 28px;
+  margin-bottom: 74px;
+  padding: 30px;
+  border-radius: 18px;
 }
 
-.flow-list {
-  flex-wrap: wrap;
-  gap: 10px;
+.report-band p {
+  max-width: 760px;
+  margin-top: 12px;
 }
 
-.flow-list span {
-  min-height: 38px;
-  padding: 10px 14px;
-  border-radius: 999px;
-  background: #eff6ff;
-  color: #0758d8;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-@media (max-width: 960px) {
-  .landing-nav a {
-    display: none;
-  }
-
+@media (max-width: 1080px) {
   .landing-hero {
     grid-template-columns: 1fr;
     min-height: auto;
   }
 
-  .hero-copy h1 {
-    font-size: 44px;
-  }
-
-  .module-grid,
-  .flow-section {
-    grid-template-columns: 1fr;
-  }
-
-  .hero-visual {
-    min-height: auto;
+  .flow-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
-@media (max-width: 620px) {
+@media (max-width: 720px) {
   .landing-header {
     height: 68px;
     padding: 0 16px;
   }
 
-  .brand small,
-  .landing-nav .btn-ghost {
+  .landing-nav a,
+  .landing-nav .btn-ghost,
+  .brand small {
     display: none;
   }
 
   .landing-hero,
-  .modules-section,
-  .flow-section {
+  .flow-section,
+  .report-band {
     width: calc(100vw - 32px);
   }
 
   .landing-hero {
     padding-top: 34px;
-    gap: 28px;
   }
 
   .hero-copy h1 {
-    font-size: 36px;
+    font-size: 38px;
   }
 
   .hero-subtitle {
     font-size: 16px;
   }
 
-  .hero-visual {
-    padding: 16px;
-    border-radius: 22px;
-  }
-
-  .hero-visual img {
-    height: 280px;
+  .command-preview {
+    min-height: 0;
+    padding: 18px;
     border-radius: 18px;
   }
 
-  .ai-card {
-    position: static;
-    width: 100%;
-    margin-top: 14px;
+  .preview-path-grid,
+  .flow-grid,
+  .report-band {
+    grid-template-columns: 1fr;
+  }
+
+  .report-band {
+    display: grid;
   }
 }
 </style>

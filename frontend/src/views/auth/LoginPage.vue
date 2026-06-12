@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { ArrowRight, CircleCheck } from '@element-plus/icons-vue'
 import { useUserStore } from '../../store/user'
 
 const route = useRoute()
@@ -23,8 +24,8 @@ async function handleLogin() {
     await userStore.login(form.value.account.trim(), form.value.password)
     ElMessage.success('欢迎回来，已进入 AI 学习指挥舱')
     router.push(redirectTarget.value)
-  } catch (e: any) {
-    ElMessage.error(e.message || '登录失败，请检查账号信息')
+  } catch (error: any) {
+    ElMessage.error(error.message || '登录失败，请检查账号信息')
   } finally {
     loading.value = false
   }
@@ -39,20 +40,21 @@ async function handleLogin() {
           <span class="brand-mark">PQ</span>
           <span>
             <strong>PolicyQuest</strong>
-            <small>AI Exam Coach</small>
+            <small>AI 公考学习引擎</small>
           </span>
         </router-link>
 
         <div class="story-copy">
           <p class="page-kicker">Secure Study Access</p>
           <h1>登录后进入你的 AI 学习指挥舱</h1>
-          <p>继续查看今日建议、预测分数、薄弱项和申论/面试训练记录，让备考节奏不断档。</p>
+          <p>继续查看今日建议、预测分数、薄弱项、申论与面试真题记录，让每一次练习都能沉淀成下一步行动。</p>
         </div>
 
-        <div class="story-metrics">
-          <div><strong>+4.2</strong><span>近 30 天预测涨分</span></div>
-          <div><strong>12%</strong><span>政策逻辑待补强</span></div>
-          <div><strong>1 套</strong><span>今日推荐训练</span></div>
+        <div class="story-checks">
+          <span><CircleCheck /> 真题选择</span>
+          <span><CircleCheck /> 限时作答</span>
+          <span><CircleCheck /> AI 阅卷</span>
+          <span><CircleCheck /> 个人报告</span>
         </div>
       </aside>
 
@@ -74,6 +76,7 @@ async function handleLogin() {
               autocomplete="username"
             />
           </label>
+
           <label class="form-group">
             <span>密码</span>
             <input
@@ -86,7 +89,8 @@ async function handleLogin() {
           </label>
 
           <button class="btn-primary submit-btn" type="submit" :disabled="loading">
-            {{ loading ? '登录中...' : '登录并进入 AI 指挥舱' }}
+            {{ loading ? '登录中...' : '登录并进入学习中心' }}
+            <el-icon><ArrowRight /></el-icon>
           </button>
         </form>
 
@@ -108,14 +112,14 @@ async function handleLogin() {
   place-items: center;
   padding: 32px;
   background:
-    linear-gradient(90deg, rgba(0, 213, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+    linear-gradient(90deg, rgba(0, 184, 217, 0.06) 1px, transparent 1px),
+    linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
   background-size: 46px 46px, auto;
 }
 
 .auth-shell {
   display: grid;
-  grid-template-columns: minmax(360px, 0.92fr) minmax(380px, 480px);
+  grid-template-columns: minmax(360px, 0.9fr) minmax(380px, 480px);
   gap: 24px;
   width: min(1080px, 100%);
 }
@@ -132,9 +136,7 @@ async function handleLogin() {
   padding: 34px;
   border: 1px solid rgba(123, 189, 255, 0.38);
   border-radius: 24px;
-  background:
-    linear-gradient(145deg, rgba(0, 80, 203, 0.95), rgba(0, 181, 219, 0.88)),
-    var(--primary);
+  background: linear-gradient(145deg, #003b88, #0050cb 48%, #008faf);
   color: #ffffff;
   box-shadow: 0 28px 70px rgba(0, 80, 203, 0.2);
 }
@@ -151,11 +153,9 @@ async function handleLogin() {
   place-items: center;
   width: 44px;
   height: 44px;
-  border-radius: 14px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.18);
-  color: #ffffff;
   font-weight: 900;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
 }
 
 .brand strong,
@@ -168,49 +168,40 @@ async function handleLogin() {
   font-size: 12px;
 }
 
-.story-copy {
-  max-width: 520px;
-}
-
 .story-copy .page-kicker {
   color: #bdf6ff;
 }
 
 .story-copy h1 {
+  max-width: 520px;
   margin: 0;
   font-size: 42px;
   line-height: 1.16;
 }
 
 .story-copy p:last-child {
+  max-width: 520px;
   margin: 18px 0 0;
   color: rgba(255, 255, 255, 0.84);
   font-size: 16px;
   line-height: 1.75;
 }
 
-.story-metrics {
+.story-checks {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 10px;
 }
 
-.story-metrics div {
-  display: grid;
-  gap: 5px;
-  padding: 16px;
-  border-radius: 16px;
+.story-checks span {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 54px;
+  padding: 0 14px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.13);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
-}
-
-.story-metrics strong {
-  font-size: 26px;
-}
-
-.story-metrics span {
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 12px;
+  font-weight: 900;
 }
 
 .auth-card {
@@ -304,8 +295,8 @@ async function handleLogin() {
   }
 
   .auth-story {
-    min-height: 310px;
-    border-radius: 0 0 24px 24px;
+    min-height: 320px;
+    border-radius: 0 0 22px 22px;
     padding: 24px 20px;
   }
 
@@ -313,7 +304,7 @@ async function handleLogin() {
     font-size: 32px;
   }
 
-  .story-metrics {
+  .story-checks {
     grid-template-columns: 1fr;
   }
 

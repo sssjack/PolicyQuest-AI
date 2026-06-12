@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
+import { CircleCheck } from '@element-plus/icons-vue'
 import { useUserStore } from '../../store/user'
 
 const route = useRoute()
@@ -14,12 +15,12 @@ const form = ref({
   confirmPw: '',
   nickname: '',
   exam_target: '申论',
-  province: '全国',
+  province: '山东',
 })
 const loading = ref(false)
 
 const redirectTarget = computed(() => String(route.query.redirect || '/coach'))
-const examOptions = ['国考申论', '省考申论', '事业单位综合应用', '结构化面试', '税务面试']
+const examOptions = ['申论', '面试', '申论 + 面试', '国考申论', '山东省考面试']
 const provinceOptions = ['全国', '北京', '上海', '广东', '浙江', '山东', '江苏', '四川', '湖北', '河南']
 
 function isValidEmail(value: string) {
@@ -56,8 +57,8 @@ async function handleRegister() {
     await userStore.register({ ...form.value, username, email })
     ElMessage.success('备考档案已创建')
     router.push(redirectTarget.value)
-  } catch (e: any) {
-    ElMessage.error(e.message || '注册失败，请稍后重试')
+  } catch (error: any) {
+    ElMessage.error(error.message || '注册失败，请稍后重试')
   } finally {
     loading.value = false
   }
@@ -72,7 +73,7 @@ async function handleRegister() {
           <span class="brand-mark">PQ</span>
           <span>
             <strong>PolicyQuest</strong>
-            <small>AI Exam Coach</small>
+            <small>AI 公考学习引擎</small>
           </span>
         </router-link>
 
@@ -83,10 +84,10 @@ async function handleRegister() {
         </div>
 
         <div class="story-flow">
-          <span>方向定位</span>
-          <span>真题训练</span>
-          <span>AI 评阅</span>
-          <span>行动建议</span>
+          <span><CircleCheck /> 方向定位</span>
+          <span><CircleCheck /> 真题训练</span>
+          <span><CircleCheck /> AI 阅卷</span>
+          <span><CircleCheck /> 行动建议</span>
         </div>
       </aside>
 
@@ -94,7 +95,7 @@ async function handleRegister() {
         <div class="auth-header">
           <p class="page-kicker">Register</p>
           <h2>注册 PolicyQuest</h2>
-          <p>创建账号后自动进入工作台，后续训练记录会保存在你的档案中。</p>
+          <p>创建账号后自动进入工作台，后续训练记录会保存在你的备考档案中。</p>
         </div>
 
         <form class="auth-form" @submit.prevent="handleRegister">
@@ -105,13 +106,13 @@ async function handleRegister() {
             </label>
             <label class="form-group">
               <span>昵称</span>
-              <input v-model="form.nickname" class="form-control" placeholder="例如：Alex" />
+              <input v-model="form.nickname" class="form-control" placeholder="例如：张同学" />
             </label>
           </div>
 
           <label class="form-group">
             <span>邮箱 *</span>
-            <input v-model="form.email" class="form-control" type="email" placeholder="用于登录和找回账号" autocomplete="email" />
+            <input v-model="form.email" class="form-control" type="email" placeholder="用于登录账号" autocomplete="email" />
           </label>
 
           <div class="form-row">
@@ -141,7 +142,7 @@ async function handleRegister() {
           </div>
 
           <button class="btn-primary submit-btn" type="submit" :disabled="loading">
-            {{ loading ? '创建中...' : '创建账号并进入工作台' }}
+            {{ loading ? '创建中...' : '创建账号并进入学习中心' }}
           </button>
         </form>
 
@@ -163,8 +164,8 @@ async function handleRegister() {
   place-items: center;
   padding: 32px;
   background:
-    linear-gradient(90deg, rgba(0, 213, 255, 0.06) 1px, transparent 1px),
-    linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+    linear-gradient(90deg, rgba(0, 184, 217, 0.06) 1px, transparent 1px),
+    linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
   background-size: 46px 46px, auto;
 }
 
@@ -187,9 +188,7 @@ async function handleRegister() {
   padding: 34px;
   border: 1px solid rgba(123, 189, 255, 0.38);
   border-radius: 24px;
-  background:
-    linear-gradient(145deg, rgba(0, 80, 203, 0.95), rgba(0, 181, 219, 0.88)),
-    var(--primary);
+  background: linear-gradient(145deg, #003b88, #0050cb 48%, #008faf);
   color: #ffffff;
   box-shadow: 0 28px 70px rgba(0, 80, 203, 0.2);
 }
@@ -206,11 +205,9 @@ async function handleRegister() {
   place-items: center;
   width: 44px;
   height: 44px;
-  border-radius: 14px;
+  border-radius: 12px;
   background: rgba(255, 255, 255, 0.18);
-  color: #ffffff;
   font-weight: 900;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22);
 }
 
 .brand strong,
@@ -248,15 +245,14 @@ async function handleRegister() {
 }
 
 .story-flow span {
-  display: grid;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   min-height: 56px;
-  place-items: center;
-  border-radius: 16px;
+  padding: 0 14px;
+  border-radius: 14px;
   background: rgba(255, 255, 255, 0.13);
-  color: #ffffff;
-  font-size: 14px;
   font-weight: 900;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14);
 }
 
 .auth-card {
@@ -360,8 +356,8 @@ async function handleRegister() {
   }
 
   .auth-story {
-    min-height: 310px;
-    border-radius: 0 0 24px 24px;
+    min-height: 320px;
+    border-radius: 0 0 22px 22px;
     padding: 24px 20px;
   }
 
