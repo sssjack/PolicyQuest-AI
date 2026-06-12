@@ -121,6 +121,7 @@ router.post('/evaluate', async (req, res) => {
         model: config.llm.model,
         temperature: 0.35,
         max_tokens: 5000,
+        response_format: { type: 'json_object' },
         messages: [
           {
             role: 'system',
@@ -154,6 +155,10 @@ router.post('/evaluate', async (req, res) => {
       }),
       timeout: 70000,
     });
+
+    if (!response.ok) {
+      throw new Error(`AI 服务返回 HTTP ${response.status}`);
+    }
 
     const data = await response.json();
     const parsed = extractJson(data.choices?.[0]?.message?.content);
