@@ -1,23 +1,40 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import {
+  ArrowLeft,
+  Bell,
+  Calendar,
   CircleCheck,
   Collection,
-  DataAnalysis,
   DocumentChecked,
   EditPen,
+  Finished,
+  Grid,
+  House,
   MagicStick,
-  Microphone,
+  Medal,
+  Menu,
+  Notebook,
   Reading,
   Refresh,
+  Search,
+  Setting,
+  Star,
+  Timer,
   TrendCharts,
   User,
   Warning,
 } from '@element-plus/icons-vue'
 import { scoringApi } from '../../api'
 
+type ViewKey = 'dashboard' | 'library' | 'growth' | 'practice' | 'report'
 type PracticeType = 'essay' | 'interview'
 type ExamType = 'national' | 'province' | 'institution'
+
+interface QuestionMaterial {
+  title: string
+  content: string
+}
 
 interface Question {
   id: number
@@ -28,7 +45,9 @@ interface Question {
   source: string
   duration: string
   difficulty: string
+  wordLimit: number
   prompt: string
+  materials: QuestionMaterial[]
   requirements: string[]
   tags: string[]
 }
@@ -54,134 +73,183 @@ interface Evaluation {
   disadvantages: string[]
   suggestions: string[]
   qualityMaterials: QualityMaterial[]
+  governmentReportLinks: QualityMaterial[]
   sampleEssay: string
 }
+
+const navItems = [
+  { key: 'dashboard', label: '工作台', icon: Grid },
+  { key: 'library', label: '题库', icon: Reading },
+  { key: 'growth', label: '成长报告', icon: TrendCharts },
+  { key: 'practice', label: '智能练习', icon: EditPen },
+] as const
+
+const mobileNavItems = [
+  { key: 'dashboard', label: 'Dashboard', icon: Grid },
+  { key: 'library', label: 'Library', icon: Reading },
+  { key: 'growth', label: 'Growth', icon: TrendCharts },
+  { key: 'practice', label: 'Profile', icon: User },
+] as const
+
+const trackCards = [
+  { exam: 'national' as ExamType, title: '国家公务员考试', desc: '行测、申论系统训练', count: '12,400+ 题', tone: 'blue' },
+  { exam: 'province' as ExamType, title: '地方公务员', desc: '各省联考真题', count: '8,900+ 题', tone: 'teal' },
+  { exam: 'institution' as ExamType, title: '事业单位', desc: '综合应用能力', count: '5,200+ 题', tone: 'rose' },
+]
+
+const recentPractices = [
+  { title: '2023年国考副省级行测', type: '言语理解', date: '昨天', accuracy: 78, tone: 'blue' },
+  { title: '2022年联考资料分析', type: '资料分析', date: '本周', accuracy: 100, tone: 'teal' },
+  { title: '模拟考：逻辑判断 A 组', type: '判断推理', date: '3天前', accuracy: 30, tone: 'rose' },
+]
+
+const heatCells = [
+  1, 2, 4, 0, 1, 4, 0, 2, 3, 2, 2, 3,
+  0, 3, 4, 1, 2, 2, 2, 2, 1, 0, 3, 4,
+  3, 4, 4, 4, 4, 3, 4, 1, 4, 3, 3, 4,
+  2, 0, 0, 1, 2, 4, 1, 0, 2, 3, 4, 3,
+  1, 2, 3, 0, 3, 4, 2, 0, 1, 3, 3, 3,
+]
+
+const achievementCards = [
+  { icon: Finished, title: '连续打卡 7 天', desc: '持之以恒，终有所成。', tone: 'teal' },
+  { icon: Medal, title: '排名前 10%', desc: '第 42 次模拟试卷', tone: 'muted' },
+  { icon: Star, title: '逻辑大师', desc: '100% 准确率', tone: 'blue' },
+]
 
 const questions: Question[] = [
   {
     id: 1,
-    exam: 'national',
-    year: '2025',
+    exam: 'province',
+    year: '2024',
     type: 'essay',
-    title: '数字政府如何提升基层治理效能',
-    source: '2025 国考副省级申论',
-    duration: '45 分钟',
-    difficulty: '中等',
-    prompt:
-      '给定资料围绕某地推进“一网统管”、社区协同治理、数据共享中的基层负担等问题展开。请结合材料，概括数字政府建设中应处理好的几组关系，并提出对策建议。',
-    requirements: ['观点明确，紧扣材料', '结构完整，条理清晰', '对策具有可操作性', '建议 900-1100 字'],
-    tags: ['数字政府', '基层治理', '申论大作文'],
+    title: '关于推进城市公共文化空间高质量发展的思考',
+    source: '2024 省考 A 卷',
+    duration: '120 分钟',
+    difficulty: '困难',
+    wordLimit: 1200,
+    prompt: '结合给定资料，以“推进城市公共文化空间高质量发展”为主题，自拟题目，写一篇文章。',
+    materials: [
+      {
+        title: '给定资料 1',
+        content:
+          '近年来，随着经济社会快速发展和人民生活水平不断提高，公众对高品质精神文化生活的需求日益增长。城市公共文化空间作为承载文化记忆、传承城市文脉、服务公众文化生活的重要载体，正在从单一阅读空间转向复合型公共服务场景。',
+      },
+      {
+        title: '给定资料 2',
+        content:
+          '某市在老旧小区改造中，创新性地引入“微空间”概念，将废弃锅炉房、边角空地改造为集阅读、休闲、交流于一体的社区文化客厅，吸引居民参与空间治理和活动策划。',
+      },
+      {
+        title: '给定资料 3',
+        content:
+          '调研发现，部分公共文化空间仍存在供给同质化、运营缺乏持续性、数字化服务不足等问题。专家建议，应以群众需求为导向，推动公共文化服务从“有没有”向“好不好”转变。',
+      },
+    ],
+    requirements: ['立意明确，观点正确', '思路清晰，语言流畅', '字数 1000-1200 字'],
+    tags: ['申论写作', '公共文化', '民生服务'],
   },
   {
     id: 2,
-    exam: 'province',
-    year: '2024',
+    exam: 'national',
+    year: '2025',
     type: 'essay',
-    title: '青年干部如何在基层一线担当作为',
-    source: '2024 浙江省考申论',
-    duration: '40 分钟',
-    difficulty: '偏难',
-    prompt:
-      '材料反映了基层青年干部在产业振兴、矛盾调解、公共服务中的实践。请围绕“在基层一线锤炼过硬本领”写一篇议论文。',
-    requirements: ['立意准确', '论证充分', '结合基层实际', '建议 800-1000 字'],
-    tags: ['青年干部', '基层实践', '议论文'],
+    title: '数字经济在乡村振兴中的作用',
+    source: '2025 国考申论预测',
+    duration: '110 分钟',
+    difficulty: '困难',
+    wordLimit: 1000,
+    prompt: '请结合给定资料，围绕“数字经济赋能乡村振兴”这一主题，谈谈当前面临的挑战并提出对策建议。',
+    materials: [
+      {
+        title: '给定资料 1',
+        content:
+          'A 村通过建设电商平台和直播基地，推动山茶油、有机蜂蜜等农产品销量增长。但村里老年农户数字素养不足，参与度仍然不高。',
+      },
+      {
+        title: '给定资料 2',
+        content:
+          'B 县开展智慧农业试点，利用物联网传感器和无人机技术降低用水与施肥成本，但初期投入较高，单个农户难以独立承担。',
+      },
+      {
+        title: '给定资料 3',
+        content:
+          '专家指出，数字经济不应只是卖货工具，更应重塑乡村治理与公共服务，远程医疗、远程教育等仍是农村数字化建设中的短板。',
+      },
+    ],
+    requirements: ['字数 800-1000 字', '条理清晰，逻辑严密', '对策具有针对性和可行性', '符合公务员公文写作规范'],
+    tags: ['数字经济', '乡村振兴', '资料分析'],
   },
   {
     id: 3,
-    exam: 'institution',
-    year: '2023',
+    exam: 'national',
+    year: '2024',
     type: 'essay',
-    title: '公共服务如何兼顾效率与温度',
-    source: '2023 事业单位综合写作',
-    duration: '35 分钟',
+    title: '深化公职服务改革',
+    source: '2024 国考副省级申论',
+    duration: '120 分钟',
     difficulty: '中等',
-    prompt:
-      '材料涉及政务大厅适老化服务、线上办理便利化和特殊群体帮办代办。请结合实际，谈谈公共服务如何在提效的同时保留温度。',
-    requirements: ['问题意识清晰', '论点有层次', '体现服务意识', '建议 700-900 字'],
-    tags: ['公共服务', '适老化', '民生'],
+    wordLimit: 1000,
+    prompt: '围绕“深化公职服务改革”，结合材料谈谈如何提升公共服务效能与群众满意度。',
+    materials: [
+      {
+        title: '给定资料 1',
+        content:
+          '某地政务大厅推行一窗受理、集成服务后，平均办理时间明显缩短，但部分群众反映线上平台入口过多、办事指引不够清晰。',
+      },
+      {
+        title: '给定资料 2',
+        content:
+          '基层干部表示，改革既要减少重复填报和多头留痕，也要保留必要过程记录，方便责任追溯和经验复盘。',
+      },
+    ],
+    requirements: ['观点明确', '结合材料', '论证充分', '建议 900-1000 字'],
+    tags: ['公共服务', '基层减负', '数字政府'],
   },
   {
     id: 4,
-    exam: 'national',
+    exam: 'province',
     year: '2024',
     type: 'interview',
     title: '基层减负与工作留痕如何平衡',
-    source: '2024 国考结构化面试',
+    source: '2024 省考结构化面试',
     duration: '3 分钟',
-    difficulty: '偏难',
+    difficulty: '困难',
+    wordLimit: 500,
     prompt:
       '有干部认为基层减负后工作留痕少了，担心责任说不清；也有人认为留痕过多会影响干事效率。请谈谈你的看法。',
+    materials: [
+      {
+        title: '背景材料',
+        content:
+          '基层治理中，台账多、报表多、重复检查等现象一度影响干部抓落实。推进基层减负，关键不是不要管理，而是提升管理质效。',
+      },
+    ],
     requirements: ['观点辩证', '身份意识明确', '提出制度化建议', '表达自然流畅'],
-    tags: ['基层减负', '工作留痕', '综合分析'],
-  },
-  {
-    id: 5,
-    exam: 'province',
-    year: '2025',
-    type: 'interview',
-    title: '乡村旅游旺季出现游客投诉怎么办',
-    source: '2025 省考面试预测题',
-    duration: '3 分钟',
-    difficulty: '中等',
-    prompt:
-      '某村发展乡村旅游，旺季出现停车混乱、排队时间长、民宿价格争议等投诉。你作为镇政府工作人员，会如何处理？',
-    requirements: ['先回应群众诉求', '分类处置问题', '兼顾经营主体', '形成长效机制'],
-    tags: ['应急处置', '乡村振兴', '群众工作'],
-  },
-  {
-    id: 6,
-    exam: 'institution',
-    year: '2023',
-    type: 'interview',
-    title: '群众反映窗口办事慢，你怎么处理',
-    source: '2023 事业编结构化面试',
-    duration: '3 分钟',
-    difficulty: '中等',
-    prompt:
-      '政务服务大厅有群众反映窗口排队时间长、办理速度慢，现场情绪比较激动。你作为窗口负责人，会如何处理？',
-    requirements: ['先稳定现场', '查明原因', '提出整改', '体现服务意识'],
-    tags: ['窗口服务', '应急沟通', '服务意识'],
+    tags: ['结构化面试', '基层治理', '综合分析'],
   },
 ]
 
-const examOptions = [
-  { value: 'national', label: '历年国考', caption: '国家公务员考试', count: '452', icon: '国' },
-  { value: 'province', label: '地方省考', caption: '联考/省直/市县', count: '1208', icon: '省' },
-  { value: 'institution', label: '事业编', caption: '综合写作/结构化', count: '890', icon: '事' },
-] as const
-
-const typeOptions = [
-  { value: 'essay', label: '申论', icon: EditPen },
-  { value: 'interview', label: '面试', icon: Microphone },
-] as const
-
 const sampleEssayAnswer =
-  '第一，数字政府建设要处理好“技术赋能”和“群众体验”的关系。技术只是治理工具，最终要回到群众办事是否更便捷、基层响应是否更高效上来。平台建设不能停留在系统上线和数据汇聚，而要以事项办理时长、群众满意度、基层负担变化作为评价标准。\n\n第二，要处理好“数据共享”和“安全边界”的关系。打通部门壁垒能够提升协同效率，但也要完善数据授权、分级分类和责任追溯机制，防止数据滥用、重复采集和多头填报。\n\n第三，要处理好“线上平台”和“线下服务”的关系。对于老年人、残障人士等群体，应保留必要窗口和帮办代办服务，避免数字鸿沟影响公共服务公平。只有让数据多跑路、群众少跑腿、基层少负担，数字政府才能真正转化为治理效能。'
+  '城市公共文化空间高质量发展，既是公共文化服务体系完善的重要内容，也是提升城市治理温度的现实路径。首先，要坚持需求导向，让空间更贴近群众。公共文化空间不能只追求硬件美观，更要围绕居民阅读、交流、学习、休闲等真实需求优化功能布局。其次，要坚持共建共享，让空间更具有生命力。通过社区议事、志愿服务、社会组织参与等方式，把群众从使用者转变为空间治理的参与者。再次，要坚持数字赋能，让服务更精准高效。依托线上预约、活动发布、资源推荐等功能，提升公共文化供给与群众需求的匹配度。总之，公共文化空间一头连着城市品质，一头连着群众生活。只有把服务做到群众身边、把文化融入日常生活，才能不断增强人民群众的文化获得感和城市归属感。'
 
 const sampleInterviewAnswer =
-  '各位考官，我会从现场回应、问题排查、整改提升三个方面处理。首先，对群众反映的问题表示理解，安排专人引导等候群众，说明当前办理进度，优先帮助老年人、残障人士等特殊群体，避免情绪进一步扩大。\n\n其次，立即调取窗口排队数据，了解是人员不足、系统故障，还是流程设置不合理导致效率低。能现场解决的，及时增开窗口、协调后台人员支援；涉及材料流转、一次性告知不到位的，形成问题清单限时整改。\n\n最后，建立常态化监测机制，把群众等待时间、一次办结率、满意度纳入窗口服务评价，通过预约分流、岗位培训、流程再造持续优化服务。窗口虽小，却连着民心，只有把小事办实，才能提升群众获得感。'
+  '各位考官，我认为基层减负和必要留痕并不矛盾，关键在于把握“减无效负担、留关键记录”的原则。首先，要明确留痕边界。对于重复报表、形式主义截图、层层转发记录，应坚决压减；对于决策依据、群众诉求办理、风险隐患处置等关键环节，应规范留存。其次，要优化留痕方式。通过统一平台、一次采集、多方共享，减少基层重复填报，让数据多跑路、干部少折腾。再次，要完善评价机制。不能简单以材料厚薄衡量工作成效，而要看群众满意度、问题解决率和治理实效。总之，基层减负不是放松责任，而是让干部从无效事务中解放出来，把更多精力用在服务群众和抓落实上。'
 
-const selectedExam = ref<ExamType>('national')
-const selectedType = ref<PracticeType>('essay')
+const activeView = ref<ViewKey>('dashboard')
 const selectedQuestionId = ref(1)
 const answer = ref('')
 const loading = ref(false)
 const errorMessage = ref('')
 const evaluation = ref<Evaluation | null>(null)
-
-const filteredQuestions = computed(() =>
-  questions.filter(item => item.exam === selectedExam.value && item.type === selectedType.value)
-)
-
-const selectedQuestion = computed(() => {
-  const matched = filteredQuestions.value.find(item => item.id === selectedQuestionId.value)
-  return matched || filteredQuestions.value[0] || questions[0]
-})
-
-const selectedExamMeta = computed(() => examOptions.find(item => item.value === selectedExam.value) || examOptions[0])
-const wordCount = computed(() => answer.value.trim().replace(/\s/g, '').length)
+const dashboardSearch = ref('')
 const scoreCircumference = 301.59
 
+const selectedQuestion = computed(() => questions.find(item => item.id === selectedQuestionId.value) || questions[0])
+const wordCount = computed(() => answer.value.trim().replace(/\s/g, '').length)
+const targetWordLimit = computed(() => selectedQuestion.value.wordLimit)
+const progressPercent = computed(() => Math.min(100, Math.round((wordCount.value / targetWordLimit.value) * 100)))
+const reportReady = computed(() => Boolean(evaluation.value))
 const scoreRingStyle = computed(() => {
   const score = evaluation.value?.score ?? 0
   return {
@@ -191,12 +259,45 @@ const scoreRingStyle = computed(() => {
 })
 
 const scoreTone = computed(() => {
-  if (!evaluation.value) return 'pending'
-  if (evaluation.value.score >= 88) return 'excellent'
-  if (evaluation.value.score >= 75) return 'good'
-  if (evaluation.value.score >= 60) return 'normal'
+  const score = evaluation.value?.score ?? 0
+  if (score >= 88) return 'excellent'
+  if (score >= 78) return 'good'
+  if (score >= 65) return 'normal'
   return 'weak'
 })
+
+const groupedLibrary = computed(() => [
+  questions.find(item => item.id === 3),
+  questions.find(item => item.id === 1),
+  questions.find(item => item.id === 4),
+].filter(Boolean) as Question[])
+
+function goView(view: ViewKey) {
+  activeView.value = view
+}
+
+function startQuestion(question: Question) {
+  selectedQuestionId.value = question.id
+  errorMessage.value = ''
+  activeView.value = 'practice'
+}
+
+function useTemplate() {
+  answer.value = selectedQuestion.value.type === 'interview' ? sampleInterviewAnswer : sampleEssayAnswer
+  errorMessage.value = ''
+}
+
+function saveDraft() {
+  sessionStorage.setItem(`policyquest_draft_${selectedQuestion.value.id}`, answer.value)
+  errorMessage.value = '草稿已保存在本机浏览器。'
+}
+
+function resetPractice() {
+  answer.value = ''
+  errorMessage.value = ''
+  evaluation.value = null
+  activeView.value = 'practice'
+}
 
 function clampScore(value: number, min = 0, max = 100) {
   if (Number.isNaN(value)) return min
@@ -207,58 +308,15 @@ function scoreStyle(score: number) {
   return { width: `${clampScore(score)}%` }
 }
 
-function resetReport() {
-  evaluation.value = null
-  errorMessage.value = ''
-}
-
-function selectExam(exam: ExamType) {
-  selectedExam.value = exam
-  const first = questions.find(item => item.exam === exam && item.type === selectedType.value)
-  if (first) selectedQuestionId.value = first.id
-  resetReport()
-}
-
-function selectType(type: PracticeType) {
-  selectedType.value = type
-  const first = questions.find(item => item.exam === selectedExam.value && item.type === type)
-  if (first) selectedQuestionId.value = first.id
-  answer.value = ''
-  resetReport()
-}
-
-function selectQuestion(id: number) {
-  selectedQuestionId.value = id
-  resetReport()
-}
-
-function useTemplate() {
-  answer.value = selectedQuestion.value.type === 'interview' ? sampleInterviewAnswer : sampleEssayAnswer
-  resetReport()
-}
-
-function restartPractice() {
-  answer.value = ''
-  resetReport()
-}
-
-function revealReport() {
-  if (typeof window === 'undefined') return
-  if (!window.matchMedia('(max-width: 1180px)').matches) return
-  window.setTimeout(() => {
-    document.getElementById('report')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-  }, 80)
-}
-
 function inferScore() {
   const text = answer.value.trim()
   const target = selectedQuestion.value.type === 'interview' ? 360 : 900
   const lengthScore = Math.min(wordCount.value / target, 1) * 18
   const structureHits = ['第一', '第二', '第三', '首先', '其次', '再次', '最后', '一方面', '另一方面', '总之', '因此']
     .filter(word => text.includes(word)).length
-  const policyHits = ['以人民为中心', '基层治理', '高质量发展', '数字政府', '协同治理', '法治', '民生', '服务', '减负']
+  const policyHits = ['以人民为中心', '高质量发展', '数字政府', '新质生产力', '民生', '公共服务', '基层治理', '减负']
     .filter(word => text.includes(word)).length
-  const actionHits = ['机制', '制度', '清单', '平台', '监督', '培训', '落实', '闭环', '考核', '反馈', '优化']
+  const actionHits = ['机制', '清单', '平台', '监督', '培训', '落实', '闭环', '考核', '反馈', '优化']
     .filter(word => text.includes(word)).length
   return clampScore(52 + lengthScore + structureHits * 3 + policyHits * 2 + actionHits * 2, 45, 95)
 }
@@ -271,65 +329,81 @@ function localEvaluation(): Evaluation {
     score,
     level: score >= 88 ? '优秀' : score >= 78 ? '良好' : score >= 65 ? '中等' : '待提升',
     summary:
-      '本次作答方向基本准确，能够回应题目核心问题，并具备一定结构意识。后续可继续强化政策表达、材料转化和对策可操作性，让答案更接近高分阅卷标准。',
+      '你的回答逻辑基础较稳，能够回应题目主要矛盾，但在政策细节、材料转化和论证力度上仍有提升空间。',
     dimensions: isInterview
       ? [
-          { name: '审题准确', score: clampScore(score + 5), comment: '能够回应现场矛盾和身份职责，基本没有偏题。' },
-          { name: '逻辑层次', score: clampScore(score), comment: '处理顺序较清楚，过渡语还可以更自然。' },
-          { name: '机关表达', score: clampScore(score - 4), comment: '表达稳妥，可继续补充规范化工作语言。' },
-          { name: '处置可行', score: clampScore(score + 2), comment: '现场处理较完整，长效机制还可以更具体。' },
-          { name: '临场感染力', score: clampScore(score - 2), comment: '语气平实，结尾可增强担当感和服务意识。' },
+          { name: '审题准确', score: clampScore(score + 5), comment: '能抓住题中“减负”和“留痕”的关系，没有简单站队。' },
+          { name: '逻辑层次', score: clampScore(score), comment: '有基本分层，但每层之间的递进关系还可以更明显。' },
+          { name: '机关表达', score: clampScore(score - 3), comment: '已有规范表达，建议增加“清单化、闭环化、数字化”等工作语言。' },
+          { name: '处置可行', score: clampScore(score + 1), comment: '建议方向正确，仍需明确责任主体和执行抓手。' },
         ]
       : [
-          { name: '审题准确', score: clampScore(score + 4), comment: '能抓住题干要求，回应材料主题。' },
-          { name: '结构完整', score: clampScore(score + 1), comment: '分段清晰，具备总分意识。' },
-          { name: '论证深度', score: clampScore(score - 5), comment: '部分观点仍偏概括，例证和分析可以继续展开。' },
-          { name: '政策表达', score: clampScore(score - 4), comment: '政策词有体现，但官方表述还可以更准确。' },
-          { name: '语言规范', score: clampScore(score + 2), comment: '语言通顺，可进一步压缩重复表达。' },
+          { name: '政策逻辑', score: clampScore(score + 4), comment: '能够围绕公共服务和高质量发展展开，立意比较稳。' },
+          { name: '语言表达', score: clampScore(score + 1), comment: '表述较通顺，但部分句子略口语化，可进一步压缩。' },
+          { name: '论据充分性', score: clampScore(score - 8), comment: '材料和政府工作报告中的政策表述引用不足，说服力还可以增强。' },
+          { name: '对策可行性', score: clampScore(score - 2), comment: '对策方向明确，但执行主体、机制和评价标准不够细。' },
         ],
     advantages: [
-      '能够围绕题目核心问题展开，作答方向较稳。',
-      '段落层次比较清楚，阅卷者可以快速抓住答题脉络。',
-      '已经有对策意识，能把问题导向解决路径。',
+      '能够直接回应题目主题，作答没有偏离材料主线。',
+      '段落之间有明显分层，阅卷者可以较快识别答题框架。',
+      '已经具备问题导向和对策意识，不是单纯空泛表态。',
     ],
     disadvantages: [
-      '部分对策还停留在原则层面，缺少执行主体、操作步骤和评价标准。',
-      '材料关键词与政策表达结合还不够紧，考试辨识度可以继续提升。',
-      isInterview ? '身份代入和现场感还可加强，结尾的服务温度略弱。' : '分论点之间的递进关系还不够明显，结尾升华略弱。',
+      '政策引用还偏少，缺少与政府工作报告中“发展新质生产力、保障和改善民生、提升治理效能”等表述的自然衔接。',
+      '部分对策还停留在原则层面，没有讲清由谁做、怎么做、做到什么程度。',
+      isInterview ? '身份代入和现场感略弱，结尾可以更有服务群众的温度。' : '分论点之间的递进关系不够清晰，结尾升华力度不足。',
     ],
     suggestions: [
-      '开头先用一句话明确判断，再用三到四个并列分论点展开。',
-      '每条对策尽量写成“主体 + 动作 + 机制 + 效果”的完整句式。',
-      '加入一到两个高频政策表达，例如“以人民为中心”“基层减负”“闭环治理”“协同联动”。',
-      '结尾回扣治理效能、群众获得感或干部担当，形成完整收束。',
+      '开头先给出明确判断，再用三到四个分论点承接材料问题。',
+      '每条对策写成“主体 + 动作 + 机制 + 效果”的句式。',
+      '结合政府工作报告中关于高质量发展、民生保障、数字政府、基层治理的表述，提高答案的政策高度。',
+      '结尾回扣人民群众获得感、治理效能或干部担当，形成完整收束。',
     ],
     qualityMaterials: [
       {
         title: '以人民为中心',
-        content: '把群众满意度作为检验工作成效的重要标准，让治理成果更多更公平惠及人民群众。',
-        usage: '适合用于申论结尾、面试表态和政务服务类题目。',
+        content: '把群众满意不满意作为检验公共服务成效的重要标准，让改革成果更多更公平惠及人民群众。',
+        usage: '适用于公共服务、民生保障、基层治理类题目。',
       },
       {
         title: '闭环治理',
         content: '建立问题收集、分类交办、限时整改、结果反馈、跟踪问效的闭环机制。',
-        usage: '适合用于基层治理、窗口服务、应急处置类题目。',
-      },
-      {
-        title: '数字赋能不是数字负担',
-        content: '推动数据多跑路、群众少跑腿，同时防止重复填报、多头留痕增加基层负担。',
-        usage: '适合用于数字政府、基层减负、营商环境类题目。',
+        usage: '适用于窗口服务、基层治理、应急处置类题目。',
       },
     ],
-    sampleEssay: isInterview
-      ? sampleInterviewAnswer
-      : '数字政府建设既要追求治理效率，也要守住公共服务的公平底线。首先，要处理好技术赋能与群众体验的关系。平台建设不能停留在系统上线和数据汇聚，而要以群众办事是否更便捷、基层响应是否更高效作为评价标准。其次，要处理好数据共享与安全边界的关系。通过统一数据目录、授权清单和审计追踪机制，推动跨部门协同，同时保护个人信息和公共数据安全。再次，要处理好线上服务与线下兜底的关系。面对老年人、残障人士等群体，应保留必要窗口和帮办代办服务，避免数字鸿沟影响公共服务公平。总之，数字政府不是简单的技术工程，而是治理方式的系统重塑。只有让数据多跑路、群众少跑腿、基层少负担，才能真正把技术优势转化为治理效能和民生温度。',
+    governmentReportLinks: [
+      {
+        title: '高质量发展',
+        content: '可将“推动高质量发展”转化为公共服务领域的供给升级、效率提升和公平可及。',
+        usage: '用于文章总论点或分论点开头，提升政策高度。',
+      },
+      {
+        title: '保障和改善民生',
+        content: '把文化、教育、医疗、养老等公共服务写成增进民生福祉的具体路径。',
+        usage: '用于公共文化、政务服务、乡村振兴等材料题。',
+      },
+      {
+        title: '数字政府建设',
+        content: '强调数据共享、流程再造、线上线下协同，避免数字化变成新的基层负担。',
+        usage: '用于数字经济、基层减负、营商环境类题目。',
+      },
+    ],
+    sampleEssay:
+      selectedQuestion.value.type === 'interview'
+        ? sampleInterviewAnswer
+        : '以高质量公共文化空间涵养城市温度。公共文化空间一端连接城市发展品质，一端连接人民群众精神文化生活。推进其高质量发展，必须坚持以人民为中心，把政府工作报告中关于保障和改善民生、完善公共服务、推动高质量发展的要求转化为可感可及的治理实践。首先，要以需求牵引供给升级。公共文化空间不能只停留在建馆舍、摆书架，而要围绕群众阅读、学习、交流、亲子活动等多元需求，推动功能复合和服务精准。其次，要以共建共享激活空间活力。通过居民议事、志愿服务、社会组织运营等方式，让群众参与空间设计、活动策划和日常维护，形成人人参与、人人享有的治理格局。再次，要以数字赋能提升服务效能。依托线上预约、资源推荐、活动发布和数据分析，推动公共文化资源均衡配置，同时保留线下兜底服务，照顾老年人等群体需求。总之，公共文化空间的价值不只在建筑本身，更在于它能否回应群众期待、承载城市记忆、滋养公共生活。只有让文化服务嵌入日常、走近群众，城市发展才更有品质，也更有温度。',
   }
 }
 
 function normalizeEvaluation(raw: any): Evaluation {
   const fallback = localEvaluation()
-  const materials = Array.isArray(raw?.qualityMaterials) ? raw.qualityMaterials : fallback.qualityMaterials
   const dimensions = Array.isArray(raw?.dimensions) ? raw.dimensions : fallback.dimensions
+  const materials = Array.isArray(raw?.qualityMaterials) ? raw.qualityMaterials : fallback.qualityMaterials
+  const reportLinks = Array.isArray(raw?.governmentReportLinks)
+    ? raw.governmentReportLinks
+    : Array.isArray(raw?.governmentReportConnections)
+      ? raw.governmentReportConnections
+      : fallback.governmentReportLinks
 
   return {
     score: clampScore(Number(raw?.score ?? fallback.score)),
@@ -348,7 +422,12 @@ function normalizeEvaluation(raw: any): Evaluation {
       content: String(item?.content || fallback.qualityMaterials[index]?.content || ''),
       usage: String(item?.usage || fallback.qualityMaterials[index]?.usage || ''),
     })),
-    sampleEssay: String(raw?.sampleEssay || fallback.sampleEssay),
+    governmentReportLinks: reportLinks.map((item: any, index: number) => ({
+      title: String(item?.title || fallback.governmentReportLinks[index]?.title || '政府工作报告要点'),
+      content: String(item?.content || fallback.governmentReportLinks[index]?.content || ''),
+      usage: String(item?.usage || fallback.governmentReportLinks[index]?.usage || ''),
+    })),
+    sampleEssay: String(raw?.sampleEssay || raw?.modelEssay || fallback.sampleEssay),
   }
 }
 
@@ -367,261 +446,434 @@ async function evaluate() {
       answer: answer.value,
     })
     evaluation.value = normalizeEvaluation(res?.data ?? res)
-    if (res?.message) errorMessage.value = res.message
-    revealReport()
+    errorMessage.value = res?.message || ''
   } catch {
     evaluation.value = localEvaluation()
-    errorMessage.value = 'AI 服务暂未连接，已生成本地示例评分报告。'
-    revealReport()
+    errorMessage.value = 'AI 服务暂未连接，已生成本地示例评估报告。'
   } finally {
     loading.value = false
+    activeView.value = 'report'
   }
 }
 </script>
 
 <template>
-  <main class="coach-page">
-    <aside class="side-nav" aria-label="PolicyQuest 导航">
+  <main class="pq-app">
+    <aside class="desktop-sidebar">
       <a class="brand" href="#/">
         <span class="brand-mark">PQ</span>
         <span>
           <strong>PolicyQuest</strong>
-          <small>AI Exam Coach</small>
+          <small>精英备考</small>
         </span>
       </a>
 
-      <nav class="side-links">
-        <a class="active" href="#answer"><el-icon><EditPen /></el-icon><span>AI评阅</span></a>
-        <a href="#library"><el-icon><Reading /></el-icon><span>真题库</span></a>
-        <a href="#report"><el-icon><DataAnalysis /></el-icon><span>评分报告</span></a>
-        <a href="#sample"><el-icon><DocumentChecked /></el-icon><span>示范答案</span></a>
+      <nav class="side-nav" aria-label="主导航">
+        <button
+          v-for="item in navItems"
+          :key="item.key"
+          class="side-link"
+          :class="{ active: activeView === item.key }"
+          type="button"
+          @click="goView(item.key)"
+        >
+          <el-icon><component :is="item.icon" /></el-icon>
+          <span>{{ item.label }}</span>
+        </button>
       </nav>
 
-      <section class="side-card">
-        <p>今日训练</p>
-        <strong>{{ selectedExamMeta.label }} · {{ selectedType === 'essay' ? '申论' : '面试' }}</strong>
-        <span>{{ selectedQuestion.duration }} · {{ selectedQuestion.difficulty }}</span>
-      </section>
+      <button class="mock-button" type="button" @click="startQuestion(questions[0])">开始模拟考</button>
+
+      <footer class="side-footer">
+        <button type="button"><el-icon><CircleCheck /></el-icon><span>帮助与支持</span></button>
+        <button type="button"><el-icon><Warning /></el-icon><span>隐私条款</span></button>
+      </footer>
     </aside>
 
-    <section class="coach-main">
-      <header class="top-bar">
-        <div>
-          <p class="eyebrow">PolicyQuest AI Exam Coach</p>
-          <h1>申论与面试真题 AI 精评工作台</h1>
+    <section class="app-shell">
+      <header class="topbar">
+        <button class="icon-button mobile-only" type="button" aria-label="打开菜单">
+          <el-icon><Menu /></el-icon>
+        </button>
+        <div class="top-tabs">
+          <button :class="{ active: activeView === 'dashboard' }" type="button" @click="goView('dashboard')">工作台</button>
+          <button :class="{ active: activeView === 'library' }" type="button" @click="goView('library')">题库</button>
+          <button :class="{ active: activeView === 'growth' }" type="button" @click="goView('growth')">成长报告</button>
         </div>
-        <div class="profile-pill">
-          <el-icon><User /></el-icon>
-          <span>Coach Mode</span>
+        <strong class="mobile-title">PolicyQuest</strong>
+        <div class="top-actions">
+          <button class="icon-button" type="button" aria-label="通知"><el-icon><Bell /></el-icon></button>
+          <button class="icon-button" type="button" aria-label="设置"><el-icon><Setting /></el-icon></button>
+          <button class="avatar-button" type="button" aria-label="个人中心"><el-icon><User /></el-icon></button>
         </div>
       </header>
 
-      <section class="hero-panel">
-        <div>
-          <span class="status-chip">Evaluation Ready</span>
-          <h2>选择国考、省考、事业编真题，输入自己的答案，获得评分、指导、建议和示范。</h2>
-          <p>系统会按真实阅卷逻辑输出总分、分项维度、优缺点、提分路径、优质素材和一版可直接学习的示范答案。</p>
-        </div>
-        <div class="hero-metrics">
-          <span><strong>3</strong>考试来源</span>
-          <span><strong>2</strong>作答模式</span>
-          <span><strong>AI</strong>即时评阅</span>
-        </div>
-      </section>
+      <template v-if="activeView === 'dashboard'">
+        <section class="dashboard-view">
+          <section class="hero-card">
+            <h1>准备好迎接考试了吗，Alex?</h1>
+            <p>智能驱动，高效备考。开启今日练习。</p>
+            <label class="search-box">
+              <el-icon><Search /></el-icon>
+              <input v-model="dashboardSearch" type="search" placeholder="搜索试卷、考点或关键词..." />
+              <button type="button" @click="goView('library')">搜索</button>
+            </label>
+          </section>
 
-      <section id="library" class="exam-grid" aria-label="考试类型">
-        <button
-          v-for="item in examOptions"
-          :key="item.value"
-          class="exam-card"
-          :class="{ active: selectedExam === item.value }"
-          type="button"
-          @click="selectExam(item.value)"
-        >
-          <span class="exam-icon">{{ item.icon }}</span>
-          <strong>{{ item.label }}</strong>
-          <small>{{ item.caption }}</small>
-          <em>{{ item.count }} 套题</em>
-        </button>
-      </section>
-
-      <section class="workspace-grid">
-        <aside class="question-panel panel">
-          <div class="panel-head">
-            <div>
-              <p class="eyebrow">Question Bank</p>
-              <h2>真题选择</h2>
+          <section class="section-block">
+            <div class="section-heading">
+              <h2>目标赛道</h2>
             </div>
-          </div>
+            <div class="track-grid">
+              <button
+                v-for="item in trackCards"
+                :key="item.exam"
+                class="track-card"
+                :class="item.tone"
+                type="button"
+                @click="startQuestion(questions.find(q => q.exam === item.exam) || questions[0])"
+              >
+                <span class="track-icon"><el-icon><House /></el-icon></span>
+                <strong>{{ item.title }}</strong>
+                <small>{{ item.desc }}</small>
+                <em>{{ item.count }}</em>
+              </button>
+            </div>
+          </section>
 
-          <div class="type-switch">
-            <button
-              v-for="item in typeOptions"
-              :key="item.value"
-              class="type-button"
-              :class="{ active: selectedType === item.value }"
-              type="button"
-              @click="selectType(item.value)"
-            >
-              <el-icon><component :is="item.icon" /></el-icon>
-              {{ item.label }}
-            </button>
-          </div>
-
-          <div class="question-list">
-            <article
-              v-for="item in filteredQuestions"
-              :key="item.id"
-              class="question-item"
-              :class="{ active: selectedQuestionId === item.id }"
-              @click="selectQuestion(item.id)"
-            >
-              <div>
-                <span>{{ item.year }}</span>
-                <span>{{ item.duration }}</span>
+          <section class="dashboard-grid">
+            <article class="card recent-card">
+              <div class="card-head">
+                <h2>最近练习</h2>
+                <button type="button" @click="goView('library')">查看全部</button>
               </div>
-              <h3>{{ item.title }}</h3>
-              <p>{{ item.source }} · {{ item.difficulty }}</p>
-            </article>
-          </div>
-        </aside>
-
-        <section id="answer" class="answer-panel panel">
-          <div class="answer-head">
-            <div>
-              <p class="eyebrow">{{ selectedQuestion.source }}</p>
-              <h2>{{ selectedQuestion.title }}</h2>
-            </div>
-            <button class="secondary-button" type="button" @click="useTemplate">
-              <el-icon><Refresh /></el-icon>
-              插入示范
-            </button>
-          </div>
-
-          <p class="prompt-text">{{ selectedQuestion.prompt }}</p>
-
-          <div class="tag-row">
-            <span v-for="item in selectedQuestion.requirements" :key="item">{{ item }}</span>
-          </div>
-          <div class="topic-row">
-            <span v-for="item in selectedQuestion.tags" :key="item">{{ item }}</span>
-          </div>
-
-          <label class="answer-editor">
-            <span>我的作答</span>
-            <textarea
-              v-model="answer"
-              placeholder="请输入你的申论作文或面试作答。建议按真实考试状态完成后再提交评阅。"
-            />
-          </label>
-
-          <div class="submit-row">
-            <div class="count-line">
-              <strong>{{ wordCount }}</strong>
-              <span>字</span>
-              <em v-if="errorMessage">{{ errorMessage }}</em>
-            </div>
-            <button class="primary-button" type="button" :disabled="loading" @click="evaluate">
-              <el-icon><MagicStick /></el-icon>
-              {{ loading ? 'AI 正在评阅...' : '提交 AI 评阅' }}
-            </button>
-          </div>
-        </section>
-
-        <aside id="report" class="report-panel">
-          <section class="score-card panel" :class="scoreTone">
-            <p class="eyebrow">Overall Score</p>
-            <div class="score-layout">
-              <div class="score-ring">
-                <svg viewBox="0 0 120 120" role="img" aria-label="总分">
-                  <circle class="ring-track" cx="60" cy="60" r="48" />
-                  <circle class="ring-value" cx="60" cy="60" r="48" :style="scoreRingStyle" />
-                </svg>
-                <div class="score-number">
-                  <strong>{{ evaluation?.score ?? '--' }}</strong>
-                  <span>/100</span>
+              <div class="recent-list">
+                <div v-for="item in recentPractices" :key="item.title" class="recent-row">
+                  <div>
+                    <strong>{{ item.title }}</strong>
+                    <span>{{ item.type }} · {{ item.date }}</span>
+                  </div>
+                  <em>{{ item.accuracy }}%</em>
+                  <div class="progress-track">
+                    <i :class="item.tone" :style="{ width: `${item.accuracy}%` }"></i>
+                  </div>
                 </div>
               </div>
+            </article>
+
+            <aside class="card growth-card">
+              <h2><el-icon><TrendCharts /></el-icon>成长数据</h2>
+              <div class="growth-metric">
+                <span>累计刷题数</span>
+                <strong>3,492</strong>
+              </div>
+              <div class="growth-metric soft">
+                <span>AI 预测分数趋势</span>
+                <strong>+4.2 分</strong>
+              </div>
+            </aside>
+          </section>
+        </section>
+      </template>
+
+      <template v-else-if="activeView === 'library'">
+        <section class="library-view">
+          <div class="page-title-row">
+            <div>
+              <h1>题库</h1>
+              <p>精选历年真题与高质量模拟卷。</p>
+            </div>
+            <div class="filter-row">
+              <button type="button">全部地区</button>
+              <button type="button">2024年</button>
+              <button type="button">行测</button>
+            </div>
+          </div>
+
+          <section class="mobile-growth-summary">
+            <h2>学习成长</h2>
+            <p>你的努力都在这里</p>
+            <article class="card heat-card compact">
+              <h3>学习热力图（本月）</h3>
+              <div class="heat-grid compact-grid">
+                <span v-for="(cell, index) in heatCells.slice(0, 14)" :key="index" :class="`level-${cell}`"></span>
+              </div>
+            </article>
+          </section>
+
+          <div class="topic-card-list">
+            <article v-for="item in groupedLibrary" :key="item.id" class="topic-card">
+              <div class="topic-top">
+                <span>{{ item.year }}</span>
+                <button type="button" aria-label="收藏"><el-icon><Star /></el-icon></button>
+              </div>
+              <h2>{{ item.title }}</h2>
+              <p>{{ item.source }}</p>
+              <div class="tag-row">
+                <span>{{ item.type === 'essay' ? '申论' : '面试' }}</span>
+                <span>笔试</span>
+                <span><el-icon><Timer /></el-icon>{{ item.duration }}</span>
+              </div>
+              <footer>
+                <span v-if="item.id === 4" class="done">已完成</span>
+                <button type="button" @click="startQuestion(item)">{{ item.id === 4 ? '查看解析' : '开始练习' }}</button>
+              </footer>
+            </article>
+          </div>
+        </section>
+      </template>
+
+      <template v-else-if="activeView === 'growth'">
+        <section class="growth-view">
+          <div class="page-title-row">
+            <div>
+              <h1>成长报告</h1>
+              <p>追踪您的备考进度与各学科掌握程度。</p>
+            </div>
+            <button class="date-button" type="button"><el-icon><Calendar /></el-icon>最近30天</button>
+          </div>
+
+          <div class="growth-top-grid">
+            <article class="card heat-card">
+              <div class="card-head">
+                <h2>学习状态热力图</h2>
+                <span>超过 15% 的用户</span>
+              </div>
+              <div class="heat-grid">
+                <span v-for="(cell, index) in heatCells" :key="index" :class="`level-${cell}`"></span>
+              </div>
+              <div class="heat-legend"><span>较少</span><i></i><i></i><i></i><i></i><span>较多</span></div>
+            </article>
+
+            <aside class="attention-card">
+              <h2><el-icon><Warning /></el-icon>急需关注</h2>
               <div>
-                <h2>{{ evaluation?.level ?? '待评阅' }}</h2>
-                <p>{{ evaluation?.summary ?? '提交作答后，这里会生成总评、分项评分和提分路径。' }}</p>
+                <strong>政策逻辑</strong>
+                <p>最近三次模拟考试中，该项准确率下降了 12%。</p>
+                <button type="button">复习相关考点</button>
+              </div>
+              <div>
+                <strong>数量关系</strong>
+                <p>每道题平均耗时超出目标设定 45 秒。</p>
+              </div>
+            </aside>
+          </div>
+
+          <section class="card achievements-card">
+            <h2>最近成就</h2>
+            <div class="achievement-grid">
+              <article v-for="item in achievementCards" :key="item.title" :class="item.tone">
+                <span><el-icon><component :is="item.icon" /></el-icon></span>
+                <strong>{{ item.title }}</strong>
+                <small>{{ item.desc }}</small>
+              </article>
+            </div>
+          </section>
+
+          <section class="library-mini">
+            <div class="section-heading">
+              <div>
+                <h2>精选题库</h2>
+                <p>收录历年真题与高质量模拟卷。</p>
+              </div>
+              <div class="filter-row">
+                <button type="button">全部地区</button>
+                <button type="button">全部年份</button>
+                <button type="button">全部题型</button>
               </div>
             </div>
-          </section>
-
-          <section class="panel mini-panel">
-            <div class="panel-title">
-              <el-icon><TrendCharts /></el-icon>
-              <span>维度分析</span>
+            <div class="topic-card-list small">
+              <article v-for="item in groupedLibrary" :key="item.id" class="topic-card">
+                <div class="topic-top"><span>{{ item.year }}</span><button type="button"><el-icon><Star /></el-icon></button></div>
+                <h2>{{ item.title }}</h2>
+                <p>{{ item.source }}</p>
+                <footer><span>1.25万次练习</span><button type="button" @click="startQuestion(item)">开始练习</button></footer>
+              </article>
             </div>
-            <template v-if="evaluation">
-              <div v-for="item in evaluation.dimensions" :key="item.name" class="dimension-row">
-                <div><strong>{{ item.name }}</strong><span>{{ item.score }}/100</span></div>
-                <div class="progress-track"><i :style="scoreStyle(item.score)"></i></div>
-                <p>{{ item.comment }}</p>
+          </section>
+        </section>
+      </template>
+
+      <template v-else-if="activeView === 'practice'">
+        <section class="practice-view">
+          <header class="practice-header">
+            <button class="back-button" type="button" @click="goView('library')"><el-icon><ArrowLeft /></el-icon></button>
+            <strong>申论练习</strong>
+            <span class="timer-pill"><el-icon><Timer /></el-icon>119:50</span>
+          </header>
+
+          <div class="practice-layout">
+            <section class="materials-panel">
+              <div class="practice-meta">
+                <span>{{ selectedQuestion.year }} {{ selectedQuestion.source }}</span>
+                <span class="danger">难度：{{ selectedQuestion.difficulty }}</span>
               </div>
-            </template>
-            <p v-else class="empty-note">评阅完成后展示审题、结构、论证、表达等维度。</p>
-          </section>
+              <h1>{{ selectedQuestion.title }}</h1>
 
-          <section class="panel mini-panel">
-            <div class="panel-title">
-              <el-icon><Collection /></el-icon>
-              <span>Coach 建议</span>
-            </div>
-            <ul v-if="evaluation" class="check-list">
-              <li v-for="item in evaluation.suggestions" :key="item">
-                <el-icon><CircleCheck /></el-icon>
-                <span>{{ item }}</span>
-              </li>
-            </ul>
-            <p v-else class="empty-note">提交后生成可执行的改写建议。</p>
-          </section>
-        </aside>
-      </section>
+              <h3>背景材料</h3>
+              <article v-for="material in selectedQuestion.materials" :key="material.title" class="material-card">
+                <div><el-icon><DocumentChecked /></el-icon><strong>{{ material.title }}</strong></div>
+                <p>{{ material.content }}</p>
+                <button type="button">展开阅读</button>
+              </article>
 
-      <section v-if="evaluation" id="sample" class="detail-grid">
-        <article class="detail-card positive">
-          <div class="panel-title"><el-icon><CircleCheck /></el-icon><span>优点</span></div>
-          <ul><li v-for="item in evaluation.advantages" :key="item">{{ item }}</li></ul>
-        </article>
+              <h3>作答要求</h3>
+              <div class="requirement-card">
+                <strong>问题：</strong>
+                <span>{{ selectedQuestion.prompt }}</span>
+                <ul>
+                  <li v-for="item in selectedQuestion.requirements" :key="item">{{ item }}</li>
+                </ul>
+              </div>
+            </section>
 
-        <article class="detail-card negative">
-          <div class="panel-title"><el-icon><Warning /></el-icon><span>缺点</span></div>
-          <ul><li v-for="item in evaluation.disadvantages" :key="item">{{ item }}</li></ul>
-        </article>
+            <section class="editor-panel">
+              <div class="editor-toolbar">
+                <button type="button">B</button>
+                <button type="button"><el-icon><Notebook /></el-icon></button>
+                <button type="button"><el-icon><Finished /></el-icon></button>
+                <button type="button" aria-label="插入示范" @click="useTemplate"><el-icon><Refresh /></el-icon></button>
+                <span><el-icon><Timer /></el-icon>42:54</span>
+              </div>
 
-        <article class="detail-card materials">
-          <div class="panel-title"><el-icon><Reading /></el-icon><span>优质素材</span></div>
-          <div class="material-grid">
-            <section v-for="item in evaluation.qualityMaterials" :key="item.title">
-              <strong>{{ item.title }}</strong>
-              <p>{{ item.content }}</p>
-              <small>{{ item.usage }}</small>
+              <label class="answer-area">
+                <span>我的作答 <em>{{ wordCount }} / {{ targetWordLimit }} 字</em></span>
+                <textarea v-model="answer" placeholder="在此输入您的文章内容..." />
+              </label>
+
+              <div class="word-progress"><i :style="{ width: `${progressPercent}%` }"></i></div>
+
+              <footer class="editor-actions">
+                <button class="soft-button" type="button" @click="saveDraft">
+                  <el-icon><DocumentChecked /></el-icon>保存草稿
+                </button>
+                <button class="primary-button" type="button" :disabled="loading" @click="evaluate">
+                  <el-icon><MagicStick /></el-icon>{{ loading ? 'AI 正在评阅...' : 'AI 智能批改' }}
+                </button>
+              </footer>
+              <p v-if="errorMessage" class="form-message">{{ errorMessage }}</p>
             </section>
           </div>
-        </article>
+        </section>
+      </template>
 
-        <article class="detail-card sample">
-          <div class="panel-title"><el-icon><DocumentChecked /></el-icon><span>示范答案</span></div>
-          <p>{{ evaluation.sampleEssay }}</p>
-          <button class="secondary-button" type="button" @click="restartPractice">重新练习此题</button>
-        </article>
-      </section>
+      <template v-else>
+        <section class="report-view">
+          <header class="report-header">
+            <div>
+              <span class="status-pill">{{ reportReady ? '评阅已完成' : '等待评阅' }}</span>
+              <h1>深度评阅：{{ selectedQuestion.title }}</h1>
+              <p>提交日期：2026年6月12日</p>
+            </div>
+            <div>
+              <button class="soft-button" type="button" @click="goView('dashboard')"><el-icon><ArrowLeft /></el-icon>返回工作台</button>
+              <button class="primary-button" type="button" @click="resetPractice"><el-icon><Refresh /></el-icon>根据建议重练</button>
+            </div>
+          </header>
+
+          <section v-if="!evaluation" class="empty-report card">
+            <h2>还没有评估报告</h2>
+            <p>请先完成一次作答并点击 AI 智能批改。</p>
+            <button class="primary-button" type="button" @click="goView('practice')">去作答</button>
+          </section>
+
+          <template v-else>
+            <div class="report-summary-grid">
+              <article class="score-card card" :class="scoreTone">
+                <h2>综合得分</h2>
+                <div class="score-ring">
+                  <svg viewBox="0 0 120 120" role="img" aria-label="综合得分">
+                    <circle class="ring-track" cx="60" cy="60" r="48" />
+                    <circle class="ring-value" cx="60" cy="60" r="48" :style="scoreRingStyle" />
+                  </svg>
+                  <div><strong>{{ evaluation.score }}</strong><span>/ 100</span></div>
+                </div>
+                <p>{{ evaluation.summary }}</p>
+              </article>
+
+              <article class="dimension-card card">
+                <h2>维度分析</h2>
+                <div v-for="item in evaluation.dimensions" :key="item.name" class="dimension-row">
+                  <div><strong>{{ item.name }}</strong><span>{{ item.score }}%</span></div>
+                  <div class="progress-track"><i :style="scoreStyle(item.score)"></i></div>
+                  <p>{{ item.comment }}</p>
+                </div>
+              </article>
+            </div>
+
+            <div class="analysis-grid">
+              <article class="card answer-card">
+                <h2><el-icon><DocumentChecked /></el-icon>您的作答</h2>
+                <p>{{ answer || '暂无作答内容。' }}</p>
+              </article>
+
+              <article class="card advice-card">
+                <h2><el-icon><MagicStick /></el-icon>AI 优化建议</h2>
+                <div class="advice-block danger">
+                  <strong>缺点</strong>
+                  <p v-for="item in evaluation.disadvantages" :key="item">{{ item }}</p>
+                </div>
+                <div class="advice-block success">
+                  <strong>优点</strong>
+                  <p v-for="item in evaluation.advantages" :key="item">{{ item }}</p>
+                </div>
+              </article>
+            </div>
+
+            <section class="detail-report-grid">
+              <article class="detail-card card">
+                <h2><el-icon><CircleCheck /></el-icon>具体改进建议</h2>
+                <ul>
+                  <li v-for="item in evaluation.suggestions" :key="item">{{ item }}</li>
+                </ul>
+              </article>
+
+              <article class="detail-card card">
+                <h2><el-icon><Collection /></el-icon>结合政府工作报告</h2>
+                <div v-for="item in evaluation.governmentReportLinks" :key="item.title" class="material-mini">
+                  <strong>{{ item.title }}</strong>
+                  <p>{{ item.content }}</p>
+                  <small>{{ item.usage }}</small>
+                </div>
+              </article>
+
+              <article class="detail-card card sample-card">
+                <h2><el-icon><Reading /></el-icon>参考范文</h2>
+                <p>{{ evaluation.sampleEssay }}</p>
+              </article>
+            </section>
+          </template>
+        </section>
+      </template>
     </section>
+
+    <nav class="mobile-bottom-nav" aria-label="移动端导航">
+      <button
+        v-for="item in mobileNavItems"
+        :key="item.key"
+        class="mobile-nav-button"
+        :class="{ active: activeView === item.key }"
+        type="button"
+        @click="goView(item.key)"
+      >
+        <el-icon><component :is="item.icon" /></el-icon>
+        <span>{{ item.label }}</span>
+      </button>
+    </nav>
   </main>
 </template>
 
 <style scoped>
-.coach-page {
+.pq-app {
   min-height: 100vh;
   background: #f8f9ff;
   color: #0b1c30;
-  font-family: "Plus Jakarta Sans", Inter, "Noto Sans SC", system-ui, sans-serif;
+  font-family: Inter, "Noto Sans SC", "Microsoft YaHei", system-ui, sans-serif;
   letter-spacing: 0;
 }
 
 button,
+input,
 textarea {
   font: inherit;
   letter-spacing: 0;
@@ -631,17 +883,16 @@ button {
   cursor: pointer;
 }
 
-.side-nav {
+.desktop-sidebar {
   position: fixed;
   inset: 0 auto 0 0;
   z-index: 30;
   display: flex;
   flex-direction: column;
-  width: 260px;
-  padding: 24px 16px;
-  border-right: 1px solid rgba(194, 198, 216, 0.46);
-  background: rgba(255, 255, 255, 0.86);
-  backdrop-filter: blur(20px);
+  width: 252px;
+  padding: 32px 20px;
+  border-right: 1px solid #e1e7f6;
+  background: #ffffff;
 }
 
 .brand {
@@ -649,7 +900,6 @@ button {
   align-items: center;
   gap: 12px;
   color: inherit;
-  text-decoration: none;
 }
 
 .brand-mark {
@@ -658,7 +908,7 @@ button {
   width: 44px;
   height: 44px;
   border-radius: 999px;
-  background: #0066ff;
+  background: #0b66ff;
   color: #ffffff;
   font-weight: 900;
 }
@@ -669,489 +919,1026 @@ button {
 }
 
 .brand strong {
-  color: #0050cb;
+  color: #0758d8;
   font-size: 18px;
 }
 
 .brand small {
-  margin-top: 2px;
-  color: #424656;
+  margin-top: 3px;
+  color: #33425c;
   font-size: 12px;
+  font-weight: 700;
 }
 
-.side-links {
+.side-nav {
   display: grid;
-  gap: 8px;
-  margin-top: 48px;
+  gap: 14px;
+  margin-top: 58px;
 }
 
-.side-links a {
+.side-link {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 48px;
-  padding: 0 16px;
-  border-radius: 16px;
-  color: #424656;
-  text-decoration: none;
+  gap: 12px;
+  min-height: 56px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #253246;
   font-size: 14px;
   font-weight: 800;
 }
 
-.side-links a.active,
-.side-links a:hover {
-  background: #0066ff;
+.side-link.active,
+.side-link:hover {
+  background: #0b66ff;
   color: #ffffff;
 }
 
-.side-card {
+.mock-button {
+  min-height: 48px;
+  margin: auto 8px 38px;
+  border: 0;
+  border-radius: 8px;
+  background: #0758d8;
+  color: #ffffff;
+  font-weight: 900;
+}
+
+.side-footer {
   display: grid;
-  gap: 8px;
-  margin-top: auto;
-  padding: 18px;
-  border: 1px solid #d7ddf0;
-  border-radius: 16px;
-  background: linear-gradient(145deg, #ffffff, #eff4ff);
+  gap: 20px;
+  padding: 22px 16px 0;
+  border-top: 1px solid #edf1f8;
 }
 
-.side-card p,
-.side-card span {
-  margin: 0;
-  color: #727687;
-  font-size: 12px;
+.side-footer button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  background: transparent;
+  color: #33425c;
+  font-size: 13px;
+  font-weight: 700;
 }
 
-.side-card strong {
-  color: #0b1c30;
-  line-height: 1.45;
-}
-
-.coach-main {
+.app-shell {
   min-height: 100vh;
-  margin-left: 260px;
-  padding: 28px min(36px, 3vw) 64px;
+  margin-left: 252px;
 }
 
-.top-bar {
+.topbar {
   position: sticky;
   top: 0;
   z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  height: 80px;
+  padding: 0 40px;
+  border-bottom: 1px solid #e1e7f6;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(18px);
+}
+
+.top-tabs {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin: -28px calc(min(36px, 3vw) * -1) 24px;
-  padding: 18px min(36px, 3vw);
-  border-bottom: 1px solid rgba(194, 198, 216, 0.46);
-  background: rgba(248, 249, 255, 0.86);
-  backdrop-filter: blur(20px);
+  gap: 34px;
 }
 
-.top-bar h1 {
-  margin: 3px 0 0;
-  font-size: 24px;
-  line-height: 1.25;
-}
-
-.eyebrow {
-  margin: 0;
-  color: #0050cb;
-  font-size: 12px;
+.top-tabs button {
+  position: relative;
+  min-height: 44px;
+  border: 0;
+  background: transparent;
+  color: #4b5568;
+  font-size: 14px;
   font-weight: 900;
-  text-transform: uppercase;
 }
 
-.profile-pill,
-.status-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
+.top-tabs button.active {
+  color: #0758d8;
+}
+
+.top-tabs button.active::after {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  left: 8px;
+  height: 3px;
   border-radius: 999px;
-  font-size: 13px;
-  font-weight: 800;
+  background: #0b66ff;
+  content: "";
 }
 
-.profile-pill {
-  min-height: 40px;
-  padding: 0 14px;
-  border: 1px solid #c2c6d8;
-  background: #ffffff;
-}
-
-.status-chip {
-  min-height: 30px;
-  padding: 0 12px;
-  background: rgba(0, 106, 97, 0.12);
-  color: #006a61;
-}
-
-.hero-panel {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
-  gap: 28px;
+.top-actions {
+  display: flex;
   align-items: center;
-  padding: 32px;
-  border: 1px solid rgba(194, 198, 216, 0.5);
-  border-radius: 16px;
-  background:
-    radial-gradient(circle at 100% 0%, rgba(134, 242, 228, 0.25), transparent 30%),
-    linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(239, 244, 255, 0.88));
-  box-shadow: 0 16px 44px rgba(19, 42, 74, 0.06);
+  gap: 18px;
 }
 
-.hero-panel h2 {
-  max-width: 850px;
-  margin: 14px 0 12px;
+.icon-button,
+.avatar-button,
+.back-button {
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #4b5568;
+}
+
+.icon-button {
+  width: 36px;
+  height: 36px;
+  font-size: 20px;
+}
+
+.avatar-button {
+  width: 42px;
+  height: 42px;
+  border: 3px solid #dbeafe;
+  border-radius: 999px;
+  background: #d8f3ef;
+  color: #0a6b63;
+}
+
+.mobile-only,
+.mobile-title,
+.mobile-bottom-nav,
+.mobile-growth-summary {
+  display: none;
+}
+
+.dashboard-view,
+.library-view,
+.growth-view,
+.practice-view,
+.report-view {
+  width: min(1120px, calc(100vw - 320px));
+  margin: 0 auto;
+  padding: 38px 0 64px;
+}
+
+.hero-card {
+  display: grid;
+  justify-items: center;
+  min-height: 270px;
+  padding: 52px 32px;
+  border: 1px solid #dfe6f5;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #f8faff, #eef5ff);
+  text-align: center;
+}
+
+.hero-card h1 {
+  margin: 0;
   font-size: 32px;
   line-height: 1.25;
 }
 
-.hero-panel p {
-  max-width: 760px;
-  margin: 0;
-  color: #424656;
-  font-size: 17px;
-  line-height: 1.75;
+.hero-card p {
+  margin: 14px 0 34px;
+  color: #526071;
+  font-size: 16px;
 }
 
-.hero-metrics {
+.search-box {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 10px;
-}
-
-.hero-metrics span {
-  display: grid;
-  gap: 4px;
-  min-height: 82px;
-  place-content: center;
-  border-radius: 16px;
-  background: #ffffff;
-  color: #424656;
-  text-align: center;
-  box-shadow: 0 8px 24px rgba(19, 42, 74, 0.05);
-}
-
-.hero-metrics strong {
-  color: #0050cb;
-  font-size: 26px;
-}
-
-.exam-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 16px;
-  margin-top: 18px;
-}
-
-.exam-card {
-  display: grid;
-  justify-items: start;
-  gap: 7px;
-  min-height: 150px;
-  padding: 22px;
-  border: 1px solid #d7ddf0;
-  border-radius: 16px;
-  background: #ffffff;
-  color: #0b1c30;
-  text-align: left;
-  box-shadow: 0 10px 30px rgba(19, 42, 74, 0.05);
-}
-
-.exam-card:hover,
-.exam-card.active {
-  border-color: rgba(0, 102, 255, 0.42);
-  background: #eff4ff;
-}
-
-.exam-icon {
-  display: grid;
-  place-items: center;
-  width: 48px;
+  grid-template-columns: 28px minmax(0, 1fr) 82px;
+  align-items: center;
+  width: min(560px, 100%);
   height: 48px;
-  border-radius: 14px;
-  background: #0050cb;
+  padding: 0 8px 0 16px;
+  border: 1px solid #cfd8ea;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 18px rgba(12, 33, 66, 0.06);
+}
+
+.search-box input {
+  min-width: 0;
+  border: 0;
+  outline: none;
+  color: #0b1c30;
+}
+
+.search-box button,
+.primary-button {
+  border: 0;
+  background: #0758d8;
   color: #ffffff;
   font-weight: 900;
 }
 
-.exam-card strong {
-  font-size: 18px;
+.search-box button {
+  height: 34px;
+  border-radius: 7px;
+  font-size: 13px;
 }
 
-.exam-card small {
-  color: #424656;
+.section-block {
+  margin-top: 36px;
 }
 
-.exam-card em {
-  margin-top: 4px;
-  color: #006a61;
+.section-heading,
+.card-head,
+.page-title-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+}
+
+.section-heading h2,
+.card h2,
+.page-title-row h1 {
+  margin: 0;
+  color: #07182f;
+}
+
+.section-heading p,
+.page-title-row p {
+  margin: 8px 0 0;
+  color: #586474;
+}
+
+.track-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 22px;
+}
+
+.track-card,
+.card,
+.topic-card,
+.material-card,
+.requirement-card {
+  border: 1px solid #dfe6f5;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(19, 42, 74, 0.06);
+}
+
+.track-card {
+  display: grid;
+  justify-items: center;
+  min-height: 204px;
+  padding: 26px;
+  border-radius: 10px;
+  color: #07182f;
+}
+
+.track-icon {
+  display: grid;
+  place-items: center;
+  width: 74px;
+  height: 74px;
+  border-radius: 999px;
+  background: #e6efff;
+  color: #0b66ff;
+  font-size: 28px;
+}
+
+.track-card.teal .track-icon {
+  background: #e8fbf7;
+  color: #08766c;
+}
+
+.track-card.rose .track-icon {
+  background: #fff2f5;
+  color: #c81e4a;
+}
+
+.track-card strong {
+  margin-top: 12px;
+  font-size: 19px;
+}
+
+.track-card small {
+  color: #586474;
+}
+
+.track-card em {
+  margin-top: 8px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #0758d8;
   font-style: normal;
   font-size: 13px;
   font-weight: 900;
 }
 
-.workspace-grid {
+.dashboard-grid {
   display: grid;
-  grid-template-columns: 300px minmax(0, 1fr) 390px;
-  gap: 18px;
-  align-items: start;
-  margin-top: 18px;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 28px;
+  margin-top: 36px;
 }
 
-.panel,
-.detail-card {
-  border: 1px solid #d7ddf0;
-  border-radius: 16px;
-  background: #ffffff;
-  box-shadow: 0 12px 34px rgba(19, 42, 74, 0.055);
+.card {
+  border-radius: 12px;
+  padding: 24px;
 }
 
-.question-panel,
-.answer-panel,
-.score-card,
-.mini-panel,
-.detail-card {
-  padding: 22px;
+.card-head button,
+.filter-row button,
+.topic-card footer button {
+  border: 0;
+  background: transparent;
+  color: #0758d8;
+  font-size: 13px;
+  font-weight: 900;
 }
 
-.question-panel,
-.report-panel {
-  position: sticky;
-  top: 92px;
+.recent-list {
+  display: grid;
+  gap: 24px;
+  margin-top: 28px;
 }
 
-.panel-head,
-.answer-head {
+.recent-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px 18px;
+}
+
+.recent-row strong,
+.recent-row span {
+  display: block;
+}
+
+.recent-row span {
+  margin-top: 4px;
+  color: #6b7280;
+  font-size: 13px;
+}
+
+.recent-row em {
+  color: #08766c;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.progress-track {
+  grid-column: 1 / -1;
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dce9ff;
+}
+
+.progress-track i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #0758d8;
+}
+
+.progress-track i.teal {
+  background: #00796f;
+}
+
+.progress-track i.rose {
+  background: #d8294c;
+}
+
+.growth-card {
+  display: grid;
+  gap: 20px;
+  background: linear-gradient(145deg, #eef5ff, #f8fbff);
+}
+
+.growth-card h2 {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 14px;
+  align-items: center;
+  gap: 9px;
+  font-size: 20px;
 }
 
-.panel-head h2,
-.answer-head h2 {
-  margin: 5px 0 0;
+.growth-metric {
+  display: grid;
+  gap: 8px;
+  padding: 20px;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.growth-metric span {
+  color: #586474;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.growth-metric strong {
+  color: #0758d8;
+  font-size: 32px;
+}
+
+.growth-metric.soft strong {
+  color: #07182f;
+  font-size: 22px;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.filter-row button,
+.date-button {
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid #d6deed;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #253246;
+}
+
+.topic-card-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 28px;
+}
+
+.topic-card-list.small {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.topic-card {
+  display: grid;
+  gap: 14px;
+  min-height: 230px;
+  padding: 24px;
+  border-radius: 12px;
+}
+
+.topic-top,
+.topic-card footer,
+.tag-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.topic-top span {
+  padding: 6px 12px;
+  border-radius: 999px;
+  background: #e6efff;
+  color: #0758d8;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.topic-top button {
+  border: 0;
+  background: transparent;
+  color: #9aa6bd;
+  font-size: 22px;
+}
+
+.topic-card h2 {
+  margin: 0;
   font-size: 22px;
   line-height: 1.35;
 }
 
-.type-switch {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
-  margin-top: 18px;
-  padding: 4px;
-  border-radius: 14px;
-  background: #eff4ff;
+.topic-card p {
+  margin: 0;
+  color: #586474;
 }
 
-.type-button,
-.secondary-button,
+.tag-row {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+}
+
+.tag-row span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #e6efff;
+  color: #33425c;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.topic-card footer {
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid #edf1f8;
+}
+
+.topic-card footer span {
+  color: #586474;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.topic-card footer span.done {
+  color: #08766c;
+}
+
+.growth-top-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 318px;
+  gap: 24px;
+  margin-top: 28px;
+}
+
+.heat-card .card-head span {
+  padding: 7px 12px;
+  border-radius: 999px;
+  background: #d9f5ef;
+  color: #08766c;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.heat-grid {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 5px;
+  margin-top: 24px;
+}
+
+.heat-grid span {
+  aspect-ratio: 1.42;
+  border-radius: 3px;
+  background: #e7eefc;
+}
+
+.heat-grid .level-1 {
+  background: #cfe0fb;
+}
+
+.heat-grid .level-2 {
+  background: #a9c4f2;
+}
+
+.heat-grid .level-3 {
+  background: #5d91e8;
+}
+
+.heat-grid .level-4 {
+  background: #0758d8;
+}
+
+.heat-legend {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 7px;
+  margin-top: 16px;
+  color: #586474;
+  font-size: 12px;
+}
+
+.heat-legend i {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: #a9c4f2;
+}
+
+.attention-card {
+  display: grid;
+  gap: 16px;
+  padding: 24px;
+  border: 1px solid #f1c9d2;
+  border-radius: 12px;
+  background: #fff7fa;
+}
+
+.attention-card h2 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0;
+}
+
+.attention-card > div {
+  padding: 18px;
+  border-left: 4px solid #d8294c;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.attention-card p {
+  color: #586474;
+  line-height: 1.6;
+}
+
+.attention-card button {
+  border: 0;
+  background: transparent;
+  color: #0758d8;
+  font-weight: 900;
+}
+
+.achievements-card {
+  margin-top: 32px;
+}
+
+.achievement-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.achievement-grid article {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+  min-height: 150px;
+  padding: 22px;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.achievement-grid span {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 999px;
+  background: #e6efff;
+  color: #0758d8;
+  font-size: 26px;
+}
+
+.achievement-grid .teal span {
+  background: #d9f5ef;
+  color: #08766c;
+}
+
+.achievement-grid .muted span {
+  background: #eef1f5;
+  color: #8b94a3;
+}
+
+.achievement-grid strong {
+  font-size: 16px;
+}
+
+.achievement-grid small {
+  color: #586474;
+}
+
+.library-mini {
+  margin-top: 42px;
+  padding-top: 32px;
+  border-top: 1px solid #e1e7f6;
+}
+
+.practice-view {
+  width: min(1200px, calc(100vw - 300px));
+}
+
+.practice-header {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  align-items: center;
+  min-height: 62px;
+  margin-bottom: 20px;
+}
+
+.back-button {
+  width: 44px;
+  height: 44px;
+  font-size: 24px;
+}
+
+.practice-header strong {
+  color: #0758d8;
+  text-align: center;
+  font-size: 24px;
+}
+
+.timer-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #0758d8;
+  font-size: 18px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.practice-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(420px, 1fr);
+  min-height: calc(100vh - 182px);
+  border: 1px solid #e1e7f6;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.materials-panel,
+.editor-panel {
+  padding: 32px 42px;
+}
+
+.materials-panel {
+  border-right: 1px solid #e7ecf5;
+}
+
+.practice-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.practice-meta span {
+  padding: 7px 14px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #0758d8;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.practice-meta .danger {
+  background: #ffe1e7;
+  color: #b20f38;
+}
+
+.materials-panel h1 {
+  margin: 22px 0 36px;
+  font-size: 30px;
+  line-height: 1.35;
+}
+
+.materials-panel h3 {
+  margin: 28px 0 16px;
+}
+
+.material-card {
+  display: grid;
+  gap: 16px;
+  margin-top: 18px;
+  padding: 26px;
+  border-radius: 12px;
+}
+
+.material-card div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: #08766c;
+  font-size: 22px;
+}
+
+.material-card p,
+.requirement-card,
+.answer-card p,
+.detail-card p {
+  color: #4b5568;
+  line-height: 1.85;
+}
+
+.material-card button {
+  justify-self: center;
+  border: 0;
+  background: transparent;
+  color: #0758d8;
+  font-weight: 900;
+}
+
+.requirement-card {
+  padding: 24px;
+  border-left: 5px solid #0758d8;
+  border-radius: 12px;
+  background: #eaf2ff;
+}
+
+.requirement-card ul {
+  margin: 16px 0 0;
+  padding-left: 22px;
+}
+
+.editor-panel {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto auto auto;
+  gap: 18px;
+}
+
+.editor-toolbar {
+  justify-self: center;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 50px;
+  padding: 0 16px;
+  border: 1px solid #e1e7f6;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow: 0 10px 28px rgba(19, 42, 74, 0.06);
+}
+
+.editor-toolbar button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #33425c;
+  font-weight: 900;
+}
+
+.editor-toolbar span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding-left: 12px;
+  border-left: 1px solid #e1e7f6;
+  color: #0758d8;
+  font-weight: 900;
+}
+
+.answer-area {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+}
+
+.answer-area span {
+  display: flex;
+  justify-content: space-between;
+  color: #253246;
+  font-weight: 900;
+}
+
+.answer-area em {
+  color: #6b7280;
+  font-style: normal;
+}
+
+.answer-area textarea {
+  width: 100%;
+  min-height: 520px;
+  height: 100%;
+  padding: 24px;
+  resize: vertical;
+  border: 1px solid #cad3e3;
+  border-radius: 12px;
+  outline: none;
+  color: #0b1c30;
+  font-size: 18px;
+  line-height: 1.9;
+}
+
+.answer-area textarea:focus {
+  border-color: #0758d8;
+  box-shadow: 0 0 0 4px rgba(7, 88, 216, 0.1);
+}
+
+.word-progress {
+  height: 6px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e6efff;
+}
+
+.word-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: #0758d8;
+}
+
+.editor-actions {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+}
+
+.soft-button,
 .primary-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  min-height: 52px;
   gap: 8px;
   border: 0;
-  border-radius: 12px;
+  border-radius: 10px;
   font-weight: 900;
 }
 
-.type-button {
-  height: 42px;
-  background: transparent;
-  color: #424656;
+.soft-button {
+  background: #dbeafe;
+  color: #0758d8;
 }
 
-.type-button.active {
-  background: #0050cb;
-  color: #ffffff;
-}
-
-.question-list {
-  display: grid;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.question-item {
-  padding: 14px;
-  border: 1px solid #dfe5f6;
-  border-radius: 14px;
-  background: #ffffff;
-  transition: 0.18s ease;
-}
-
-.question-item:hover,
-.question-item.active {
-  border-color: #006a61;
-  background: #ebfffc;
-}
-
-.question-item div {
-  display: flex;
-  justify-content: space-between;
-  color: #727687;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.question-item h3 {
-  margin: 10px 0 6px;
-  font-size: 15px;
-  line-height: 1.45;
-}
-
-.question-item p {
+.form-message {
   margin: 0;
-  color: #424656;
-  font-size: 12px;
-}
-
-.secondary-button {
-  min-height: 40px;
-  padding: 0 14px;
-  background: #eff4ff;
-  color: #0050cb;
-}
-
-.prompt-text {
-  margin: 18px 0 0;
-  padding: 16px;
-  border-radius: 14px;
-  background: #eff4ff;
-  color: #253246;
-  line-height: 1.8;
-}
-
-.tag-row,
-.topic-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.tag-row {
-  margin-top: 16px;
-}
-
-.topic-row {
-  margin-top: 10px;
-}
-
-.tag-row span,
-.topic-row span {
-  min-height: 30px;
-  padding: 6px 11px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 900;
-}
-
-.tag-row span {
-  background: #e8fbf7;
-  color: #006a61;
-}
-
-.topic-row span {
-  background: #fff2f6;
-  color: #b40036;
-}
-
-.answer-editor {
-  display: grid;
-  gap: 10px;
-  margin-top: 18px;
-}
-
-.answer-editor span {
-  font-size: 14px;
-  font-weight: 900;
-}
-
-.answer-editor textarea {
-  width: 100%;
-  min-height: 430px;
-  padding: 18px;
-  resize: vertical;
-  border: 1px solid #c2c6d8;
-  border-radius: 16px;
-  outline: none;
-  background: #fbfcff;
-  color: #0b1c30;
-  font-size: 16px;
-  line-height: 1.85;
-}
-
-.answer-editor textarea:focus {
-  border-color: #0050cb;
-  box-shadow: 0 0 0 4px rgba(0, 80, 203, 0.1);
-}
-
-.submit-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  margin-top: 16px;
-}
-
-.count-line {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 6px;
-  color: #727687;
-}
-
-.count-line strong {
-  color: #006a61;
-  font-size: 24px;
-}
-
-.count-line em {
-  color: #b40036;
-  font-style: normal;
+  color: #b20f38;
   font-weight: 800;
 }
 
-.primary-button {
-  min-height: 48px;
-  padding: 0 20px;
-  background: #0050cb;
-  color: #ffffff;
-  box-shadow: 0 12px 26px rgba(0, 80, 203, 0.18);
+.report-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
 }
 
-.primary-button:disabled {
-  cursor: wait;
-  opacity: 0.7;
+.report-header h1 {
+  margin: 18px 0 8px;
+  font-size: 42px;
+  line-height: 1.2;
 }
 
-.report-panel {
-  display: grid;
+.report-header p {
+  margin: 0;
+  color: #586474;
+  font-size: 16px;
+}
+
+.report-header > div:last-child {
+  display: flex;
+  flex-wrap: wrap;
   gap: 14px;
 }
 
-.score-layout {
-  display: grid;
-  grid-template-columns: 126px minmax(0, 1fr);
-  gap: 16px;
+.status-pill {
+  display: inline-flex;
   align-items: center;
-  margin-top: 12px;
+  min-height: 30px;
+  padding: 0 14px;
+  border-radius: 999px;
+  background: #dbeafe;
+  color: #0758d8;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.empty-report {
+  display: grid;
+  place-items: center;
+  gap: 14px;
+  min-height: 320px;
+  margin-top: 28px;
+  text-align: center;
+}
+
+.empty-report p {
+  color: #586474;
+}
+
+.report-summary-grid,
+.analysis-grid,
+.detail-report-grid {
+  display: grid;
+  gap: 24px;
+  margin-top: 32px;
+}
+
+.report-summary-grid {
+  grid-template-columns: 360px minmax(0, 1fr);
+}
+
+.analysis-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.detail-report-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+
+.score-card {
+  display: grid;
+  justify-items: center;
+  text-align: center;
 }
 
 .score-ring {
   position: relative;
-  width: 126px;
-  height: 126px;
+  width: 196px;
+  height: 196px;
+  margin: 18px 0;
 }
 
 .score-ring svg {
-  display: block;
-  width: 126px;
-  height: 126px;
+  width: 196px;
+  height: 196px;
   transform: rotate(-90deg);
 }
 
@@ -1162,18 +1949,17 @@ button {
 }
 
 .ring-track {
-  stroke: #eff4ff;
+  stroke: #e6efff;
 }
 
 .ring-value {
-  stroke: #0050cb;
+  stroke: #0758d8;
   stroke-linecap: round;
-  transition: stroke-dashoffset 0.35s ease;
 }
 
-.score-card.excellent .ring-value,
-.score-card.good .ring-value {
-  stroke: #006a61;
+.score-card.good .ring-value,
+.score-card.excellent .ring-value {
+  stroke: #08766c;
 }
 
 .score-card.normal .ring-value {
@@ -1181,268 +1967,527 @@ button {
 }
 
 .score-card.weak .ring-value {
-  stroke: #b40036;
+  stroke: #d8294c;
 }
 
-.score-number {
+.score-ring div {
   position: absolute;
   inset: 0;
   display: grid;
   place-content: center;
-  text-align: center;
 }
 
-.score-number strong {
-  font-size: 34px;
+.score-ring strong {
+  color: #0758d8;
+  font-size: 52px;
   line-height: 1;
 }
 
-.score-number span {
-  color: #727687;
-  font-size: 12px;
+.score-ring span {
+  color: #586474;
   font-weight: 900;
 }
 
-.score-layout h2 {
-  margin: 0 0 8px;
-  font-size: 22px;
+.score-card p {
+  max-width: 260px;
+  color: #586474;
+  line-height: 1.7;
 }
 
-.score-layout p {
-  margin: 0;
-  color: #424656;
-  font-size: 14px;
-  line-height: 1.65;
-}
-
-.panel-title {
+.dimension-card h2,
+.answer-card h2,
+.advice-card h2,
+.detail-card h2 {
   display: flex;
   align-items: center;
-  gap: 9px;
-  margin-bottom: 14px;
-  color: #0b1c30;
-  font-weight: 900;
-}
-
-.panel-title .el-icon {
-  color: #0050cb;
+  gap: 10px;
+  margin-bottom: 20px;
 }
 
 .dimension-row + .dimension-row {
-  margin-top: 14px;
+  margin-top: 16px;
 }
 
 .dimension-row > div:first-child {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  gap: 12px;
 }
 
-.dimension-row > div:first-child span {
-  color: #0050cb;
+.dimension-row span {
+  color: #0758d8;
   font-weight: 900;
 }
 
-.progress-track {
-  height: 8px;
-  margin: 8px 0;
-  overflow: hidden;
-  border-radius: 999px;
-  background: #eff4ff;
-}
-
-.progress-track i {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #006a61, #0050cb);
-}
-
-.dimension-row p,
-.empty-note {
-  margin: 0;
-  color: #727687;
+.dimension-row p {
+  margin: 8px 0 0;
+  color: #586474;
   font-size: 13px;
-  line-height: 1.6;
 }
 
-.check-list {
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
+.answer-card p {
+  min-height: 220px;
+  padding: 18px;
+  border-radius: 10px;
+  background: #fbfcff;
 }
 
-.check-list li {
+.advice-card {
+  background: #eef5ff;
+}
+
+.advice-block {
   display: grid;
-  grid-template-columns: 22px minmax(0, 1fr);
   gap: 8px;
-  color: #424656;
-  font-size: 14px;
-  line-height: 1.6;
+  padding: 18px;
+  border-left: 4px solid #0758d8;
+  border-radius: 10px;
+  background: #ffffff;
 }
 
-.check-list .el-icon {
-  margin-top: 2px;
-  color: #006a61;
+.advice-block + .advice-block {
+  margin-top: 16px;
 }
 
-.detail-grid {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
-  margin-top: 18px;
+.advice-block.danger {
+  border-left-color: #d8294c;
+}
+
+.advice-block.success {
+  border-left-color: #08766c;
+}
+
+.advice-block p {
+  margin: 0;
+  color: #4b5568;
+  line-height: 1.7;
 }
 
 .detail-card ul {
   display: grid;
-  gap: 10px;
+  gap: 12px;
   margin: 0;
-  padding-left: 18px;
-  color: #424656;
+  padding-left: 22px;
+  color: #4b5568;
   line-height: 1.7;
 }
 
-.detail-card.positive .panel-title .el-icon {
-  color: #006a61;
-}
-
-.detail-card.negative .panel-title .el-icon {
-  color: #b40036;
-}
-
-.materials,
-.sample {
-  grid-column: span 2;
-}
-
-.material-grid {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.material-grid section {
+.material-mini {
   padding: 16px;
-  border: 1px solid #dfe5f6;
-  border-radius: 14px;
+  border: 1px solid #dfe6f5;
+  border-radius: 10px;
   background: #fbfcff;
 }
 
-.material-grid strong {
-  font-size: 16px;
+.material-mini + .material-mini {
+  margin-top: 12px;
 }
 
-.material-grid p {
-  margin: 10px 0;
-  color: #424656;
-  line-height: 1.7;
+.material-mini strong {
+  color: #0758d8;
 }
 
-.material-grid small {
-  color: #0050cb;
+.material-mini p {
+  margin: 8px 0;
+}
+
+.material-mini small {
+  color: #08766c;
   line-height: 1.6;
 }
 
-.sample p {
-  margin: 0 0 18px;
-  color: #253246;
-  font-size: 16px;
-  line-height: 1.95;
+.sample-card {
+  grid-column: 1 / -1;
 }
 
-@media (max-width: 1320px) {
-  .workspace-grid {
-    grid-template-columns: 280px minmax(0, 1fr);
-  }
-
-  .report-panel {
-    grid-column: 1 / -1;
-    position: static;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .score-card {
-    grid-column: span 1;
-  }
+.sample-card p {
+  font-size: 16px;
 }
 
 @media (max-width: 980px) {
-  .side-nav {
+  .desktop-sidebar,
+  .top-tabs {
     display: none;
   }
 
-  .coach-main {
+  .pq-app {
+    background: #f8f9ff;
+  }
+
+  .app-shell {
     margin-left: 0;
-    padding: 18px 14px 42px;
+    padding-bottom: 88px;
   }
 
-  .top-bar {
-    margin: -18px -14px 16px;
-    padding: 14px;
+  .topbar {
+    grid-template-columns: 44px minmax(0, 1fr) auto;
+    height: 82px;
+    padding: 0 20px;
   }
 
-  .top-bar h1 {
-    font-size: 20px;
+  .mobile-only,
+  .mobile-title,
+  .mobile-bottom-nav {
+    display: grid;
   }
 
-  .profile-pill {
+  .mobile-title {
+    justify-self: center;
+    color: #0758d8;
+    font-size: 22px;
+  }
+
+  .top-actions {
+    gap: 10px;
+  }
+
+  .top-actions .icon-button {
     display: none;
   }
 
-  .hero-panel,
-  .workspace-grid,
-  .detail-grid {
-    grid-template-columns: 1fr;
+  .dashboard-view,
+  .library-view,
+  .growth-view,
+  .practice-view,
+  .report-view {
+    width: min(100vw - 32px, 620px);
+    padding: 28px 0 36px;
   }
 
-  .hero-metrics,
-  .exam-grid,
-  .report-panel,
-  .material-grid {
-    grid-template-columns: 1fr;
+  .hero-card {
+    display: block;
+    min-height: auto;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+    text-align: left;
   }
 
-  .question-panel,
-  .report-panel {
-    position: static;
+  .hero-card h1,
+  .hero-card p {
+    display: none;
   }
 
-  .materials,
-  .sample {
-    grid-column: auto;
-  }
-}
-
-@media (max-width: 640px) {
-  .hero-panel {
-    padding: 22px;
+  .search-box {
+    width: 100%;
+    height: 42px;
+    border-radius: 10px;
   }
 
-  .hero-panel h2 {
+  .search-box button {
+    display: none;
+  }
+
+  .section-block {
+    margin-top: 32px;
+  }
+
+  .section-heading h2,
+  .page-title-row h1 {
     font-size: 24px;
   }
 
-  .submit-row,
-  .answer-head {
-    align-items: stretch;
-    flex-direction: column;
-  }
-
-  .answer-editor textarea {
-    min-height: 340px;
-  }
-
-  .primary-button,
-  .secondary-button {
-    width: 100%;
-  }
-
-  .score-layout {
+  .track-grid,
+  .dashboard-grid,
+  .topic-card-list,
+  .topic-card-list.small,
+  .growth-top-grid,
+  .achievement-grid,
+  .practice-layout,
+  .report-summary-grid,
+  .analysis-grid,
+  .detail-report-grid {
     grid-template-columns: 1fr;
-    justify-items: center;
-    text-align: center;
+  }
+
+  .track-grid {
+    gap: 16px;
+  }
+
+  .track-card {
+    grid-template-columns: 58px minmax(0, 1fr) auto;
+    align-items: center;
+    justify-items: start;
+    min-height: 86px;
+    padding: 16px;
+  }
+
+  .track-icon {
+    grid-row: span 3;
+    width: 52px;
+    height: 52px;
+    font-size: 22px;
+  }
+
+  .track-card strong {
+    margin: 0;
+    font-size: 18px;
+  }
+
+  .track-card em {
+    grid-row: 1 / span 2;
+    grid-column: 3;
+    align-self: start;
+    margin: 0;
+  }
+
+  .recent-card {
+    overflow: hidden;
+  }
+
+  .recent-list {
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(210px, 1fr);
+    overflow-x: auto;
+  }
+
+  .growth-card {
+    margin-top: 8px;
+  }
+
+  .mobile-growth-summary {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 28px;
+  }
+
+  .mobile-growth-summary h2 {
+    margin: 0;
+    font-size: 30px;
+  }
+
+  .mobile-growth-summary p {
+    margin: 0;
+    color: #586474;
+    font-size: 20px;
+  }
+
+  .compact {
+    margin-top: 18px;
+  }
+
+  .compact-grid {
+    grid-template-columns: repeat(7, 1fr);
+  }
+
+  .page-title-row {
+    display: grid;
+  }
+
+  .filter-row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+  }
+
+  .filter-row button {
+    border-radius: 999px;
+    white-space: nowrap;
+  }
+
+  .topic-card {
+    min-height: 0;
+    padding: 26px;
+    border-radius: 16px;
+  }
+
+  .topic-card h2 {
+    font-size: 26px;
+  }
+
+  .growth-view > .page-title-row,
+  .growth-top-grid {
+    display: none;
+  }
+
+  .achievements-card {
+    margin-top: 0;
+  }
+
+  .library-mini {
+    margin-top: 28px;
+    padding-top: 24px;
+  }
+
+  .practice-header {
+    margin: 0 -16px 22px;
+    padding: 0 16px 18px;
+    border-bottom: 1px solid #e1e7f6;
+  }
+
+  .practice-header strong {
+    font-size: 22px;
+  }
+
+  .timer-pill {
+    min-height: 38px;
+    padding: 0 12px;
+    font-size: 15px;
+  }
+
+  .practice-layout {
+    border: 0;
+    overflow: visible;
+    background: transparent;
+  }
+
+  .materials-panel,
+  .editor-panel {
+    padding: 0;
+  }
+
+  .materials-panel {
+    border-right: 0;
+  }
+
+  .materials-panel h1 {
+    font-size: 26px;
+  }
+
+  .material-card,
+  .requirement-card {
+    border-radius: 14px;
+    padding: 24px;
+  }
+
+  .editor-panel {
+    margin-top: 34px;
+  }
+
+  .editor-toolbar {
+    display: none;
+  }
+
+  .answer-area textarea {
+    min-height: 360px;
+    border-radius: 14px;
+    font-size: 16px;
+  }
+
+  .editor-actions {
+    position: sticky;
+    bottom: 88px;
+    z-index: 10;
+    margin: 28px -16px -12px;
+    padding: 18px 16px;
+    border-radius: 20px 20px 0 0;
+    background: rgba(255, 255, 255, 0.94);
+    box-shadow: 0 -12px 30px rgba(19, 42, 74, 0.08);
+    backdrop-filter: blur(18px);
+  }
+
+  .report-header {
+    display: grid;
+  }
+
+  .report-header h1 {
+    font-size: 28px;
+  }
+
+  .report-header > div:last-child {
+    display: none;
+  }
+
+  .score-card {
+    border: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+
+  .score-ring {
+    width: 220px;
+    height: 220px;
+  }
+
+  .score-ring svg {
+    width: 220px;
+    height: 220px;
+  }
+
+  .score-ring strong {
+    font-size: 64px;
+  }
+
+  .score-card p {
+    max-width: 100%;
+    font-size: 20px;
+  }
+
+  .dimension-card,
+  .answer-card,
+  .advice-card,
+  .detail-card {
+    border-radius: 16px;
+  }
+
+  .sample-card {
+    grid-column: auto;
+  }
+
+  .mobile-bottom-nav {
+    position: fixed;
+    inset: auto 0 0;
+    z-index: 40;
+    grid-template-columns: repeat(4, 1fr);
+    min-height: 76px;
+    padding: 8px 18px;
+    border-top: 1px solid #e1e7f6;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: 0 -12px 30px rgba(19, 42, 74, 0.08);
+    backdrop-filter: blur(18px);
+  }
+
+  .mobile-nav-button {
+    display: grid;
+    place-items: center;
+    gap: 4px;
+    border: 0;
+    border-radius: 12px;
+    background: transparent;
+    color: #4b5568;
+    font-size: 12px;
+    font-weight: 900;
+  }
+
+  .mobile-nav-button .el-icon {
+    font-size: 23px;
+  }
+
+  .mobile-nav-button.active {
+    background: #0b66ff;
+    color: #ffffff;
+  }
+}
+
+@media (max-width: 560px) {
+  .topbar {
+    padding: 0 16px;
+  }
+
+  .top-actions .avatar-button {
+    width: 38px;
+    height: 38px;
+  }
+
+  .track-card {
+    grid-template-columns: 58px minmax(0, 1fr);
+  }
+
+  .track-card em {
+    grid-row: auto;
+    grid-column: 2;
+  }
+
+  .editor-actions {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  .soft-button,
+  .primary-button {
+    min-height: 52px;
+    padding: 0 12px;
+    font-size: 14px;
   }
 }
 </style>
