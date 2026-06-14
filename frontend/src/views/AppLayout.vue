@@ -1,26 +1,52 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
-import { useUserStore } from '../store/user'
+import { useRoute, useRouter } from 'vue-router'
 import SvgIcon from '../components/SvgIcon.vue'
+import { useUserStore } from '../store/user'
 
-const router = useRouter()
+type NavItem = {
+  key: string
+  to: string | { path: string; query?: Record<string, string> }
+  label: string
+  caption: string
+  icon: string
+  match: string[]
+}
+
 const route = useRoute()
+const router = useRouter()
 const userStore = useUserStore()
 
-const navItems = [
-  { path: '/', label: 'AI评阅', caption: '申论/面试', icon: 'robot' },
-  { path: '/profile', label: '训练档案', caption: '记录与设置', icon: 'user' },
+const userName = computed(() => userStore.user?.nickname || userStore.user?.username || '考生')
+const userInitial = computed(() => userName.value.slice(0, 1).toUpperCase())
+
+const navItems: NavItem[] = [
+  { key: 'coach', to: '/coach', label: '学习中心', caption: '今日计划', icon: 'dashboard', match: ['/coach'] },
+  { key: 'papers', to: '/papers', label: '真题库', caption: '筛选与练习', icon: 'practice', match: ['/papers', '/practice'] },
+  { key: 'essay', to: { path: '/papers', query: { type: 'essay' } }, label: '申论训练', caption: '材料与写作', icon: 'article', match: [] },
+  { key: 'interview', to: { path: '/papers', query: { type: 'interview' } }, label: '面试训练', caption: '结构化表达', icon: 'users', match: [] },
+  { key: 'report', to: '/report', label: '我的报告', caption: '能力复盘', icon: 'report', match: ['/report'] },
 ]
 
-const currentTitle = computed(() => {
-  const matched = navItems.find(item => route.path.startsWith(item.path))
-  return matched?.label || 'PolicyQuest'
+const utilityItems: NavItem[] = [
+  { key: 'articles', to: '/articles', label: '素材库', caption: '政策素材', icon: 'article', match: ['/articles'] },
+  { key: 'wrongbook', to: '/wrongbook', label: '错题本', caption: '薄弱回练', icon: 'wrong', match: ['/wrongbook'] },
+  { key: 'profile', to: '/profile', label: '个人档案', caption: '账号与目标', icon: 'user', match: ['/profile'] },
+]
+
+const allNavItems = computed(() => [...navItems, ...utilityItems])
+const currentItem = computed(() => {
+  if (route.path.startsWith('/papers') && route.query.type === 'essay') return navItems[2]
+  if (route.path.startsWith('/papers') && route.query.type === 'interview') return navItems[3]
+  if (route.path.startsWith('/practice')) return navItems[1]
+  return allNavItems.value.find(item => item.match.some(path => route.path === path || route.path.startsWith(`${path}/`))) || navItems[0]
 })
 
-function isActive(path: string) {
-  if (path === '/') return route.path === '/' || route.path === '/scoring'
-  return route.path === path || route.path.startsWith(`${path}/`)
+function isActive(item: NavItem) {
+  if (item.key === 'papers') return route.path.startsWith('/practice') || (route.path.startsWith('/papers') && !route.query.type)
+  if (item.key === 'essay') return route.path.startsWith('/papers') && route.query.type === 'essay'
+  if (item.key === 'interview') return route.path.startsWith('/papers') && route.query.type === 'interview'
+  return item.match.some(path => route.path === path || route.path.startsWith(`${path}/`))
 }
 
 function logout() {
@@ -31,24 +57,40 @@ function logout() {
 
 <template>
   <div class="app-layout">
-    <aside class="sidebar" aria-label="主导航">
-      <router-link to="/" class="brand">
+    <aside class="app-sidebar" aria-label="主导航">
+      <router-link to="/coach" class="brand">
         <span class="brand-mark">PQ</span>
-        <span>
+        <span class="brand-copy">
           <strong>PolicyQuest</strong>
-          <small>AI Exam Coach</small>
+          <small>AI 公考学习引擎</small>
         </span>
       </router-link>
 
-      <nav class="sidebar-nav">
+      <nav class="side-section">
         <router-link
           v-for="item in navItems"
-          :key="item.path"
-          :to="item.path"
+          :key="item.key"
+          :to="item.to"
           class="nav-item"
-          :class="{ active: isActive(item.path) }"
+          :class="{ active: isActive(item) }"
         >
           <span class="nav-icon"><SvgIcon :name="item.icon" :size="20" /></span>
+          <span class="nav-copy">
+            <strong>{{ item.label }}</strong>
+            <small>{{ item.caption }}</small>
+          </span>
+        </router-link>
+      </nav>
+
+      <nav class="side-section compact">
+        <router-link
+          v-for="item in utilityItems"
+          :key="item.key"
+          :to="item.to"
+          class="nav-item"
+          :class="{ active: isActive(item) }"
+        >
+          <span class="nav-icon"><SvgIcon :name="item.icon" :size="18" /></span>
           <span class="nav-copy">
             <strong>{{ item.label }}</strong>
             <small>{{ item.caption }}</small>
@@ -61,49 +103,61 @@ function logout() {
         <span>管理后台</span>
       </router-link>
 
-      <section class="sidebar-card">
-        <span class="card-kicker">Daily Goal</span>
-        <strong>完成 1 次 AI 精评</strong>
+      <section class="daily-card">
+        <span class="card-kicker">Today Focus</span>
+        <strong>先完成 1 次限时真题</strong>
+        <p>系统会把本次作答同步到报告，继续更新薄弱项和下一步建议。</p>
         <div class="mini-progress"><i></i></div>
-        <small>建议先完成一篇申论或一次结构化面试作答，再按建议改写。</small>
       </section>
 
       <footer class="sidebar-footer">
-        <div class="user-info">
-          <div class="avatar">{{ userStore.user?.nickname?.[0] || userStore.user?.username?.[0] || 'U' }}</div>
-          <div class="user-detail">
-            <strong>{{ userStore.user?.nickname || userStore.user?.username || '考生' }}</strong>
-            <span>{{ userStore.user?.role === 'admin' ? '管理员' : '备考学员' }}</span>
-          </div>
-        </div>
+        <button class="user-pill" type="button" @click="router.push('/profile')">
+          <span class="avatar">{{ userInitial }}</span>
+          <span>
+            <strong>{{ userName }}</strong>
+            <small>{{ userStore.user?.exam_target || '备考学员' }}</small>
+          </span>
+        </button>
         <button class="logout-btn" type="button" @click="logout">
           <SvgIcon name="logout" :size="17" />
-          <span>退出</span>
+          <span>退出登录</span>
         </button>
       </footer>
     </aside>
 
-    <div class="mobile-topbar">
-      <router-link to="/" class="mobile-brand">
-        <span class="brand-mark">PQ</span>
-      </router-link>
-      <strong>{{ currentTitle }}</strong>
-      <button class="mobile-avatar" type="button" @click="router.push('/profile')">
-        {{ userStore.user?.nickname?.[0] || userStore.user?.username?.[0] || 'U' }}
-      </button>
-    </div>
+    <header class="mobile-topbar">
+      <router-link to="/coach" class="mobile-brand"><span class="brand-mark">PQ</span></router-link>
+      <div>
+        <strong>{{ currentItem.label }}</strong>
+        <small>{{ currentItem.caption }}</small>
+      </div>
+      <button class="mobile-avatar" type="button" @click="router.push('/profile')">{{ userInitial }}</button>
+    </header>
 
-    <main class="main-content">
+    <main class="app-main">
+      <div class="app-topline">
+        <div>
+          <span>{{ currentItem.caption }}</span>
+          <strong>{{ currentItem.label }}</strong>
+        </div>
+        <div class="topline-actions">
+          <router-link to="/">产品主页</router-link>
+          <button type="button" @click="router.push('/papers')">
+            <SvgIcon name="practice" :size="18" />
+            选择真题
+          </button>
+        </div>
+      </div>
       <router-view />
     </main>
 
     <nav class="mobile-nav" aria-label="移动端主导航">
       <router-link
-        v-for="item in navItems.slice(0, 5)"
-        :key="item.path"
-        :to="item.path"
+        v-for="item in navItems"
+        :key="item.key"
+        :to="item.to"
         class="mobile-nav-item"
-        :class="{ active: isActive(item.path) }"
+        :class="{ active: isActive(item) }"
       >
         <SvgIcon :name="item.icon" :size="20" />
         <span>{{ item.label }}</span>
@@ -116,29 +170,38 @@ function logout() {
 .app-layout {
   min-height: 100vh;
   background:
-    radial-gradient(circle at 24% -10%, rgba(0, 102, 255, 0.08), transparent 30%),
-    linear-gradient(180deg, #f8f9ff 0%, #ffffff 54%, #f8f9ff 100%);
+    linear-gradient(90deg, rgba(0, 184, 217, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, #f7fbff 0%, #ffffff 48%, #f5f9ff 100%);
+  background-size: 44px 44px, auto;
 }
 
-.sidebar {
+.app-sidebar {
   position: fixed;
   inset: 0 auto 0 0;
-  z-index: 30;
+  z-index: 40;
   display: flex;
   flex-direction: column;
-  width: 276px;
+  width: 268px;
   padding: 22px 16px;
-  border-right: 1px solid rgba(194, 198, 216, 0.62);
-  background: rgba(255, 255, 255, 0.84);
-  box-shadow: 18px 0 48px rgba(19, 42, 74, 0.05);
+  border-right: 1px solid rgba(198, 211, 232, 0.78);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 18px 0 46px rgba(19, 42, 74, 0.05);
   backdrop-filter: blur(18px);
 }
 
-.brand {
-  display: flex;
+.brand,
+.user-pill,
+.logout-btn,
+.admin-link,
+.topline-actions,
+.topline-actions button {
+  display: inline-flex;
   align-items: center;
+}
+
+.brand {
   gap: 12px;
-  padding: 4px 8px 20px;
+  padding: 4px 8px 22px;
   color: var(--text-primary);
 }
 
@@ -147,33 +210,42 @@ function logout() {
   place-items: center;
   width: 42px;
   height: 42px;
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--gradient-1);
   color: #ffffff;
-  font-family: "Plus Jakarta Sans", Inter, sans-serif;
   font-size: 13px;
   font-weight: 900;
-  box-shadow: 0 14px 28px rgba(0, 80, 203, 0.2);
+  box-shadow: 0 14px 30px rgba(0, 80, 203, 0.2);
 }
 
-.brand strong,
-.brand small {
+.brand-copy strong,
+.brand-copy small,
+.user-pill strong,
+.user-pill small {
   display: block;
 }
 
-.brand strong {
+.brand-copy strong {
+  color: #07182f;
   font-size: 17px;
 }
 
-.brand small {
+.brand-copy small,
+.user-pill small {
   margin-top: 2px;
   color: var(--text-muted);
   font-size: 12px;
 }
 
-.sidebar-nav {
+.side-section {
   display: grid;
   gap: 7px;
+}
+
+.side-section.compact {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(198, 211, 232, 0.58);
 }
 
 .nav-item {
@@ -181,23 +253,25 @@ function logout() {
   grid-template-columns: 40px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  padding: 10px;
+  min-height: 58px;
+  padding: 8px 10px;
   border: 1px solid transparent;
-  border-radius: 16px;
+  border-radius: 14px;
   color: var(--text-secondary);
-  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, transform 0.18s ease;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease, color 0.18s ease;
 }
 
 .nav-item:hover {
   transform: translateX(2px);
-  background: var(--surface-muted);
+  background: #f1f7ff;
   color: var(--primary);
 }
 
 .nav-item.active {
-  border-color: rgba(0, 80, 203, 0.24);
-  background: #eff4ff;
+  border-color: rgba(0, 80, 203, 0.22);
+  background: linear-gradient(135deg, #eef5ff, #f8fbff);
   color: var(--primary);
+  box-shadow: inset 3px 0 0 var(--primary);
 }
 
 .nav-icon {
@@ -205,10 +279,10 @@ function logout() {
   place-items: center;
   width: 40px;
   height: 40px;
-  border-radius: 13px;
+  border-radius: 12px;
   background: #ffffff;
   color: currentColor;
-  box-shadow: inset 0 0 0 1px rgba(194, 198, 216, 0.5);
+  box-shadow: inset 0 0 0 1px rgba(198, 211, 232, 0.8);
 }
 
 .nav-item.active .nav-icon {
@@ -220,39 +294,45 @@ function logout() {
 .nav-copy {
   display: grid;
   gap: 2px;
+  min-width: 0;
 }
 
 .nav-copy strong {
+  overflow: hidden;
+  color: currentColor;
   font-size: 14px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .nav-copy small {
+  overflow: hidden;
   color: var(--text-muted);
   font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-link {
-  display: inline-flex;
-  align-items: center;
   justify-content: center;
-  min-height: 42px;
   gap: 8px;
+  min-height: 42px;
   margin: 16px 4px 0;
-  border-radius: 14px;
+  border-radius: 12px;
   background: var(--secondary-soft);
   color: var(--secondary);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
-.sidebar-card {
+.daily-card {
   display: grid;
   gap: 9px;
   margin: auto 4px 16px;
   padding: 16px;
-  border: 1px solid rgba(194, 198, 216, 0.6);
-  border-radius: 16px;
-  background: linear-gradient(145deg, #ffffff, #eff4ff);
+  border: 1px solid rgba(0, 184, 217, 0.18);
+  border-radius: 14px;
+  background: linear-gradient(145deg, #ffffff, #effcff);
 }
 
 .card-kicker {
@@ -263,14 +343,16 @@ function logout() {
   text-transform: uppercase;
 }
 
-.sidebar-card strong {
-  color: var(--text-primary);
+.daily-card strong {
+  color: #07182f;
   font-size: 15px;
 }
 
-.sidebar-card small {
+.daily-card p {
+  margin: 0;
   color: var(--text-muted);
-  line-height: 1.5;
+  font-size: 12px;
+  line-height: 1.55;
 }
 
 .mini-progress {
@@ -290,16 +372,20 @@ function logout() {
 
 .sidebar-footer {
   display: grid;
-  gap: 12px;
-  padding-top: 16px;
-  border-top: 1px solid rgba(194, 198, 216, 0.58);
+  gap: 10px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(198, 211, 232, 0.62);
 }
 
-.user-info {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  align-items: center;
+.user-pill {
   gap: 10px;
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  border-radius: 14px;
+  background: #f8fbff;
+  color: var(--text-primary);
+  text-align: left;
 }
 
 .avatar,
@@ -314,56 +400,98 @@ function logout() {
 }
 
 .avatar {
-  width: 42px;
-  height: 42px;
-}
-
-.user-detail {
-  min-width: 0;
-}
-
-.user-detail strong,
-.user-detail span {
-  display: block;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.user-detail strong {
-  color: var(--text-primary);
-  font-size: 14px;
-}
-
-.user-detail span {
-  margin-top: 2px;
-  color: var(--text-muted);
-  font-size: 12px;
+  width: 38px;
+  height: 38px;
 }
 
 .logout-btn {
-  display: inline-flex;
-  align-items: center;
   justify-content: center;
-  height: 40px;
   gap: 8px;
+  min-height: 40px;
   border: 1px solid var(--border);
   border-radius: 12px;
   background: #ffffff;
   color: var(--text-secondary);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .logout-btn:hover {
-  border-color: rgba(186, 26, 26, 0.28);
+  border-color: rgba(186, 26, 26, 0.24);
   background: var(--danger-soft);
   color: var(--danger);
 }
 
-.main-content {
+.app-main {
   min-height: 100vh;
-  margin-left: 276px;
+  margin-left: 268px;
+  padding-bottom: 42px;
+}
+
+.app-main :deep(.page-container) {
+  width: min(var(--container), calc(100vw - 268px - 56px));
+}
+
+.app-main :deep(.practice-page) {
+  width: min(1440px, calc(100vw - 268px - 56px));
+}
+
+.app-topline {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 70px;
+  padding: 0 max(28px, calc((100vw - 268px - 1240px) / 2));
+  border-bottom: 1px solid rgba(198, 211, 232, 0.68);
+  background: rgba(255, 255, 255, 0.82);
+  backdrop-filter: blur(18px);
+}
+
+.app-topline span,
+.app-topline strong {
+  display: block;
+}
+
+.app-topline span {
+  color: var(--text-muted);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.app-topline strong {
+  margin-top: 2px;
+  color: #07182f;
+  font-size: 18px;
+}
+
+.topline-actions {
+  gap: 10px;
+}
+
+.topline-actions a,
+.topline-actions button {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.topline-actions a {
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--text-secondary);
+}
+
+.topline-actions button {
+  gap: 7px;
+  border: 0;
+  background: var(--gradient-1);
+  color: #ffffff;
 }
 
 .mobile-topbar,
@@ -371,35 +499,57 @@ function logout() {
   display: none;
 }
 
-@media (max-width: 980px) {
-  .sidebar {
+@media (max-width: 1040px) {
+  .app-sidebar,
+  .app-topline {
     display: none;
   }
 
-  .main-content {
+  .app-main {
     margin-left: 0;
     padding-top: 72px;
-    padding-bottom: 80px;
+    padding-bottom: 96px;
+  }
+
+  .app-main :deep(.page-container),
+  .app-main :deep(.practice-page) {
+    width: min(var(--container), calc(100vw - 32px));
   }
 
   .mobile-topbar {
     position: fixed;
     inset: 0 0 auto;
-    z-index: 40;
+    z-index: 50;
     display: grid;
-    grid-template-columns: 44px minmax(0, 1fr) 42px;
+    grid-template-columns: 44px minmax(0, 1fr) 40px;
     align-items: center;
     gap: 12px;
     height: 72px;
     padding: 0 16px;
-    border-bottom: 1px solid rgba(194, 198, 216, 0.62);
-    background: rgba(255, 255, 255, 0.88);
+    border-bottom: 1px solid rgba(198, 211, 232, 0.72);
+    background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(18px);
   }
 
-  .mobile-topbar strong {
+  .mobile-topbar strong,
+  .mobile-topbar small {
+    display: block;
+    overflow: hidden;
     text-align: center;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mobile-topbar strong {
+    color: #07182f;
     font-size: 16px;
+  }
+
+  .mobile-topbar small {
+    margin-top: 2px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 800;
   }
 
   .mobile-avatar {
@@ -410,15 +560,15 @@ function logout() {
   .mobile-nav {
     position: fixed;
     inset: auto 10px 10px;
-    z-index: 40;
+    z-index: 50;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
     gap: 4px;
     padding: 8px;
-    border: 1px solid rgba(194, 198, 216, 0.72);
-    border-radius: 22px;
+    border: 1px solid rgba(198, 211, 232, 0.78);
+    border-radius: 20px;
     background: rgba(255, 255, 255, 0.94);
-    box-shadow: 0 18px 46px rgba(19, 42, 74, 0.12);
+    box-shadow: 0 18px 42px rgba(19, 42, 74, 0.14);
     backdrop-filter: blur(18px);
   }
 
@@ -427,11 +577,11 @@ function logout() {
     justify-items: center;
     gap: 4px;
     min-width: 0;
-    padding: 8px 4px;
-    border-radius: 16px;
+    padding: 8px 2px;
+    border-radius: 14px;
     color: var(--text-muted);
     font-size: 11px;
-    font-weight: 800;
+    font-weight: 900;
   }
 
   .mobile-nav-item span {
@@ -442,8 +592,15 @@ function logout() {
   }
 
   .mobile-nav-item.active {
-    background: var(--surface-muted);
+    background: #eef5ff;
     color: var(--primary);
+  }
+}
+
+@media (max-width: 560px) {
+  .mobile-nav {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    inset: auto 8px 8px;
   }
 }
 </style>

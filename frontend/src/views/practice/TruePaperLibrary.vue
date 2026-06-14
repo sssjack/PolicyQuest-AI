@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowRight, Clock, DataAnalysis, Files, Search, Star, User } from '@element-plus/icons-vue'
+import { ArrowRight, Clock, DataAnalysis, Files, Search, Star } from '@element-plus/icons-vue'
 import AbilityRadar from '../../components/AbilityRadar.vue'
 import {
   essayDimensions,
@@ -12,11 +12,9 @@ import {
   years,
   type PracticeType,
 } from '../../data/policyQuest'
-import { useUserStore } from '../../store/user'
 
 const route = useRoute()
 const router = useRouter()
-const userStore = useUserStore()
 
 const selectedType = ref<PracticeType>(route.query.type === 'interview' ? 'interview' : 'essay')
 const selectedSystem = ref('all')
@@ -44,7 +42,6 @@ const filteredPapers = computed(() => {
 })
 
 const selectedPaper = computed(() => filteredPapers.value.find(paper => paper.id === selectedPaperId.value) || filteredPapers.value[0])
-
 const selectedRecords = computed(() => records.value.filter(record => record.paperId === selectedPaper.value?.id))
 const selectedAverage = computed(() => {
   if (!selectedRecords.value.length) return 72.5
@@ -58,6 +55,13 @@ const previewRadarItems = computed(() => {
     score: paper?.weakDimensions.includes(name) ? 56 + index * 2 : 70 + index * 2,
   }))
 })
+
+watch(
+  () => route.query.type,
+  value => {
+    if (value === 'essay' || value === 'interview') chooseType(value)
+  },
+)
 
 watch(
   filteredPapers,
@@ -77,93 +81,84 @@ function chooseType(type: PracticeType) {
   selectedYear.value = 'all'
 }
 
+function chooseTypeAndSync(type: PracticeType) {
+  chooseType(type)
+  router.replace({ path: '/papers', query: { type } })
+}
+
 function enterPaper() {
   if (selectedPaper.value) router.push(`/practice/${selectedPaper.value.id}`)
 }
 </script>
 
 <template>
-  <main class="library-page">
-    <header class="library-topbar">
-      <router-link to="/coach" class="brand">
-        <span>PQ</span>
-        <strong>PolicyQuest</strong>
-        <small>AI 公考学习引擎</small>
-      </router-link>
-
-      <label class="global-search">
+  <main class="library-page page-container">
+    <section class="library-hero">
+      <div>
+        <p class="page-kicker">True Paper Navigator</p>
+        <h1 class="page-title">真题库</h1>
+        <p class="page-subtitle">申论和面试共用同一套题库导航，筛选后直接进入统一练习工作台。</p>
+      </div>
+      <label class="hero-search">
         <el-icon><Search /></el-icon>
         <input v-model="keyword" placeholder="搜索真题、地区、岗位、关键词" />
       </label>
+    </section>
 
-      <div class="top-actions">
-        <router-link to="/report"><el-icon><DataAnalysis /></el-icon> 个人报告</router-link>
-        <span class="avatar"><el-icon><User /></el-icon> {{ userStore.user?.nickname || userStore.user?.username || '同学' }}</span>
+    <section class="filter-bar surface-card">
+      <div class="filter-group type-group">
+        <span>考试类型</span>
+        <button
+          v-for="item in typeOptions"
+          :key="item.value"
+          type="button"
+          :class="{ active: selectedType === item.value }"
+          @click="chooseTypeAndSync(item.value)"
+        >
+          <strong>{{ item.label }}</strong>
+          <small>{{ item.desc }}</small>
+        </button>
       </div>
-    </header>
+
+      <div class="filter-group chip-group">
+        <span>考试系统</span>
+        <button
+          v-for="item in examSystems"
+          :key="item.value"
+          type="button"
+          :class="{ active: selectedSystem === item.value }"
+          @click="selectedSystem = item.value"
+        >
+          {{ item.label }}
+        </button>
+      </div>
+
+      <div class="filter-group chip-group">
+        <span>年份</span>
+        <button type="button" :class="{ active: selectedYear === 'all' }" @click="selectedYear = 'all'">全部年份</button>
+        <button
+          v-for="year in years"
+          :key="year"
+          type="button"
+          :class="{ active: selectedYear === year }"
+          @click="selectedYear = year"
+        >
+          {{ year }}
+        </button>
+      </div>
+    </section>
 
     <section class="library-layout">
-      <aside class="filter-rail">
-        <div class="filter-block">
-          <h2>考试类型</h2>
-          <button
-            v-for="item in typeOptions"
-            :key="item.value"
-            type="button"
-            class="type-option"
-            :class="{ active: selectedType === item.value }"
-            @click="chooseType(item.value)"
-          >
-            <span>{{ item.label }}</span>
-            <small>{{ item.desc }}</small>
-          </button>
-        </div>
-
-        <div class="filter-block">
-          <h2>考试系统</h2>
-          <button
-            v-for="item in examSystems"
-            :key="item.value"
-            type="button"
-            class="filter-option"
-            :class="{ active: selectedSystem === item.value }"
-            @click="selectedSystem = item.value"
-          >
-            <span>{{ item.label }}</span>
-            <small>{{ item.count }}</small>
-          </button>
-        </div>
-
-        <div class="filter-block">
-          <h2>年份</h2>
-          <button type="button" class="filter-option" :class="{ active: selectedYear === 'all' }" @click="selectedYear = 'all'">
-            <span>全部年份</span>
-            <small>All</small>
-          </button>
-          <button
-            v-for="year in years"
-            :key="year"
-            type="button"
-            class="filter-option"
-            :class="{ active: selectedYear === year }"
-            @click="selectedYear = year"
-          >
-            <span>{{ year }}</span>
-            <small>{{ year === 2026 ? '最新' : '历年' }}</small>
-          </button>
-        </div>
-      </aside>
-
-      <section class="paper-list-panel">
+      <section class="paper-list-panel surface-card">
         <div class="list-head">
           <div>
-            <p class="page-kicker">True Paper Navigator</p>
-            <h1>真题列表</h1>
+            <p class="page-kicker">{{ selectedType === 'essay' ? 'Essay Practice' : 'Interview Practice' }}</p>
+            <h2>{{ selectedType === 'essay' ? '申论真题' : '面试真题' }}</h2>
           </div>
-          <span>最新发布</span>
+          <span>{{ filteredPapers.length }} 套</span>
         </div>
 
-        <div v-if="filteredPapers.length" class="timeline-list">
+        <div v-if="filteredPapers.length" class="paper-list">
           <button
             v-for="paper in filteredPapers"
             :key="paper.id"
@@ -174,9 +169,9 @@ function enterPaper() {
           >
             <i :class="paper.type"></i>
             <div>
-              <span class="status-pill">{{ paper.year === 2026 ? '新' : paper.year === 2025 ? '热' : '历年' }}</span>
+              <span class="status-pill">{{ paper.year === 2026 ? '最新' : paper.year === 2025 ? '热门' : '历年' }}</span>
               <h2>{{ paper.title }}</h2>
-              <p>发布时间：{{ paper.releaseDate }}  |  试卷代码：{{ paper.paperCode }}</p>
+              <p>发布时间：{{ paper.releaseDate }} · 试卷代码：{{ paper.paperCode }}</p>
               <div class="tag-row">
                 <span>{{ paper.type === 'essay' ? '申论' : '面试' }}</span>
                 <span>{{ paper.systemLabel }}</span>
@@ -192,11 +187,11 @@ function enterPaper() {
 
         <div v-else class="empty-state">
           <h2>没有找到匹配真题</h2>
-          <p>换一个考试系统、年份或关键词试试。</p>
+          <p>换一个考试系统、年份或关键词再试试。</p>
         </div>
       </section>
 
-      <aside v-if="selectedPaper" class="paper-preview">
+      <aside v-if="selectedPaper" class="paper-preview surface-card">
         <div class="preview-head">
           <span>当前选中</span>
           <button type="button" aria-label="收藏"><el-icon><Star /></el-icon></button>
@@ -229,15 +224,14 @@ function enterPaper() {
         </section>
 
         <section class="ai-diagnosis">
-          <h3>AI 智能诊断</h3>
+          <h3><el-icon><DataAnalysis /></el-icon> AI 练前诊断</h3>
           <div class="diagnosis-body">
-            <AbilityRadar :items="previewRadarItems" :height="160" />
+            <AbilityRadar :items="previewRadarItems" :height="180" />
             <div>
-              <strong>你的薄弱维度</strong>
+              <strong>建议关注维度</strong>
               <p v-for="item in selectedPaper.weakDimensions" :key="item">{{ item }}：需要专项强化</p>
             </div>
           </div>
-          <button type="button" @click="enterPaper">去练习 <el-icon><ArrowRight /></el-icon></button>
         </section>
 
         <div class="record-summary">
@@ -256,167 +250,112 @@ function enterPaper() {
 
 <style scoped>
 .library-page {
-  min-height: 100vh;
-  background: #f7fbff;
-}
-
-.library-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
   display: grid;
-  grid-template-columns: 260px minmax(320px, 520px) minmax(240px, auto);
-  align-items: center;
-  gap: 28px;
-  min-height: 78px;
-  padding: 0 32px;
-  background: #061c40;
-  color: #ffffff;
+  gap: 18px;
 }
 
-.brand {
+.library-hero {
   display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  column-gap: 10px;
-  align-items: center;
-  color: #ffffff;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 420px);
+  gap: 20px;
+  align-items: end;
+  padding: 26px;
+  border: 1px solid rgba(196, 211, 238, 0.82);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-sm);
 }
 
-.brand span {
-  display: grid;
-  grid-row: span 2;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #0b66ff, #00b8d9);
-  font-weight: 900;
-}
-
-.brand small {
-  color: rgba(255, 255, 255, 0.68);
-  font-size: 12px;
-}
-
-.global-search {
+.hero-search {
   display: grid;
   grid-template-columns: 22px minmax(0, 1fr);
   align-items: center;
   gap: 10px;
-  min-height: 44px;
-  padding: 0 16px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 16px;
-  background: rgba(255, 255, 255, 0.1);
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fbfcff;
+  color: var(--text-muted);
 }
 
-.global-search input {
+.hero-search input {
+  min-width: 0;
   border: 0;
   outline: none;
   background: transparent;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
-.global-search input::placeholder {
-  color: rgba(255, 255, 255, 0.58);
-}
-
-.top-actions {
-  display: flex;
-  justify-content: end;
-  align-items: center;
+.filter-bar {
+  display: grid;
   gap: 16px;
+  padding: 18px;
+  border-radius: 16px;
 }
 
-.top-actions a,
-.avatar {
-  display: inline-flex;
-  align-items: center;
+.filter-group {
+  display: flex;
+  flex-wrap: wrap;
   gap: 8px;
-  min-height: 42px;
-  padding: 0 14px;
-  border-radius: 12px;
-  color: #ffffff;
+  align-items: center;
+}
+
+.filter-group > span {
+  min-width: 68px;
+  color: var(--text-muted);
+  font-size: 13px;
   font-weight: 900;
 }
 
-.top-actions a {
-  border: 1px solid rgba(0, 213, 255, 0.54);
-  background: rgba(0, 184, 217, 0.12);
+.type-group button,
+.chip-group button {
+  border: 1px solid var(--border);
+  background: #ffffff;
+  color: var(--text-secondary);
+  font-weight: 900;
+}
+
+.type-group button {
+  display: grid;
+  gap: 2px;
+  min-width: 136px;
+  min-height: 58px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  text-align: left;
+}
+
+.type-group small {
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.chip-group button {
+  min-height: 36px;
+  padding: 0 13px;
+  border-radius: 999px;
+  font-size: 12px;
+}
+
+.type-group button.active,
+.chip-group button.active {
+  border-color: rgba(0, 80, 203, 0.28);
+  background: #eaf3ff;
+  color: var(--primary);
 }
 
 .library-layout {
   display: grid;
-  grid-template-columns: 312px minmax(0, 1fr) 430px;
-  min-height: calc(100vh - 78px);
+  grid-template-columns: minmax(0, 1fr) 400px;
+  gap: 18px;
+  align-items: start;
 }
 
-.filter-rail {
-  padding: 30px;
-  border-right: 1px solid #dce5f4;
-  background: #fbfdff;
-}
-
-.filter-block + .filter-block {
-  margin-top: 28px;
-}
-
-.filter-block h2 {
-  margin: 0 0 14px;
-  color: #07182f;
-  font-size: 17px;
-}
-
-.type-option,
-.filter-option {
-  width: 100%;
-  border: 1px solid #d9e3f2;
-  border-radius: 10px;
-  background: #ffffff;
-  text-align: left;
-}
-
-.type-option {
-  display: grid;
-  gap: 4px;
-  min-height: 70px;
-  padding: 14px;
-}
-
-.type-option + .type-option,
-.filter-option + .filter-option {
-  margin-top: 10px;
-}
-
-.type-option span,
-.filter-option span {
-  color: #16233a;
-  font-weight: 900;
-}
-
-.type-option small,
-.filter-option small {
-  color: var(--text-muted);
-  font-weight: 800;
-}
-
-.type-option.active,
-.filter-option.active {
-  border-color: #0b66ff;
-  background: #eaf3ff;
-}
-
-.filter-option {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  min-height: 44px;
-  padding: 0 12px;
-}
-
-.paper-list-panel {
-  padding: 34px 32px;
-  background: #ffffff;
+.paper-list-panel,
+.paper-preview {
+  padding: 22px;
+  border-radius: 16px;
 }
 
 .list-head {
@@ -424,31 +363,31 @@ function enterPaper() {
   justify-content: space-between;
   gap: 16px;
   align-items: end;
+  margin-bottom: 14px;
 }
 
-.list-head h1 {
+.list-head h2 {
   margin: 0;
   color: #07182f;
   font-size: 24px;
 }
 
 .list-head > span {
-  color: var(--text-secondary);
+  color: var(--primary);
   font-weight: 900;
 }
 
-.timeline-list {
+.paper-list {
   display: grid;
-  margin-top: 24px;
 }
 
 .paper-row {
   position: relative;
   display: grid;
-  grid-template-columns: 26px minmax(0, 1fr) 126px;
-  gap: 18px;
-  min-height: 148px;
-  padding: 20px 0;
+  grid-template-columns: 24px minmax(0, 1fr) 126px;
+  gap: 16px;
+  min-height: 142px;
+  padding: 18px 0;
   border: 0;
   border-bottom: 1px solid #e5ebf5;
   background: transparent;
@@ -456,23 +395,35 @@ function enterPaper() {
 }
 
 .paper-row.active {
-  padding: 20px;
-  border: 1px solid #0b66ff;
-  border-radius: 10px;
+  margin: 6px 0;
+  padding: 18px;
+  border: 1px solid rgba(0, 80, 203, 0.28);
+  border-radius: 14px;
   background: #f1f7ff;
 }
 
 .paper-row > i {
-  position: relative;
   width: 12px;
   height: 12px;
   margin-top: 38px;
-  border: 3px solid #0b66ff;
+  border: 3px solid var(--primary);
   border-radius: 999px;
 }
 
 .paper-row > i.interview {
   border-color: #00a4c7;
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 900;
 }
 
 .paper-row h2 {
@@ -487,32 +438,28 @@ function enterPaper() {
   line-height: 1.5;
 }
 
-.status-pill {
-  display: inline-flex;
-  align-items: center;
-  min-height: 28px;
-  padding: 0 10px;
-  border-radius: 8px;
-  background: #e4f9ef;
-  color: #08766c;
-  font-size: 12px;
-  font-weight: 900;
+.tag-row,
+.preview-tags,
+.preview-metrics,
+.record-summary {
+  display: grid;
+  gap: 10px;
 }
 
 .tag-row {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
   margin-top: 10px;
 }
 
-.tag-row span {
+.tag-row span,
+.preview-tags span {
   padding: 6px 10px;
   border-radius: 8px;
   background: #edf3fb;
-  color: #445168;
+  color: #405069;
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .paper-row aside {
@@ -530,25 +477,25 @@ function enterPaper() {
 }
 
 .paper-preview {
+  position: sticky;
+  top: 88px;
   display: grid;
-  align-content: start;
   gap: 18px;
-  padding: 32px;
-  border-left: 1px solid #dce5f4;
-  background: #fbfdff;
 }
 
-.preview-head {
+.preview-head,
+.subhead {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 12px;
 }
 
 .preview-head span {
   padding: 7px 10px;
-  border-radius: 8px;
+  border-radius: 999px;
   background: #dff0ff;
-  color: #0758d8;
+  color: var(--primary);
   font-size: 12px;
   font-weight: 900;
 }
@@ -558,23 +505,16 @@ function enterPaper() {
   height: 36px;
   border: 0;
   border-radius: 999px;
-  background: transparent;
+  background: #f1f7ff;
   color: #65758d;
-  font-size: 21px;
+  font-size: 19px;
 }
 
 .paper-preview h2 {
   margin: 0;
   color: #07182f;
-  font-size: 26px;
+  font-size: 25px;
   line-height: 1.3;
-}
-
-.preview-tags,
-.preview-metrics,
-.record-summary {
-  display: grid;
-  gap: 10px;
 }
 
 .preview-tags {
@@ -582,18 +522,9 @@ function enterPaper() {
   justify-content: start;
 }
 
-.preview-tags span {
-  padding: 7px 10px;
-  border-radius: 8px;
-  background: #edf3fb;
-  color: #405069;
-  font-size: 12px;
-  font-weight: 900;
-}
-
 .preview-metrics {
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  padding: 18px 0;
+  padding: 16px 0;
   border-top: 1px solid #e5ebf5;
   border-bottom: 1px solid #e5ebf5;
 }
@@ -617,12 +548,12 @@ function enterPaper() {
   font-weight: 800;
 }
 
-.subhead {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+.material-preview,
+.ai-diagnosis {
+  padding: 16px;
+  border: 1px solid #d9e6f7;
+  border-radius: 12px;
+  background: #ffffff;
 }
 
 .subhead h3,
@@ -634,16 +565,8 @@ function enterPaper() {
 .subhead button {
   border: 0;
   background: transparent;
-  color: #0758d8;
+  color: var(--primary);
   font-weight: 900;
-}
-
-.material-preview,
-.ai-diagnosis {
-  padding: 18px;
-  border: 1px solid #d9e6f7;
-  border-radius: 12px;
-  background: #ffffff;
 }
 
 .material-preview article {
@@ -660,11 +583,12 @@ function enterPaper() {
 }
 
 .material-preview strong {
-  color: #0758d8;
+  color: var(--primary);
 }
 
 .material-preview span,
-.material-preview small {
+.material-preview small,
+.diagnosis-body p {
   color: var(--text-secondary);
   font-size: 13px;
 }
@@ -673,6 +597,12 @@ function enterPaper() {
   display: grid;
   gap: 14px;
   background: linear-gradient(145deg, #ffffff, #f0fbff);
+}
+
+.ai-diagnosis h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .diagnosis-body {
@@ -684,27 +614,6 @@ function enterPaper() {
 
 .diagnosis-body p {
   margin: 6px 0 0;
-  color: var(--text-secondary);
-  font-size: 13px;
-}
-
-.ai-diagnosis button,
-.enter-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 44px;
-  border: 0;
-  border-radius: 10px;
-  font-weight: 900;
-}
-
-.ai-diagnosis button {
-  justify-self: start;
-  padding: 0 16px;
-  background: #e6efff;
-  color: #0758d8;
 }
 
 .record-summary {
@@ -720,18 +629,26 @@ function enterPaper() {
 }
 
 .enter-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
   width: 100%;
-  min-height: 52px;
+  min-height: 50px;
+  border: 0;
+  border-radius: 12px;
   background: var(--gradient-1);
   color: #ffffff;
+  font-weight: 900;
 }
 
 .empty-state {
   display: grid;
   place-items: center;
   gap: 8px;
-  min-height: 320px;
+  min-height: 300px;
   color: var(--text-secondary);
+  text-align: center;
 }
 
 .empty-state h2,
@@ -740,74 +657,49 @@ function enterPaper() {
 }
 
 @media (max-width: 1180px) {
-  .library-topbar {
-    grid-template-columns: 220px minmax(0, 1fr);
-  }
-
-  .top-actions {
-    display: none;
-  }
-
   .library-layout {
-    grid-template-columns: 260px minmax(0, 1fr);
+    grid-template-columns: 1fr;
   }
 
   .paper-preview {
-    grid-column: 1 / -1;
-    border-top: 1px solid #dce5f4;
-    border-left: 0;
+    position: static;
   }
 }
 
-@media (max-width: 820px) {
-  .library-topbar,
-  .library-layout {
-    grid-template-columns: 1fr;
-  }
-
-  .library-topbar {
-    gap: 14px;
-    padding: 16px;
-  }
-
-  .filter-rail {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 20px;
-    padding: 20px;
-  }
-
-  .paper-list-panel,
-  .paper-preview {
-    padding: 22px 16px;
-  }
-
+@media (max-width: 760px) {
+  .library-hero,
   .paper-row,
   .paper-row.active {
-    grid-template-columns: 18px minmax(0, 1fr);
-    padding: 18px 0;
-    border-right: 0;
-    border-left: 0;
+    grid-template-columns: 1fr;
+  }
+
+  .paper-row > i {
+    display: none;
   }
 
   .paper-row aside {
-    grid-column: 2;
+    display: flex;
+    flex-wrap: wrap;
   }
 
   .preview-metrics,
-  .record-summary {
+  .record-summary,
+  .diagnosis-body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 
 @media (max-width: 560px) {
-  .material-preview article {
-    grid-template-columns: 1fr;
-    padding: 10px 0;
+  .library-hero,
+  .paper-list-panel,
+  .paper-preview {
+    padding: 18px;
   }
 
+  .material-preview article,
   .diagnosis-body {
     grid-template-columns: 1fr;
+    padding: 10px 0;
   }
 }
 </style>

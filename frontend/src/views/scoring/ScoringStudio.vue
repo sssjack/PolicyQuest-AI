@@ -3,17 +3,11 @@ import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import {
   ArrowRight,
-  Bell,
   Collection,
   EditPen,
-  House,
   MagicStick,
-  Reading,
   Search,
-  SwitchButton,
   Timer,
-  TrendCharts,
-  User,
 } from '@element-plus/icons-vue'
 import AbilityRadar from '../../components/AbilityRadar.vue'
 import {
@@ -31,7 +25,7 @@ const userStore = useUserStore()
 const records = ref<PracticeRecord[]>([])
 const searchText = ref('')
 
-const currentUserName = computed(() => userStore.user?.nickname || userStore.user?.username || '张同学')
+const currentUserName = computed(() => userStore.user?.nickname || userStore.user?.username || '同学')
 const essayPaper = computed(() => realPapers.find(paper => paper.type === 'essay'))
 const interviewPaper = computed(() => realPapers.find(paper => paper.type === 'interview'))
 const recentPapers = computed(() => realPapers.slice(0, 5))
@@ -70,168 +64,118 @@ function startPaper(type: PracticeType) {
   const paper = type === 'essay' ? essayPaper.value : interviewPaper.value
   router.push(paper ? `/practice/${paper.id}` : `/papers?type=${type}`)
 }
-
-function logout() {
-  userStore.logout()
-  router.push('/login')
-}
 </script>
 
 <template>
-  <main class="coach-app">
-    <aside class="sidebar">
-      <router-link to="/coach" class="side-brand">
-        <span>PQ</span>
-        <strong>PolicyQuest</strong>
-        <small>AI 公考学习平台</small>
-      </router-link>
-
-      <nav class="side-nav">
-        <router-link to="/coach" class="active"><el-icon><House /></el-icon> 学习中心</router-link>
-        <router-link to="/papers"><el-icon><Reading /></el-icon> 真题库</router-link>
-        <router-link to="/report"><el-icon><TrendCharts /></el-icon> 我的报告</router-link>
-        <button type="button" @click="openLibrary('essay')"><el-icon><EditPen /></el-icon> 申论训练</button>
-        <button type="button" @click="openLibrary('interview')"><el-icon><Collection /></el-icon> 面试训练</button>
-      </nav>
-
-      <div class="study-mini">
-        <span>学习时长（本周）</span>
-        <strong>{{ quickStats[0].value }}</strong>
-        <div class="bars">
-          <i v-for="height in [28, 42, 64, 36, 52, 70, 44]" :key="height" :style="{ height: `${height}px` }"></i>
+  <div class="coach-page page-container">
+    <section class="command-hero">
+      <div class="hero-copy">
+        <p class="page-kicker">AI 学习指挥舱</p>
+        <h1>晚上好，{{ currentUserName }}</h1>
+        <p>今天建议先完成一套申论限时真题，再复盘“提出对策”和“贯彻执行”两项薄弱维度。</p>
+        <div class="hero-actions">
+          <button class="btn-primary" type="button" @click="startPaper('essay')">
+            开始今日训练 <el-icon><ArrowRight /></el-icon>
+          </button>
+          <button class="btn-ghost" type="button" @click="router.push('/report')">查看我的报告</button>
         </div>
       </div>
-    </aside>
 
-    <section class="coach-shell">
-      <header class="topbar">
-        <nav class="top-tabs">
-          <router-link to="/coach" class="active">首页</router-link>
-          <router-link to="/papers">真题库</router-link>
-          <router-link to="/report">个人报告</router-link>
-        </nav>
+      <aside class="hero-panel">
+        <span>今日建议强度</span>
+        <strong>45 分钟</strong>
+        <p>优先补齐申论对策表达，再进入面试应变题回练。</p>
+      </aside>
+    </section>
 
-        <label class="search-box">
-          <el-icon><Search /></el-icon>
-          <input v-model="searchText" placeholder="搜索真题、地区、岗位、关键词" />
-          <kbd>⌘ K</kbd>
-        </label>
-
-        <div class="top-actions">
-          <button class="icon-button" type="button" aria-label="通知"><el-icon><Bell /></el-icon></button>
-          <button class="profile-button" type="button" @click="logout">
-            <el-icon><User /></el-icon>
-            <span>{{ currentUserName }}</span>
-            <el-icon><SwitchButton /></el-icon>
-          </button>
+    <section class="quick-grid">
+      <article v-for="item in quickStats" :key="item.label" :class="item.tone">
+        <el-icon><Timer /></el-icon>
+        <span>{{ item.label }}</span>
+        <strong>{{ item.value }}</strong>
+      </article>
+      <article class="prediction-card">
+        <span>预测分数</span>
+        <div>
+          <strong>{{ prediction.essay }}</strong>
+          <small>申论</small>
         </div>
-      </header>
+        <div>
+          <strong>{{ prediction.interview }}</strong>
+          <small>面试</small>
+        </div>
+      </article>
+    </section>
 
-      <div class="coach-content">
-        <section class="hero-row">
-          <div class="hero-title">
-            <p class="page-kicker">AI 学习指挥舱</p>
-            <h1>晚上好，{{ currentUserName }}</h1>
-            <p>今天建议先完成一次申论真题限时练习，再复盘“提出对策”和“贯彻执行”两项弱维度。</p>
+    <section class="track-grid">
+      <article class="track-card essay">
+        <div class="track-copy">
+          <span><el-icon><EditPen /></el-icon> 申论训练</span>
+          <h2>材料分析、提炼要点、规范表达</h2>
+          <p>适合围绕提出对策、贯彻执行和文章写作持续提分。</p>
+        </div>
+        <div class="recommended-paper">
+          <span>今日推荐真题</span>
+          <strong>{{ essayPaper?.title }}</strong>
+          <small>{{ essayPaper?.questionCount }} 题 · 建议 {{ essayPaper?.suggestedMinutes }} 分钟 · {{ essayPaper?.systemLabel }}</small>
+        </div>
+        <button class="track-cta" type="button" @click="startPaper('essay')">
+          开始申论真题 <el-icon><ArrowRight /></el-icon>
+        </button>
+      </article>
+
+      <article class="track-card interview">
+        <div class="track-copy">
+          <span><el-icon><Collection /></el-icon> 面试训练</span>
+          <h2>结构表达、岗位匹配、临场应变</h2>
+          <p>适合用结构化真题训练审题、层次和交流感。</p>
+        </div>
+        <div class="recommended-paper">
+          <span>今日推荐真题</span>
+          <strong>{{ interviewPaper?.title }}</strong>
+          <small>{{ interviewPaper?.questionCount }} 题 · {{ interviewPaper?.category }} · 建议单题 7 分钟</small>
+        </div>
+        <button class="track-cta cyan" type="button" @click="startPaper('interview')">
+          开始面试真题 <el-icon><ArrowRight /></el-icon>
+        </button>
+      </article>
+    </section>
+
+    <section class="dashboard-grid">
+      <div class="main-column">
+        <section class="paper-speed surface-card">
+          <div class="section-heading">
+            <div>
+              <p class="page-kicker">True Paper</p>
+              <h2>真题速选</h2>
+            </div>
+            <label class="inline-search">
+              <el-icon><Search /></el-icon>
+              <input v-model="searchText" placeholder="搜索真题、地区、岗位" />
+            </label>
           </div>
-          <div class="date-card">
-            <span>今日建议强度</span>
-            <strong>45 分钟</strong>
-            <button type="button" @click="startPaper('essay')">开始执行</button>
+
+          <div class="paper-table">
+            <button v-for="paper in recentPapers" :key="paper.id" type="button" @click="router.push(`/practice/${paper.id}`)">
+              <span class="paper-type" :class="paper.type">{{ paper.type === 'essay' ? '申论' : '面试' }}</span>
+              <strong>{{ paper.title }}</strong>
+              <small>{{ paper.questionCount }} 题 · {{ paper.suggestedMinutes }} 分钟 · {{ paper.releaseDate }}</small>
+              <em>开始练习</em>
+            </button>
           </div>
         </section>
 
-        <section class="path-grid">
-          <article class="track-card essay">
-            <div class="track-copy">
-              <span>申论</span>
-              <h2>材料分析 · 提炼要点 · 规范表达</h2>
-              <p>当前学习阶段：提分瓶颈期</p>
+        <section class="progress-panel surface-card">
+          <div class="section-heading compact">
+            <div>
+              <p class="page-kicker">Ability Map</p>
+              <h2>能力概览</h2>
             </div>
-            <div class="recommended-paper">
-              <span>今日推荐真题</span>
-              <strong>{{ essayPaper?.title }}</strong>
-              <small>材料字数 3,300+ · {{ essayPaper?.questionCount }} 题 · 建议 {{ essayPaper?.suggestedMinutes }} 分钟</small>
-            </div>
-            <button class="track-cta" type="button" @click="startPaper('essay')">
-              开始申论真题 <el-icon><ArrowRight /></el-icon>
-            </button>
-          </article>
-
-          <article class="track-card interview">
-            <div class="track-copy">
-              <span>面试</span>
-              <h2>逻辑表达 · 结构思维 · 临场应变</h2>
-              <p>当前学习阶段：入门准备期</p>
-            </div>
-            <div class="recommended-paper">
-              <span>今日推荐真题</span>
-              <strong>{{ interviewPaper?.title }}</strong>
-              <small>题量 {{ interviewPaper?.questionCount }} 题 · {{ interviewPaper?.category }} · 建议单题 7 分钟</small>
-            </div>
-            <button class="track-cta cyan" type="button" @click="startPaper('interview')">
-              开始面试真题 <el-icon><ArrowRight /></el-icon>
-            </button>
-          </article>
-        </section>
-
-        <section class="dashboard-grid">
-          <div class="main-column">
-            <section class="paper-speed">
-              <div class="section-heading">
-                <h2>真题速递</h2>
-                <button type="button" @click="openLibrary()">查看更多 <el-icon><ArrowRight /></el-icon></button>
-              </div>
-
-              <div class="paper-table">
-                <button v-for="paper in recentPapers" :key="paper.id" type="button" @click="router.push(`/practice/${paper.id}`)">
-                  <span class="paper-type" :class="paper.type">{{ paper.type === 'essay' ? '申论' : '面试' }}</span>
-                  <strong>{{ paper.title }}</strong>
-                  <small>{{ paper.questionCount }} 题 · {{ paper.suggestedMinutes }} 分钟 · {{ paper.releaseDate }}</small>
-                  <em>开始练习</em>
-                </button>
-              </div>
-            </section>
-
-            <section class="progress-strip">
-              <article v-for="item in quickStats" :key="item.label" :class="item.tone">
-                <el-icon><Timer /></el-icon>
-                <span>{{ item.label }}</span>
-                <strong>{{ item.value }}</strong>
-              </article>
-              <article class="radar-cell">
-                <AbilityRadar :items="dimensions" :height="190" />
-              </article>
-            </section>
+            <button type="button" @click="router.push('/report')">完整报告 <el-icon><ArrowRight /></el-icon></button>
           </div>
-
-          <aside class="ai-panel">
-            <div class="panel-head">
-              <el-icon><MagicStick /></el-icon>
-              <h2>AI 学习建议</h2>
-            </div>
-
-            <section class="advice-box">
-              <span>今日建议</span>
-              <p>优先完成申论大作文专项练习，并复盘面试应急应变类题目。</p>
-            </section>
-
-            <section class="predict-box">
-              <h3>预测分数</h3>
-              <div class="score-rings">
-                <div>
-                  <strong>{{ prediction.essay }}</strong>
-                  <span>申论预测分</span>
-                </div>
-                <div class="cyan">
-                  <strong>{{ prediction.interview }}</strong>
-                  <span>面试预测分</span>
-                </div>
-              </div>
-            </section>
-
-            <section class="weak-box">
-              <h3>薄弱项</h3>
+          <div class="progress-content">
+            <AbilityRadar :items="dimensions" :height="220" />
+            <div class="weak-list">
               <div v-for="item in weakBars" :key="item.label" class="weak-row">
                 <div>
                   <span>{{ item.label }}</span>
@@ -239,320 +183,204 @@ function logout() {
                 </div>
                 <i><b :style="{ width: `${item.value}%` }"></b></i>
               </div>
-            </section>
-
-            <section class="next-box">
-              <h3>下一步</h3>
-              <button type="button" @click="startPaper('essay')">申论大作文专项训练</button>
-              <button type="button" @click="openLibrary('interview')">面试应急应变题库</button>
-              <button type="button" @click="router.push('/report')">查看个人报告</button>
-            </section>
-          </aside>
+            </div>
+          </div>
         </section>
       </div>
+
+      <aside class="ai-panel surface-card">
+        <div class="panel-head">
+          <el-icon><MagicStick /></el-icon>
+          <h2>AI 学习建议</h2>
+        </div>
+        <section>
+          <span>今日策略</span>
+          <p>优先完成申论大作文专项练习，并复盘面试应急应变类题目。</p>
+        </section>
+        <section>
+          <span>为什么这样安排</span>
+          <p>最近的薄弱项集中在“对策具体性”和“执行抓手”，需要用一套限时真题建立真实样本。</p>
+        </section>
+        <div class="next-actions">
+          <button type="button" @click="startPaper('essay')">申论专项训练</button>
+          <button type="button" @click="openLibrary('interview')">面试题库</button>
+          <button type="button" @click="router.push('/report')">查看个人报告</button>
+        </div>
+      </aside>
     </section>
-  </main>
+  </div>
 </template>
 
 <style scoped>
-.coach-app {
-  min-height: 100vh;
+.coach-page {
+  display: grid;
+  gap: 22px;
+}
+
+.command-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 300px;
+  gap: 22px;
+  align-items: stretch;
+}
+
+.hero-copy,
+.hero-panel,
+.quick-grid article,
+.track-card,
+.paper-speed,
+.progress-panel,
+.ai-panel {
+  border: 1px solid rgba(196, 211, 238, 0.82);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: var(--shadow-sm);
+}
+
+.hero-copy {
+  padding: 28px;
+  border-radius: 18px;
   background:
-    linear-gradient(90deg, rgba(0, 184, 217, 0.05) 1px, transparent 1px),
-    linear-gradient(180deg, #eff6ff 0%, #f8fbff 48%, #ffffff 100%);
-  background-size: 42px 42px, auto;
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(239, 247, 255, 0.92)),
+    #ffffff;
 }
 
-.sidebar {
-  position: fixed;
-  inset: 0 auto 0 0;
-  z-index: 30;
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  width: 218px;
-  padding: 22px 14px;
-  background: linear-gradient(180deg, #061c40 0%, #003b88 52%, #0050cb 100%);
-  color: #ffffff;
-}
-
-.side-brand {
-  display: grid;
-  grid-template-columns: 48px minmax(0, 1fr);
-  column-gap: 10px;
-  align-items: center;
-  color: #ffffff;
-}
-
-.side-brand span {
-  display: grid;
-  grid-row: span 2;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #0b66ff, #00b8d9);
-  font-weight: 900;
-}
-
-.side-brand small {
-  color: rgba(255, 255, 255, 0.68);
-  font-size: 12px;
-}
-
-.side-nav {
-  display: grid;
-  align-content: start;
-  gap: 8px;
-  margin-top: 36px;
-}
-
-.side-nav a,
-.side-nav button {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-height: 48px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: 10px;
-  background: transparent;
-  color: rgba(255, 255, 255, 0.76);
-  font-weight: 900;
-  text-align: left;
-}
-
-.side-nav a.active,
-.side-nav a.router-link-active,
-.side-nav button:hover {
-  background: rgba(11, 102, 255, 0.42);
-  color: #ffffff;
-  box-shadow: inset 3px 0 0 #00d5ff;
-}
-
-.study-mini {
-  display: grid;
-  gap: 8px;
-  padding: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.study-mini span {
-  color: rgba(255, 255, 255, 0.74);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.study-mini strong {
-  font-size: 28px;
-}
-
-.bars {
-  display: flex;
-  align-items: end;
-  gap: 8px;
-  min-height: 72px;
-}
-
-.bars i {
-  width: 9px;
-  border-radius: 999px 999px 0 0;
-  background: linear-gradient(180deg, #9eefff, rgba(255, 255, 255, 0.24));
-}
-
-.coach-shell {
-  margin-left: 218px;
-}
-
-.topbar {
-  position: sticky;
-  top: 0;
-  z-index: 24;
-  display: grid;
-  grid-template-columns: auto minmax(280px, 520px) auto;
-  align-items: center;
-  gap: 24px;
-  min-height: 76px;
-  padding: 0 30px;
-  background: rgba(4, 23, 52, 0.96);
-  color: #ffffff;
-  backdrop-filter: blur(18px);
-}
-
-.top-tabs {
-  display: flex;
-  gap: 16px;
-}
-
-.top-tabs a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 42px;
-  padding: 0 18px;
-  border-radius: 10px;
-  color: rgba(255, 255, 255, 0.78);
-  font-weight: 900;
-}
-
-.top-tabs a.active,
-.top-tabs a.router-link-active {
-  background: #0b66ff;
-  color: #ffffff;
-}
-
-.search-box {
-  display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 10px;
-  min-height: 42px;
-  padding: 0 14px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.search-box input {
-  min-width: 0;
-  border: 0;
-  outline: none;
-  background: transparent;
-  color: #ffffff;
-}
-
-.search-box input::placeholder {
-  color: rgba(255, 255, 255, 0.54);
-}
-
-.search-box kbd {
-  padding: 3px 7px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.72);
-  font-size: 12px;
-}
-
-.top-actions {
-  display: flex;
-  justify-content: end;
-  gap: 12px;
-}
-
-.icon-button,
-.profile-button {
-  display: inline-flex;
-  align-items: center;
-  min-height: 42px;
-  border: 0;
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.1);
-  color: #ffffff;
-}
-
-.icon-button {
-  width: 42px;
-  justify-content: center;
-}
-
-.profile-button {
-  gap: 8px;
-  padding: 0 12px;
-  font-weight: 900;
-}
-
-.coach-content {
-  width: min(1240px, calc(100vw - 266px));
-  margin: 0 auto;
-  padding: 30px 0 64px;
-}
-
-.hero-row {
-  display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 24px;
-  margin-bottom: 24px;
-}
-
-.hero-title h1 {
+.hero-copy h1 {
   margin: 0;
   color: #07182f;
-  font-size: 32px;
+  font-size: 36px;
+  line-height: 1.18;
 }
 
-.hero-title p:last-child {
-  margin: 10px 0 0;
+.hero-copy p:last-of-type {
+  max-width: 760px;
+  margin: 12px 0 0;
   color: var(--text-secondary);
+  font-size: 16px;
+  line-height: 1.72;
 }
 
-.date-card {
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.hero-panel {
   display: grid;
-  grid-template-columns: auto auto;
-  gap: 6px 16px;
-  min-width: 250px;
-  padding: 18px;
-  border: 1px solid #d9e6f7;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.78);
+  align-content: center;
+  gap: 10px;
+  padding: 24px;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #003b88, #0050cb 58%, #008faf);
+  color: #ffffff;
 }
 
-.date-card span {
-  color: var(--text-muted);
-  font-size: 12px;
+.hero-panel span,
+.hero-panel p {
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 13px;
   font-weight: 900;
 }
 
-.date-card strong {
+.hero-panel strong {
+  font-size: 40px;
+  line-height: 1;
+}
+
+.hero-panel p {
+  margin: 0;
+  line-height: 1.6;
+}
+
+.quick-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.quick-grid article {
+  display: grid;
+  gap: 8px;
+  min-height: 134px;
+  padding: 20px;
+  border-radius: 16px;
+}
+
+.quick-grid .el-icon {
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border-radius: 10px;
+  background: #eaf3ff;
+  color: var(--primary);
+  font-size: 20px;
+}
+
+.quick-grid span,
+.prediction-card small {
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.quick-grid strong {
+  color: #07182f;
   font-size: 28px;
 }
 
-.date-card button {
-  grid-row: span 2;
-  align-self: center;
-  min-height: 40px;
-  border: 0;
-  border-radius: 10px;
-  background: #e5fbff;
-  color: #006a75;
-  font-weight: 900;
+.quick-grid .cyan strong,
+.prediction-card div:last-child strong {
+  color: #008faf;
 }
 
-.path-grid {
+.quick-grid .green strong {
+  color: var(--success);
+}
+
+.prediction-card {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.prediction-card > span {
+  grid-column: 1 / -1;
+}
+
+.prediction-card div {
+  display: grid;
+  gap: 2px;
+}
+
+.track-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 22px;
+  gap: 18px;
 }
 
 .track-card {
   display: grid;
   gap: 18px;
-  min-height: 340px;
-  padding: 26px;
-  border: 1px solid rgba(0, 102, 255, 0.24);
+  min-height: 330px;
+  padding: 24px;
   border-radius: 18px;
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(232, 243, 255, 0.94)),
-    #ffffff;
-  box-shadow: 0 20px 52px rgba(19, 42, 74, 0.08);
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(235, 244, 255, 0.94));
 }
 
 .track-card.interview {
-  border-color: rgba(0, 184, 217, 0.3);
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(225, 251, 255, 0.94)),
-    #ffffff;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.96), rgba(229, 251, 255, 0.94));
 }
 
 .track-copy span,
 .recommended-paper span {
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 0 10px;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 11px;
   border-radius: 999px;
   background: #e6efff;
-  color: #0758d8;
+  color: var(--primary);
   font-size: 12px;
   font-weight: 900;
 }
@@ -563,15 +391,16 @@ function logout() {
 }
 
 .track-copy h2 {
-  max-width: 420px;
+  max-width: 430px;
   margin: 16px 0 8px;
   color: #07182f;
-  font-size: 28px;
+  font-size: 27px;
   line-height: 1.25;
 }
 
 .track-copy p,
 .recommended-paper small {
+  margin: 0;
   color: var(--text-secondary);
   line-height: 1.6;
 }
@@ -579,14 +408,14 @@ function logout() {
 .recommended-paper {
   display: grid;
   gap: 8px;
-  padding: 18px;
+  padding: 16px;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.72);
 }
 
 .recommended-paper strong {
   color: #07182f;
-  font-size: 21px;
+  font-size: 20px;
 }
 
 .track-cta {
@@ -595,7 +424,7 @@ function logout() {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 50px;
+  min-height: 48px;
   border: 0;
   border-radius: 12px;
   background: var(--gradient-1);
@@ -609,9 +438,8 @@ function logout() {
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 330px;
-  gap: 22px;
-  margin-top: 24px;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 18px;
 }
 
 .main-column {
@@ -620,52 +448,72 @@ function logout() {
 }
 
 .paper-speed,
-.progress-strip,
+.progress-panel,
 .ai-panel {
-  border: 1px solid rgba(196, 211, 238, 0.82);
+  padding: 20px;
   border-radius: 16px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 16px 42px rgba(19, 42, 74, 0.06);
 }
 
-.paper-speed {
-  padding: 20px;
+.section-heading,
+.section-heading button,
+.panel-head {
+  display: flex;
+  align-items: center;
 }
 
 .section-heading {
-  display: flex;
   justify-content: space-between;
-  align-items: center;
   gap: 16px;
+  margin-bottom: 14px;
 }
 
-.section-heading h2 {
+.section-heading h2,
+.panel-head h2 {
   margin: 0;
   color: #07182f;
   font-size: 22px;
 }
 
-.section-heading button {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
+.section-heading.compact button {
+  gap: 5px;
   border: 0;
   background: transparent;
-  color: #0758d8;
+  color: var(--primary);
   font-weight: 900;
+}
+
+.inline-search {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  align-items: center;
+  gap: 8px;
+  width: min(320px, 42vw);
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: #fbfcff;
+  color: var(--text-muted);
+}
+
+.inline-search input {
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text-primary);
 }
 
 .paper-table {
   display: grid;
-  margin-top: 14px;
 }
 
 .paper-table button {
   display: grid;
-  grid-template-columns: 62px minmax(0, 1fr) minmax(220px, auto) 88px;
+  grid-template-columns: 62px minmax(0, 1fr) minmax(190px, auto) 86px;
   align-items: center;
   gap: 12px;
-  min-height: 58px;
+  min-height: 60px;
   border: 0;
   border-top: 1px solid #edf1f8;
   background: transparent;
@@ -682,7 +530,7 @@ function logout() {
   padding: 6px 10px;
   border-radius: 8px;
   background: #e6efff;
-  color: #0758d8;
+  color: var(--primary);
   font-size: 12px;
   font-weight: 900;
 }
@@ -697,134 +545,21 @@ function logout() {
 }
 
 .paper-table em {
-  color: #0758d8;
+  color: var(--primary);
   font-style: normal;
   font-weight: 900;
 }
 
-.progress-strip {
+.progress-content {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr)) 240px;
-  gap: 12px;
-  padding: 18px;
-}
-
-.progress-strip article {
-  display: grid;
-  gap: 8px;
-  align-content: center;
-  min-height: 158px;
-  padding: 16px;
-  border-radius: 12px;
-  background: #f7fbff;
-}
-
-.progress-strip article span {
-  color: var(--text-secondary);
-  font-size: 13px;
-  font-weight: 800;
-}
-
-.progress-strip article strong {
-  color: #0758d8;
-  font-size: 28px;
-}
-
-.progress-strip .cyan strong {
-  color: #007a8c;
-}
-
-.progress-strip .green strong {
-  color: #08766c;
-}
-
-.radar-cell {
-  padding: 0 !important;
-  background: #ffffff !important;
-}
-
-.ai-panel {
-  display: grid;
-  gap: 14px;
-  align-content: start;
-  padding: 20px;
-}
-
-.panel-head {
-  display: flex;
+  grid-template-columns: minmax(260px, 0.9fr) minmax(260px, 1fr);
+  gap: 20px;
   align-items: center;
-  gap: 10px;
 }
 
-.panel-head .el-icon {
-  color: #0758d8;
-  font-size: 22px;
-}
-
-.panel-head h2,
-.predict-box h3,
-.weak-box h3,
-.next-box h3 {
-  margin: 0;
-  color: #07182f;
-}
-
-.advice-box,
-.predict-box,
-.weak-box,
-.next-box {
+.weak-list {
   display: grid;
-  gap: 12px;
-  padding: 16px;
-  border: 1px solid #e4ebf6;
-  border-radius: 12px;
-  background: #fbfdff;
-}
-
-.advice-box span {
-  color: #0758d8;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.advice-box p {
-  margin: 0;
-  color: var(--text-secondary);
-  line-height: 1.65;
-}
-
-.score-rings {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 12px;
-}
-
-.score-rings div {
-  display: grid;
-  place-items: center;
-  min-height: 116px;
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at center, #ffffff 58%, transparent 59%),
-    conic-gradient(#0b66ff 72%, #dbeafe 0);
-}
-
-.score-rings div.cyan {
-  background:
-    radial-gradient(circle at center, #ffffff 58%, transparent 59%),
-    conic-gradient(#00a4c7 68%, #ddf8ff 0);
-}
-
-.score-rings strong {
-  color: #0b66ff;
-  font-size: 34px;
-  line-height: 1;
-}
-
-.score-rings span {
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 800;
+  gap: 16px;
 }
 
 .weak-row {
@@ -837,7 +572,7 @@ function logout() {
   justify-content: space-between;
   color: var(--text-secondary);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .weak-row i {
@@ -852,59 +587,81 @@ function logout() {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #ff6b4a, #00b8d9);
+  background: linear-gradient(90deg, #d8294c, #00b8d9);
 }
 
-.next-box button {
+.ai-panel {
+  display: grid;
+  align-content: start;
+  gap: 14px;
+}
+
+.panel-head {
+  gap: 10px;
+}
+
+.panel-head .el-icon {
+  color: var(--primary);
+  font-size: 22px;
+}
+
+.ai-panel section,
+.next-actions {
+  display: grid;
+  gap: 10px;
+  padding: 16px;
+  border: 1px solid #e4ebf6;
+  border-radius: 12px;
+  background: #fbfdff;
+}
+
+.ai-panel section span {
+  color: var(--primary);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.ai-panel p {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+.next-actions button {
   min-height: 40px;
-  border: 1px solid #d9e6f7;
+  border: 1px solid var(--border);
   border-radius: 10px;
   background: #ffffff;
-  color: #0758d8;
+  color: var(--primary);
   font-weight: 900;
 }
 
 @media (max-width: 1180px) {
-  .sidebar {
-    display: none;
+  .quick-grid,
+  .dashboard-grid,
+  .progress-content {
+    grid-template-columns: 1fr 1fr;
   }
 
-  .coach-shell {
-    margin-left: 0;
-  }
-
-  .coach-content {
-    width: min(100vw - 32px, 960px);
-  }
-
-  .topbar {
-    grid-template-columns: minmax(0, 1fr) auto;
-  }
-
-  .top-tabs {
-    display: none;
+  .ai-panel {
+    grid-column: 1 / -1;
   }
 }
 
-@media (max-width: 900px) {
-  .topbar {
-    grid-template-columns: 1fr;
-    gap: 10px;
-    padding: 14px 16px;
-  }
-
-  .top-actions {
-    display: none;
-  }
-
-  .hero-row,
-  .path-grid,
+@media (max-width: 820px) {
+  .command-hero,
+  .quick-grid,
+  .track-grid,
   .dashboard-grid,
-  .progress-strip {
+  .progress-content {
     grid-template-columns: 1fr;
   }
 
-  .hero-row {
+  .inline-search {
+    width: 100%;
+  }
+
+  .section-heading {
     display: grid;
   }
 
@@ -920,17 +677,17 @@ function logout() {
 }
 
 @media (max-width: 560px) {
+  .hero-copy,
   .track-card {
-    min-height: 0;
     padding: 20px;
+  }
+
+  .hero-copy h1 {
+    font-size: 29px;
   }
 
   .track-copy h2 {
     font-size: 23px;
-  }
-
-  .score-rings {
-    grid-template-columns: 1fr 1fr;
   }
 }
 </style>

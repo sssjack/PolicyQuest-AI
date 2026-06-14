@@ -172,34 +172,20 @@ function goReport() {
 </script>
 
 <template>
-  <main class="practice-workbench">
-    <aside class="practice-side">
-      <router-link to="/coach" class="side-brand">
-        <span>PQ</span>
-        <strong>PolicyQuest</strong>
-        <small>AI 阅卷工作室</small>
-      </router-link>
+  <main class="practice-page page-container">
+    <section class="practice-head">
+      <button type="button" class="back-button" @click="router.push('/papers')">
+        <el-icon><ArrowLeft /></el-icon>
+        返回真题库
+      </button>
 
-      <nav>
-        <router-link to="/coach">工作台</router-link>
-        <router-link to="/papers" class="active">真题练习</router-link>
-        <router-link to="/report">我的报告</router-link>
-      </nav>
-
-      <div class="level-card">
-        <span>同学，加油！</span>
-        <strong>Lv.12</strong>
-        <i><b :style="{ width: `${Math.min(100, answeredCount * 38)}%` }"></b></i>
+      <div class="paper-title">
+        <p class="page-kicker">{{ paper.type === 'essay' ? 'Essay Workbench' : 'Interview Workbench' }}</p>
+        <h1>{{ paper.title }}</h1>
+        <span>题目 {{ currentIndex + 1 }} / {{ paper.questions.length }}</span>
       </div>
-    </aside>
 
-    <section class="practice-main">
-      <header class="practice-topbar">
-        <button type="button" class="back-button" @click="router.push('/papers')"><el-icon><ArrowLeft /></el-icon> 返回</button>
-        <div class="paper-title">
-          <strong>{{ paper.title }}</strong>
-          <span>题目 {{ currentIndex + 1 }} / {{ paper.questions.length }}</span>
-        </div>
+      <div class="practice-actions">
         <div class="progress-box">
           <span>{{ progressPercent }}%</span>
           <i><b :style="{ width: `${progressPercent}%` }"></b></i>
@@ -213,260 +199,163 @@ function goReport() {
           {{ submitting ? '评阅中...' : currentEvaluation ? '重新提交' : '提交本题' }}
         </button>
         <button class="report-button" type="button" :disabled="!allSubmitted" @click="goReport">交卷</button>
-      </header>
-
-      <div class="mobile-tabs">
-        <button type="button" :class="{ active: activeMobileTab === 'question' }" @click="activeMobileTab = 'question'">题目</button>
-        <button type="button" :class="{ active: activeMobileTab === 'materials' }" @click="activeMobileTab = 'materials'">材料</button>
-        <button type="button" :class="{ active: activeMobileTab === 'answer' }" @click="activeMobileTab = 'answer'">作答</button>
       </div>
-
-      <section class="work-layout">
-        <article class="workspace">
-          <section class="question-card" :class="{ 'mobile-hidden': activeMobileTab !== 'question' }">
-            <div class="meta-row">
-              <span>{{ paper.type === 'essay' ? '申论' : '面试' }}</span>
-              <span>{{ paper.systemLabel }}</span>
-              <span>{{ paper.category }}</span>
-              <span>{{ currentQuestion.score }} 分</span>
-            </div>
-            <h1>{{ currentQuestion.title }}</h1>
-            <p>{{ currentQuestion.prompt }}</p>
-            <ul>
-              <li v-for="item in currentQuestion.requirements" :key="item">{{ item }}</li>
-            </ul>
-          </section>
-
-          <section class="materials-card" :class="{ 'mobile-hidden': activeMobileTab !== 'materials' }">
-            <div class="material-tabs">
-              <button
-                v-for="material in paper.materials"
-                :key="material.id"
-                type="button"
-                :class="{ active: activeMaterialId === material.id }"
-                @click="activeMaterialId = material.id"
-              >
-                {{ material.title }}
-              </button>
-            </div>
-            <article v-if="activeMaterial" class="material-body">
-              <div>
-                <h2>{{ activeMaterial.title }}</h2>
-                <span>约 {{ activeMaterial.wordCount }} 字</span>
-              </div>
-              <p>{{ activeMaterial.content }}</p>
-            </article>
-          </section>
-
-          <section class="answer-card" :class="{ 'mobile-hidden': activeMobileTab !== 'answer' }">
-            <div class="answer-head">
-              <strong>作答区</strong>
-              <span>已输入 {{ wordCount }} 字 · 本题用时 {{ formatSeconds(currentQuestionTime) }}</span>
-            </div>
-            <textarea
-              v-model="currentAnswer"
-              :placeholder="paper.type === 'essay' ? '请根据材料作答，建议先列提纲再展开...' : '请按面试口径组织回答，注意身份感和表达层次...'"
-            ></textarea>
-            <div class="answer-footer">
-              <i><b :style="{ width: `${Math.min(100, Math.round((wordCount / currentQuestion.wordLimit) * 100))}%` }"></b></i>
-              <span>建议字数 {{ currentQuestion.wordLimit }} 字以内</span>
-            </div>
-          </section>
-        </article>
-
-        <aside class="evaluation-panel" :class="{ 'mobile-hidden': activeMobileTab !== 'answer' }">
-          <template v-if="currentEvaluation">
-            <section class="score-summary">
-              <div class="score-ring">
-                <strong>{{ currentEvaluation.score }}</strong>
-                <span>/100</span>
-              </div>
-              <div>
-                <h2>AI 阅卷结果</h2>
-                <p>得分评价 <strong>{{ currentEvaluation.level }}</strong></p>
-                <small>{{ currentEvaluation.summary }}</small>
-              </div>
-            </section>
-
-            <section class="panel-block">
-              <h3><el-icon><MagicStick /></el-icon> AI 建议</h3>
-              <p v-for="item in currentEvaluation.suggestions.slice(0, 3)" :key="item">{{ item }}</p>
-            </section>
-
-            <section class="two-col">
-              <div class="panel-block success">
-                <h3><el-icon><CircleCheck /></el-icon> 优点</h3>
-                <p v-for="item in currentEvaluation.advantages.slice(0, 3)" :key="item">{{ item }}</p>
-              </div>
-              <div class="panel-block danger">
-                <h3><el-icon><Warning /></el-icon> 缺点</h3>
-                <p v-for="item in currentEvaluation.disadvantages.slice(0, 3)" :key="item">{{ item }}</p>
-              </div>
-            </section>
-
-            <section class="panel-block">
-              <h3><el-icon><Reading /></el-icon> 题目解读</h3>
-              <p>本题要求抓住“{{ currentQuestion.title }}”中的核心矛盾，先判断问题本质，再结合材料提炼执行抓手，避免只堆概念。</p>
-            </section>
-
-            <section class="radar-panel">
-              <div class="panel-title">
-                <h3>个人能力图谱</h3>
-                <router-link to="/report">更多报告</router-link>
-              </div>
-              <AbilityRadar :items="currentEvaluation.dimensions" :height="250" />
-            </section>
-
-            <section class="panel-block sample">
-              <h3><el-icon><DocumentChecked /></el-icon> 参考范文</h3>
-              <p>{{ currentEvaluation.sampleEssay }}</p>
-            </section>
-          </template>
-
-          <section v-else class="empty-review">
-            <el-icon><EditPen /></el-icon>
-            <h2>提交后查看 AI 评阅</h2>
-            <p>系统会生成分数、建议、优点、缺点、题目解读、参考范文和维度雷达图。</p>
-          </section>
-        </aside>
-      </section>
-
-      <footer class="question-dock">
-        <span>题目导航</span>
-        <button
-          v-for="(question, index) in paper.questions"
-          :key="question.id"
-          type="button"
-          :class="{ active: currentIndex === index, done: evaluations[question.id] }"
-          @click="chooseQuestion(index)"
-        >
-          {{ index + 1 }}
-        </button>
-        <button class="star-button" type="button"><el-icon><Star /></el-icon> 标记本题</button>
-      </footer>
     </section>
+
+    <div class="mobile-tabs">
+      <button type="button" :class="{ active: activeMobileTab === 'question' }" @click="activeMobileTab = 'question'">题目</button>
+      <button type="button" :class="{ active: activeMobileTab === 'materials' }" @click="activeMobileTab = 'materials'">材料</button>
+      <button type="button" :class="{ active: activeMobileTab === 'answer' }" @click="activeMobileTab = 'answer'">作答</button>
+    </div>
+
+    <section class="work-layout">
+      <article class="workspace">
+        <section class="question-card" :class="{ 'mobile-hidden': activeMobileTab !== 'question' }">
+          <div class="meta-row">
+            <span>{{ paper.type === 'essay' ? '申论' : '面试' }}</span>
+            <span>{{ paper.systemLabel }}</span>
+            <span>{{ paper.category }}</span>
+            <span>{{ currentQuestion.score }} 分</span>
+          </div>
+          <h2>{{ currentQuestion.title }}</h2>
+          <p>{{ currentQuestion.prompt }}</p>
+          <ul>
+            <li v-for="item in currentQuestion.requirements" :key="item">{{ item }}</li>
+          </ul>
+        </section>
+
+        <section class="materials-card" :class="{ 'mobile-hidden': activeMobileTab !== 'materials' }">
+          <div class="material-tabs">
+            <button
+              v-for="material in paper.materials"
+              :key="material.id"
+              type="button"
+              :class="{ active: activeMaterialId === material.id }"
+              @click="activeMaterialId = material.id"
+            >
+              {{ material.title }}
+            </button>
+          </div>
+          <article v-if="activeMaterial" class="material-body">
+            <div>
+              <h2>{{ activeMaterial.title }}</h2>
+              <span>约 {{ activeMaterial.wordCount }} 字</span>
+            </div>
+            <p>{{ activeMaterial.content }}</p>
+          </article>
+        </section>
+
+        <section class="answer-card" :class="{ 'mobile-hidden': activeMobileTab !== 'answer' }">
+          <div class="answer-head">
+            <strong>作答区</strong>
+            <span>已输入 {{ wordCount }} 字 · 本题用时 {{ formatSeconds(currentQuestionTime) }}</span>
+          </div>
+          <textarea
+            v-model="currentAnswer"
+            :placeholder="paper.type === 'essay' ? '请根据材料作答，建议先列提纲再展开...' : '请按面试口径组织回答，注意身份感和表达层次...'"
+          ></textarea>
+          <div class="answer-footer">
+            <i><b :style="{ width: `${Math.min(100, Math.round((wordCount / currentQuestion.wordLimit) * 100))}%` }"></b></i>
+            <span>建议字数 {{ currentQuestion.wordLimit }} 字以内</span>
+          </div>
+        </section>
+      </article>
+
+      <aside class="evaluation-panel" :class="{ 'mobile-hidden': activeMobileTab !== 'answer' }">
+        <template v-if="currentEvaluation">
+          <section class="score-summary">
+            <div class="score-ring">
+              <strong>{{ currentEvaluation.score }}</strong>
+              <span>/100</span>
+            </div>
+            <div>
+              <h2>AI 阅卷结果</h2>
+              <p>得分评价 <strong>{{ currentEvaluation.level }}</strong></p>
+              <small>{{ currentEvaluation.summary }}</small>
+            </div>
+          </section>
+
+          <section class="panel-block">
+            <h3><el-icon><MagicStick /></el-icon> AI 建议</h3>
+            <p v-for="item in currentEvaluation.suggestions.slice(0, 3)" :key="item">{{ item }}</p>
+          </section>
+
+          <section class="two-col">
+            <div class="panel-block success">
+              <h3><el-icon><CircleCheck /></el-icon> 优点</h3>
+              <p v-for="item in currentEvaluation.advantages.slice(0, 3)" :key="item">{{ item }}</p>
+            </div>
+            <div class="panel-block danger">
+              <h3><el-icon><Warning /></el-icon> 缺点</h3>
+              <p v-for="item in currentEvaluation.disadvantages.slice(0, 3)" :key="item">{{ item }}</p>
+            </div>
+          </section>
+
+          <section class="panel-block">
+            <h3><el-icon><Reading /></el-icon> 题目解读</h3>
+            <p>本题要求抓住“{{ currentQuestion.title }}”中的核心矛盾，先判断问题本质，再结合材料提炼执行抓手，避免只堆概念。</p>
+          </section>
+
+          <section class="radar-panel">
+            <div class="panel-title">
+              <h3>个人能力图谱</h3>
+              <router-link to="/report">更多报告</router-link>
+            </div>
+            <AbilityRadar :items="currentEvaluation.dimensions" :height="250" />
+          </section>
+
+          <section class="panel-block sample">
+            <h3><el-icon><DocumentChecked /></el-icon> 参考范文</h3>
+            <p>{{ currentEvaluation.sampleEssay }}</p>
+          </section>
+        </template>
+
+        <section v-else class="empty-review">
+          <el-icon><EditPen /></el-icon>
+          <h2>提交后查看 AI 评阅</h2>
+          <p>系统会生成分数、建议、优点、缺点、题目解读、参考范文和维度雷达图。</p>
+        </section>
+      </aside>
+    </section>
+
+    <footer class="question-dock">
+      <span>题目导航</span>
+      <button
+        v-for="(question, index) in paper.questions"
+        :key="question.id"
+        type="button"
+        :class="{ active: currentIndex === index, done: evaluations[question.id] }"
+        @click="chooseQuestion(index)"
+      >
+        {{ index + 1 }}
+      </button>
+      <button class="star-button" type="button"><el-icon><Star /></el-icon> 标记本题</button>
+    </footer>
   </main>
 </template>
 
 <style scoped>
-.practice-workbench {
-  min-height: 100vh;
-  background: #f7fbff;
-}
-
-.practice-side {
-  position: fixed;
-  inset: 0 auto 0 0;
-  z-index: 30;
+.practice-page {
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
-  width: 180px;
-  padding: 22px 14px;
-  background: linear-gradient(180deg, #061c40 0%, #003b88 100%);
-  color: #ffffff;
+  gap: 16px;
+  width: min(1440px, calc(100vw - 48px));
 }
 
-.side-brand {
-  display: grid;
-  grid-template-columns: 42px minmax(0, 1fr);
-  gap: 2px 10px;
-  color: #ffffff;
-}
-
-.side-brand span {
-  display: grid;
-  grid-row: span 2;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #0b66ff, #00b8d9);
-  font-weight: 900;
-}
-
-.side-brand small {
-  color: rgba(255, 255, 255, 0.68);
-  font-size: 12px;
-}
-
-.practice-side nav {
-  display: grid;
-  align-content: start;
-  gap: 8px;
-  margin-top: 42px;
-}
-
-.practice-side nav a {
-  display: flex;
-  align-items: center;
-  min-height: 48px;
-  padding: 0 14px;
-  border-radius: 10px;
-  color: rgba(255, 255, 255, 0.76);
-  font-weight: 900;
-}
-
-.practice-side nav a.active,
-.practice-side nav a.router-link-active {
-  background: rgba(11, 102, 255, 0.42);
-  color: #ffffff;
-  box-shadow: inset 3px 0 0 #00d5ff;
-}
-
-.level-card {
-  display: grid;
-  gap: 8px;
-  padding: 14px;
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.12);
-}
-
-.level-card span {
-  color: rgba(255, 255, 255, 0.78);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.level-card strong {
-  font-size: 24px;
-}
-
-.level-card i,
-.progress-box i,
-.answer-footer i {
-  display: block;
-  height: 7px;
-  overflow: hidden;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.22);
-}
-
-.level-card b,
-.progress-box b,
-.answer-footer b {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: linear-gradient(90deg, #0b66ff, #00d5ff);
-}
-
-.practice-main {
-  margin-left: 180px;
-  padding-bottom: 72px;
-}
-
-.practice-topbar {
+.practice-head {
   position: sticky;
-  top: 0;
-  z-index: 24;
+  top: 70px;
+  z-index: 22;
   display: grid;
-  grid-template-columns: auto minmax(240px, 1fr) 180px auto auto auto;
-  align-items: center;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 18px;
-  min-height: 78px;
-  padding: 0 22px;
-  background: #061c40;
-  color: #ffffff;
+  align-items: center;
+  min-height: 86px;
+  padding: 16px 18px;
+  border: 1px solid rgba(196, 211, 238, 0.86);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-sm);
+  backdrop-filter: blur(18px);
 }
 
 .back-button,
@@ -476,42 +365,66 @@ function goReport() {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 44px;
-  border: 0;
+  min-height: 42px;
   border-radius: 10px;
   font-weight: 900;
 }
 
 .back-button {
+  border: 1px solid var(--border);
   padding: 0 14px;
-  background: transparent;
-  color: #ffffff;
+  background: #ffffff;
+  color: var(--text-secondary);
 }
 
 .paper-title {
-  display: grid;
-  gap: 4px;
+  min-width: 0;
 }
 
-.paper-title strong {
-  font-size: 20px;
+.paper-title h1 {
+  overflow: hidden;
+  margin: 0;
+  color: #07182f;
+  font-size: 22px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.paper-title span {
-  color: rgba(255, 255, 255, 0.66);
+.paper-title > span {
+  color: var(--text-muted);
   font-size: 12px;
-  font-weight: 800;
+  font-weight: 900;
+}
+
+.practice-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .progress-box {
   display: grid;
   gap: 7px;
-  color: #ffffff;
+  width: 150px;
+  color: var(--text-primary);
   font-weight: 900;
 }
 
-.progress-box i {
-  background: rgba(255, 255, 255, 0.18);
+.progress-box i,
+.answer-footer i {
+  display: block;
+  height: 7px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dce9ff;
+}
+
+.progress-box b,
+.answer-footer b {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--gradient-1);
 }
 
 .timer-pill {
@@ -519,11 +432,12 @@ function goReport() {
   grid-template-columns: auto auto;
   gap: 2px 8px;
   align-items: center;
-  color: #ffffff;
+  color: var(--text-primary);
 }
 
 .timer-pill .el-icon {
   grid-row: span 2;
+  color: var(--primary);
   font-size: 24px;
 }
 
@@ -533,25 +447,27 @@ function goReport() {
 }
 
 .timer-pill span {
-  color: rgba(255, 255, 255, 0.66);
+  color: var(--text-muted);
   font-size: 12px;
   font-weight: 800;
 }
 
 .submit-button {
-  padding: 0 20px;
-  background: #0b66ff;
+  border: 0;
+  padding: 0 18px;
+  background: var(--gradient-1);
   color: #ffffff;
 }
 
 .report-button {
-  padding: 0 16px;
-  background: rgba(255, 255, 255, 0.12);
-  color: #ffffff;
+  border: 1px solid var(--border);
+  padding: 0 14px;
+  background: #ffffff;
+  color: var(--text-secondary);
 }
 
 .report-button:disabled {
-  opacity: 0.5;
+  opacity: 0.48;
 }
 
 .mobile-tabs {
@@ -561,22 +477,23 @@ function goReport() {
 .work-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 430px;
-  min-height: calc(100vh - 150px);
+  gap: 16px;
+  align-items: start;
 }
 
 .workspace {
   display: grid;
   gap: 14px;
-  padding: 22px;
 }
 
 .question-card,
 .materials-card,
 .answer-card,
 .evaluation-panel {
-  border: 1px solid #d9e3f2;
-  border-radius: 12px;
-  background: #ffffff;
+  border: 1px solid rgba(196, 211, 238, 0.86);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: var(--shadow-sm);
 }
 
 .question-card {
@@ -593,12 +510,12 @@ function goReport() {
   padding: 7px 10px;
   border-radius: 999px;
   background: #e6efff;
-  color: #0758d8;
+  color: var(--primary);
   font-size: 12px;
   font-weight: 900;
 }
 
-.question-card h1 {
+.question-card h2 {
   margin: 18px 0 12px;
   color: #07182f;
   font-size: 24px;
@@ -637,7 +554,7 @@ function goReport() {
 }
 
 .material-tabs button.active {
-  background: #0b66ff;
+  background: var(--primary);
   color: #ffffff;
 }
 
@@ -647,6 +564,7 @@ function goReport() {
   padding: 18px;
   border: 1px solid #e6edf7;
   border-radius: 10px;
+  background: #fbfdff;
 }
 
 .material-body div {
@@ -696,20 +614,21 @@ function goReport() {
 
 .answer-card textarea {
   width: 100%;
-  min-height: 340px;
+  min-height: 360px;
   padding: 18px;
   border: 1px solid #cad6e8;
-  border-radius: 10px;
+  border-radius: 12px;
   outline: none;
   resize: vertical;
   color: #07182f;
+  background: #fbfdff;
   font-size: 16px;
   line-height: 1.9;
 }
 
 .answer-card textarea:focus {
-  border-color: #0b66ff;
-  box-shadow: 0 0 0 4px rgba(11, 102, 255, 0.1);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px rgba(0, 80, 203, 0.1);
 }
 
 .answer-footer {
@@ -722,25 +641,20 @@ function goReport() {
   font-weight: 800;
 }
 
-.answer-footer i {
-  background: #e6efff;
-}
-
 .evaluation-panel {
+  position: sticky;
+  top: 172px;
   display: grid;
   align-content: start;
   gap: 14px;
+  max-height: calc(100vh - 190px);
+  overflow: auto;
   padding: 18px;
-  border-top: 0;
-  border-right: 0;
-  border-bottom: 0;
-  border-radius: 0;
-  background: #fbfdff;
 }
 
 .score-summary {
   display: grid;
-  grid-template-columns: 120px minmax(0, 1fr);
+  grid-template-columns: 112px minmax(0, 1fr);
   gap: 18px;
   align-items: center;
   padding-bottom: 14px;
@@ -750,17 +664,17 @@ function goReport() {
 .score-ring {
   display: grid;
   place-items: center;
-  width: 112px;
-  height: 112px;
+  width: 106px;
+  height: 106px;
   border-radius: 999px;
   background:
     radial-gradient(circle at center, #ffffff 58%, transparent 59%),
-    conic-gradient(#0b66ff 76%, #dbeafe 0);
+    conic-gradient(var(--primary) 76%, #dbeafe 0);
 }
 
 .score-ring strong {
-  color: #0b66ff;
-  font-size: 38px;
+  color: var(--primary);
+  font-size: 36px;
   line-height: 1;
 }
 
@@ -784,7 +698,7 @@ function goReport() {
 .radar-panel {
   padding: 16px;
   border: 1px solid #d9e6f7;
-  border-radius: 10px;
+  border-radius: 12px;
   background: #ffffff;
 }
 
@@ -826,7 +740,7 @@ function goReport() {
 }
 
 .panel-title a {
-  color: #0758d8;
+  color: var(--primary);
   font-weight: 900;
 }
 
@@ -844,7 +758,7 @@ function goReport() {
 }
 
 .empty-review .el-icon {
-  color: #0b66ff;
+  color: var(--primary);
   font-size: 42px;
 }
 
@@ -860,30 +774,30 @@ function goReport() {
 }
 
 .question-dock {
-  position: fixed;
-  right: 0;
-  bottom: 0;
-  left: 180px;
-  z-index: 26;
+  position: sticky;
+  bottom: 14px;
+  z-index: 20;
   display: flex;
   align-items: center;
-  gap: 12px;
-  min-height: 64px;
-  padding: 10px 22px;
-  border-top: 1px solid #d9e3f2;
+  gap: 10px;
+  min-height: 62px;
+  padding: 10px 14px;
+  border: 1px solid rgba(196, 211, 238, 0.86);
+  border-radius: 16px;
   background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow-sm);
   backdrop-filter: blur(18px);
 }
 
 .question-dock span {
-  margin-right: 10px;
+  margin-right: 8px;
   color: #07182f;
   font-weight: 900;
 }
 
 .question-dock button {
-  min-width: 42px;
-  min-height: 42px;
+  min-width: 40px;
+  min-height: 40px;
   border: 1px solid #d9e3f2;
   border-radius: 10px;
   background: #ffffff;
@@ -892,40 +806,34 @@ function goReport() {
 }
 
 .question-dock button.active {
-  border-color: #0b66ff;
+  border-color: var(--primary);
   background: #eaf3ff;
-  color: #0b66ff;
+  color: var(--primary);
 }
 
 .question-dock button.done {
-  border-color: #0b66ff;
-  background: #0b66ff;
+  border-color: var(--primary);
+  background: var(--primary);
   color: #ffffff;
 }
 
 .question-dock .star-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   margin-left: auto;
   padding: 0 14px;
 }
 
 @media (max-width: 1180px) {
-  .practice-side {
-    display: none;
+  .practice-head {
+    top: 72px;
+    grid-template-columns: minmax(0, 1fr);
   }
 
-  .practice-main,
-  .question-dock {
-    margin-left: 0;
-    left: 0;
-  }
-
-  .practice-topbar {
-    grid-template-columns: auto minmax(0, 1fr) auto auto;
-  }
-
-  .progress-box,
-  .report-button {
-    display: none;
+  .practice-actions {
+    flex-wrap: wrap;
   }
 
   .work-layout {
@@ -933,58 +841,49 @@ function goReport() {
   }
 
   .evaluation-panel {
-    border: 1px solid #d9e3f2;
-    border-radius: 12px;
-    margin: 0 22px 78px;
+    position: static;
+    max-height: none;
   }
 }
 
 @media (max-width: 740px) {
-  .practice-main {
-    padding-bottom: 130px;
+  .practice-page {
+    width: min(100vw - 32px, 680px);
   }
 
-  .practice-topbar {
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 10px;
-    min-height: 92px;
-    padding: 10px 16px;
+  .practice-head {
+    position: static;
   }
 
-  .back-button {
-    justify-self: start;
-    min-height: 34px;
-    padding: 0;
+  .paper-title h1 {
+    white-space: normal;
   }
 
-  .paper-title {
-    grid-column: 1;
+  .progress-box,
+  .report-button {
+    display: none;
   }
 
-  .paper-title strong {
-    font-size: 16px;
+  .practice-actions,
+  .submit-button {
+    width: 100%;
   }
 
   .timer-pill {
-    grid-column: 2;
-    grid-row: 1 / span 2;
-  }
-
-  .submit-button {
-    grid-column: 1 / -1;
-    width: 100%;
+    margin-right: auto;
   }
 
   .mobile-tabs {
     position: sticky;
-    top: 92px;
-    z-index: 22;
+    top: 72px;
+    z-index: 21;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     gap: 6px;
-    padding: 8px 16px;
-    border-bottom: 1px solid #d9e3f2;
-    background: rgba(255, 255, 255, 0.96);
+    padding: 8px;
+    border: 1px solid rgba(196, 211, 238, 0.86);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.94);
     backdrop-filter: blur(18px);
   }
 
@@ -998,12 +897,8 @@ function goReport() {
   }
 
   .mobile-tabs button.active {
-    background: #0b66ff;
+    background: var(--primary);
     color: #ffffff;
-  }
-
-  .workspace {
-    padding: 16px;
   }
 
   .mobile-hidden {
@@ -1024,10 +919,10 @@ function goReport() {
   }
 
   .question-dock {
+    bottom: 88px;
     display: grid;
-    grid-template-columns: auto repeat(4, 42px);
-    min-height: 74px;
-    padding: 10px 16px;
+    grid-template-columns: auto repeat(4, 40px);
+    padding: 10px;
   }
 
   .question-dock .star-button {

@@ -41,38 +41,24 @@ const insight = computed(() => {
       next: '先完成一套申论或面试真题，报告会自动沉淀维度得分和下一步建议。',
     }
   }
+  const weakName = weakest.value?.name || '提出对策'
   return {
-    why: `最近作答中，${weakest.value?.name || '提出对策'} 得分相对偏低，说明答案可能存在材料转化不足、执行抓手不具体或表达层次不清的问题。`,
+    why: `最近作答中，“${weakName}”得分相对偏低，说明答案可能存在材料转化不足、执行抓手不具体或表达层次不清的问题。`,
     next:
       records.value.length < 3
         ? '继续完成 2 次限时真题，先建立稳定样本，再判断阶段性薄弱项。'
-        : `下一步建议围绕“${weakest.value?.name || '提出对策'}”做专项训练，并把每题答案改写成“判断 + 分析 + 对策 + 收束”的结构。`,
+        : `下一步建议围绕“${weakName}”做专项训练，并把每题答案改写成“判断 + 分析 + 对策 + 收束”的结构。`,
   }
 })
 </script>
 
 <template>
-  <main class="report-page">
-    <header class="report-topbar">
-      <router-link to="/coach" class="brand">
-        <span>PQ</span>
-        <strong>PolicyQuest</strong>
-      </router-link>
-      <nav>
-        <router-link to="/coach">首页</router-link>
-        <router-link to="/papers">真题库</router-link>
-        <router-link to="/report" class="active">个人报告</router-link>
-      </nav>
-      <button class="btn-primary" type="button" @click="router.push('/papers')">
-        开始新练习 <el-icon><ArrowRight /></el-icon>
-      </button>
-    </header>
-
+  <main class="report-page page-container">
     <section class="report-hero">
       <div>
         <p class="page-kicker">Growth Report</p>
-        <h1>你的备考能力画像</h1>
-        <p>不只展示数据，还解释为什么失分，以及下一步该练什么。</p>
+        <h1 class="page-title">我的报告</h1>
+        <p class="page-subtitle">不只展示数据，也解释为什么失分，以及下一步该练什么。</p>
       </div>
       <div class="hero-score">
         <strong>{{ average || 0 }}</strong>
@@ -123,7 +109,7 @@ const insight = computed(() => {
         <section>
           <h3><el-icon><ArrowRight /></el-icon> 下一步做什么</h3>
           <p>{{ insight.next }}</p>
-          <button type="button" @click="router.push('/papers')">去做专项练习</button>
+          <button type="button" @click="router.push('/papers')">去做专项训练</button>
         </section>
 
         <div class="split-stats">
@@ -166,75 +152,8 @@ const insight = computed(() => {
 
 <style scoped>
 .report-page {
-  min-height: 100vh;
-  padding-bottom: 64px;
-  background:
-    linear-gradient(90deg, rgba(0, 184, 217, 0.05) 1px, transparent 1px),
-    linear-gradient(180deg, #f7fbff 0%, #ffffff 100%);
-  background-size: 42px 42px, auto;
-}
-
-.report-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 20;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  align-items: center;
-  gap: 24px;
-  min-height: 76px;
-  padding: 0 max(24px, calc((100vw - 1240px) / 2));
-  border-bottom: 1px solid rgba(198, 211, 232, 0.72);
-  background: rgba(255, 255, 255, 0.9);
-  backdrop-filter: blur(18px);
-}
-
-.brand {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  color: #07182f;
-}
-
-.brand span {
-  display: grid;
-  width: 40px;
-  height: 40px;
-  place-items: center;
-  border-radius: 10px;
-  background: linear-gradient(135deg, #0b66ff, #00b8d9);
-  color: #ffffff;
-  font-weight: 900;
-}
-
-.report-topbar nav {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-}
-
-.report-topbar nav a {
-  display: inline-flex;
-  align-items: center;
-  min-height: 42px;
-  padding: 0 16px;
-  border-radius: 10px;
-  color: var(--text-secondary);
-  font-weight: 900;
-}
-
-.report-topbar nav a.active,
-.report-topbar nav a.router-link-active {
-  background: #eaf3ff;
-  color: #0758d8;
-}
-
-.report-hero,
-.stat-grid,
-.report-layout,
-.history-card {
-  width: min(1240px, calc(100vw - 48px));
-  margin: 0 auto;
+  gap: 18px;
 }
 
 .report-hero {
@@ -242,34 +161,29 @@ const insight = computed(() => {
   align-items: end;
   justify-content: space-between;
   gap: 24px;
-  padding: 34px 0 24px;
-}
-
-.report-hero h1 {
-  margin: 0;
-  color: #07182f;
-  font-size: 38px;
-}
-
-.report-hero p:last-child {
-  margin: 10px 0 0;
-  color: var(--text-secondary);
+  padding: 26px;
+  border: 1px solid rgba(196, 211, 238, 0.82);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(239, 247, 255, 0.92)),
+    #ffffff;
+  box-shadow: var(--shadow-sm);
 }
 
 .hero-score {
   display: grid;
   place-items: center;
-  width: 144px;
-  height: 144px;
+  width: 138px;
+  height: 138px;
   border-radius: 999px;
   background:
     radial-gradient(circle at center, #ffffff 58%, transparent 59%),
-    conic-gradient(#0b66ff 72%, #dbeafe 0);
+    conic-gradient(var(--primary) 72%, #dbeafe 0);
   box-shadow: inset 0 0 0 1px #d9e3f2;
 }
 
 .hero-score strong {
-  color: #0b66ff;
+  color: var(--primary);
   font-size: 42px;
   line-height: 1;
 }
@@ -292,13 +206,13 @@ const insight = computed(() => {
   border: 1px solid rgba(196, 211, 238, 0.86);
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.9);
-  box-shadow: 0 16px 42px rgba(19, 42, 74, 0.06);
+  box-shadow: var(--shadow-sm);
 }
 
 .stat-grid article {
   display: grid;
   gap: 8px;
-  min-height: 142px;
+  min-height: 138px;
   padding: 20px;
 }
 
@@ -309,7 +223,7 @@ const insight = computed(() => {
   place-items: center;
   border-radius: 10px;
   background: #eaf3ff;
-  color: #0758d8;
+  color: var(--primary);
   font-size: 22px;
 }
 
@@ -328,7 +242,6 @@ const insight = computed(() => {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 360px;
   gap: 18px;
-  margin-top: 18px;
 }
 
 .radar-card,
@@ -354,8 +267,8 @@ const insight = computed(() => {
 .card-head > span {
   padding: 7px 10px;
   border-radius: 999px;
-  background: #e5fbff;
-  color: #007a8c;
+  background: var(--ai-soft);
+  color: var(--ai-strong);
   font-size: 12px;
   font-weight: 900;
 }
@@ -382,7 +295,7 @@ const insight = computed(() => {
 }
 
 .dimension-list strong {
-  color: #0758d8;
+  color: var(--primary);
   font-size: 22px;
 }
 
@@ -398,7 +311,7 @@ const insight = computed(() => {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, #0b66ff, #00b8d9);
+  background: var(--gradient-1);
 }
 
 .diagnosis-card {
@@ -435,7 +348,7 @@ const insight = computed(() => {
   border: 0;
   border-radius: 10px;
   background: #eaf3ff;
-  color: #0758d8;
+  color: var(--primary);
   font-weight: 900;
 }
 
@@ -454,17 +367,13 @@ const insight = computed(() => {
 }
 
 .split-stats strong {
-  color: #007a8c;
+  color: var(--ai-strong);
   font-size: 28px;
 }
 
 .split-stats span {
   color: var(--text-muted);
   font-weight: 800;
-}
-
-.history-card {
-  margin-top: 18px;
 }
 
 .record-table {
@@ -489,7 +398,7 @@ const insight = computed(() => {
   padding: 6px 10px;
   border-radius: 8px;
   background: #eaf3ff;
-  color: #0758d8;
+  color: var(--primary);
   font-size: 12px;
   font-weight: 900;
 }
@@ -518,7 +427,7 @@ const insight = computed(() => {
 }
 
 .record-table em {
-  color: #0758d8;
+  color: var(--primary);
   font-style: normal;
   font-weight: 900;
 }
@@ -528,6 +437,7 @@ const insight = computed(() => {
   place-items: center;
   gap: 10px;
   min-height: 260px;
+  color: var(--text-secondary);
   text-align: center;
 }
 
@@ -536,27 +446,24 @@ const insight = computed(() => {
   margin: 0;
 }
 
-.empty-report p {
-  color: var(--text-secondary);
-}
-
-@media (max-width: 980px) {
-  .report-topbar {
-    grid-template-columns: 1fr auto;
-    padding: 0 16px;
-  }
-
-  .report-topbar nav {
-    display: none;
-  }
-
-  .report-hero {
-    display: grid;
-  }
-
+@media (max-width: 1080px) {
   .stat-grid,
   .report-layout,
   .dimension-list {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .diagnosis-card {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 720px) {
+  .report-hero,
+  .stat-grid,
+  .report-layout,
+  .dimension-list {
+    display: grid;
     grid-template-columns: 1fr;
   }
 
@@ -567,23 +474,6 @@ const insight = computed(() => {
 
   .record-table article > span:not(.record-type) {
     grid-column: 2;
-  }
-}
-
-@media (max-width: 620px) {
-  .report-topbar .btn-primary {
-    display: none;
-  }
-
-  .report-hero,
-  .stat-grid,
-  .report-layout,
-  .history-card {
-    width: calc(100vw - 32px);
-  }
-
-  .report-hero h1 {
-    font-size: 30px;
   }
 }
 </style>
