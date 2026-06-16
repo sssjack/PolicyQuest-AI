@@ -268,7 +268,8 @@ function resizeAnswerArea() {
   }
 
   textarea.style.height = 'auto'
-  textarea.style.height = `${Math.max(textarea.scrollHeight, 620)}px`
+  const minimumHeight = Math.max(620, window.innerHeight - (questionCollapsed.value ? 238 : 338))
+  textarea.style.height = `${Math.max(textarea.scrollHeight, minimumHeight)}px`
 }
 
 function buildDraft(): PracticeDraft {
@@ -1052,6 +1053,14 @@ function escapeHtml(value: string) {
   padding: 30px;
 }
 
+.essay-paper-mode {
+  gap: 14px;
+  padding: 26px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(255, 253, 248, 0.92)),
+    #fffaf1;
+}
+
 .interview-stage .question-compose {
   grid-template-columns: minmax(360px, 0.86fr) minmax(480px, 1.14fr);
   grid-template-rows: auto auto minmax(0, 1fr) auto;
@@ -1189,42 +1198,48 @@ function escapeHtml(value: string) {
 }
 
 .essay-paper-mode textarea {
-  --answer-line-height: 38px;
+  --answer-cell: clamp(22px, 1.45vw, 26px);
   box-sizing: border-box;
-  justify-self: center;
-  width: min(100%, calc(25em + 44px));
-  width: min(100%, calc(25ic + 44px));
+  justify-self: stretch;
+  width: 100%;
   min-height: 620px;
   overflow: hidden;
   resize: none;
-  padding: 18px 22px;
-  border-color: rgba(94, 86, 65, 0.14);
-  border-radius: 10px;
-  background-color: #fffdf7;
+  padding: 18px 20px;
+  border-color: rgba(176, 80, 74, 0.26);
+  border-radius: 8px;
+  background-color: #fffdf6;
   background-image:
-    linear-gradient(to right, rgba(95, 107, 127, 0.16) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(95, 107, 127, 0.16) 1px, transparent 1px);
+    linear-gradient(to right, rgba(195, 68, 64, 0.26) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(195, 68, 64, 0.26) 1px, transparent 1px),
+    linear-gradient(to right, rgba(255, 255, 255, 0.72), rgba(255, 251, 241, 0.72));
   background-origin: content-box;
   background-clip: padding-box;
-  background-size: 1em var(--answer-line-height);
-  background-size: 1ic var(--answer-line-height);
+  background-position: -1px -1px, -1px -1px, 0 0;
+  background-size: var(--answer-cell) var(--answer-cell), var(--answer-cell) var(--answer-cell), 100% 100%;
   color: #1f2634;
   font-family: "KaiTi", "STKaiti", "FangSong", "STFangsong", "Noto Serif SC", serif;
-  font-size: 20px;
-  line-height: var(--answer-line-height);
+  font-size: var(--answer-cell);
+  line-height: var(--answer-cell);
   letter-spacing: 0;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+  word-break: break-all;
+  overflow-wrap: anywhere;
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.62),
+    0 14px 30px rgba(78, 48, 29, 0.06);
 }
 
 .essay-paper-mode textarea::placeholder {
-  color: rgba(67, 76, 93, 0.46);
+  color: rgba(67, 76, 93, 0.36);
   font-family: "FangSong", "STFangsong", "Noto Serif SC", serif;
+  font-size: 18px;
+  line-height: 1.7;
 }
 
 .essay-paper-mode .compose-footer {
-  justify-self: center;
-  width: min(100%, calc(25em + 44px));
-  width: min(100%, calc(25ic + 44px));
+  justify-self: stretch;
+  width: 100%;
+  padding: 0 2px;
 }
 
 .interview-stage .question-compose textarea {
@@ -1237,6 +1252,14 @@ function escapeHtml(value: string) {
 .question-compose textarea:focus {
   border-color: rgba(47, 99, 183, 0.45);
   box-shadow: 0 0 0 4px rgba(47, 99, 183, 0.08);
+}
+
+.essay-paper-mode textarea:focus {
+  border-color: rgba(184, 68, 63, 0.44);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.64),
+    0 0 0 4px rgba(184, 68, 63, 0.08),
+    0 16px 34px rgba(78, 48, 29, 0.08);
 }
 
 .compose-footer {
