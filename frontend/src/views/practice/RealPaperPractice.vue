@@ -3,8 +3,10 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
+  ArrowDown,
   ArrowLeft,
   ArrowRight,
+  ArrowUp,
   Back,
   CircleCheck,
   DocumentChecked,
@@ -92,6 +94,8 @@ const totalSeconds = ref(0)
 const submitting = ref(false)
 const loading = ref(false)
 const favoriteVersion = ref(0)
+const answerTextarea = ref<HTMLTextAreaElement | null>(null)
+const questionCollapsed = ref(false)
 let timerId: number | undefined
 let allowLeave = false
 
@@ -118,7 +122,7 @@ const currentQuestionLabel = computed(() => `题${currentIndex.value + 1}`)
 const wordLimitText = computed(() => (currentQuestion.value.wordLimit > 0 ? `${currentQuestion.value.wordLimit} 字以内` : '口述不限字'))
 const wordLimitBase = computed(() => (currentQuestion.value.wordLimit > 0 ? currentQuestion.value.wordLimit : 500))
 const wordProgress = computed(() => Math.min(100, Math.round((wordCount.value / wordLimitBase.value) * 100)))
-const highlightedMaterialHtml = computed(() => buildReaderHtml(activeMaterial.value.content || activeMaterial.value.summary || ''))
+const readerMaterialHtml = computed(() => buildReaderHtml(activeMaterial.value.content || activeMaterial.value.summary || ''))
 const questionPositionText = computed(() => `${currentIndex.value + 1} / ${paper.value.questions.length || 0}`)
 const paperFavorite = computed(() => {
   favoriteVersion.value
@@ -130,9 +134,20 @@ watch(
   nextPaper => {
     currentIndex.value = 0
     activeMaterialId.value = nextPaper.materials[0]?.id || ''
+    questionCollapsed.value = false
+    queueAnswerResize()
   },
   { immediate: true },
 )
+
+watch(currentIndex, () => {
+  questionCollapsed.value = false
+  queueAnswerResize()
+})
+
+watch(currentAnswer, queueAnswerResize, { flush: 'post' })
+watch(questionCollapsed, queueAnswerResize, { flush: 'post' })
+watch(() => paper.value.type, queueAnswerResize, { flush: 'post' })
 
 watch(
   () => route.params.paperId,
@@ -166,6 +181,7 @@ onMounted(() => {
     }
   }, 1000)
   window.addEventListener('beforeunload', handleBeforeUnload)
+  queueAnswerResize()
 })
 
 onBeforeUnmount(() => {
@@ -234,6 +250,25 @@ function restoreDraft(draft: PracticeDraft) {
   evaluations.value = { ...draft.evaluations }
   questionTimers.value = { ...draft.questionTimers }
   totalSeconds.value = draft.totalSeconds || 0
+  queueAnswerResize()
+}
+
+function queueAnswerResize() {
+  if (typeof window === 'undefined') return
+  window.requestAnimationFrame(resizeAnswerArea)
+}
+
+function resizeAnswerArea() {
+  const textarea = answerTextarea.value
+  if (!textarea) return
+
+  if (paper.value.type !== 'essay') {
+    textarea.style.height = ''
+    return
+  }
+
+  textarea.style.height = 'auto'
+  textarea.style.height = `${Math.max(textarea.scrollHeight, 620)}px`
 }
 
 function buildDraft(): PracticeDraft {
@@ -412,7 +447,7 @@ function buildReaderHtml(value: string) {
     .replace(/\r\n/g, '\n')
     .replace(/([。！？])\s*((?:19|20)\d{2}年|首先|其次|再次|最后|同时|后来|转折|此后|此前)/g, '$1\n$2')
   const paragraphs = normalized.split(/\n+/).map(item => item.trim()).filter(Boolean)
-  return paragraphs.map(paragraph => `<p>${highlightReaderText(escapeHtml(paragraph))}</p>`).join('')
+  return paragraphs.map(paragraph => `<p>${escapeHtml(paragraph)}</p>`).join('')
 }
 
 function escapeHtml(value: string) {
@@ -424,13 +459,6 @@ function escapeHtml(value: string) {
     .replace(/'/g, '&#039;')
 }
 
-function highlightReaderText(value: string) {
-  return [
-    /((?:19|20)\d{2}年(?:[春夏秋冬]?(?:前|后|初|末|的一天)?)?)/g,
-    /(鲁师傅|广合烧饼|广合县|市场监督管理部门|监管部门|县工商局|工作人员)/g,
-    /(四个阶段|新阶段|第一阶段|第二阶段|第三阶段|第四阶段|转折|此前|此后|后来)/g,
-  ].reduce((text, pattern) => text.replace(pattern, '<mark class="reader-highlight">$1</mark>'), value)
-}
 </script>
 
 <template>
@@ -509,8 +537,8 @@ function highlightReaderText(value: string) {
       </section>
     </header>
 
-    <section class="focus-stage">
-      <aside class="material-rail" aria-label="材料导航">
+    <section class="focus-stage" :class="{ 'interview-stage': paper.type === 'interview' }">
+      <aside v-if="paper.type === 'essay'" class="material-rail" aria-label="材料导航">
         <span>材料</span>
         <button
           v-for="(material, index) in paper.materials"
@@ -525,7 +553,7 @@ function highlightReaderText(value: string) {
         </button>
       </aside>
 
-      <article class="paper-reader">
+      <article v-if="paper.type === 'essay'" class="paper-reader">
         <header class="reader-title">
           <div>
             <span>{{ paper.shortTitle || paper.title }}</span>
@@ -533,12 +561,24 @@ function highlightReaderText(value: string) {
           </div>
           <em>约 {{ activeMaterial.wordCount }} 字</em>
         </header>
-        <section class="reader-sheet" v-html="highlightedMaterialHtml"></section>
+        <section class="reader-sheet" v-html="readerMaterialHtml"></section>
       </article>
 
       <section class="answer-sheet">
-        <article class="question-compose">
+        <article class="question-compose" :class="{ collapsed: questionCollapsed, 'essay-paper-mode': paper.type === 'essay' }">
           <header class="question-head">
+            <button
+              type="button"
+              class="question-collapse-button"
+              :aria-label="questionCollapsed ? '展开题目' : '收起题目'"
+              :data-tooltip="questionCollapsed ? '展开题目' : '收起题目'"
+              @click="questionCollapsed = !questionCollapsed"
+            >
+              <el-icon>
+                <ArrowDown v-if="questionCollapsed" />
+                <ArrowUp v-else />
+              </el-icon>
+            </button>
             <div>
               <span>{{ paper.type === 'essay' ? '申论' : '面试' }} · {{ currentQuestionLabel }}</span>
               <h1>{{ currentQuestion.title }}</h1>
@@ -555,15 +595,17 @@ function highlightReaderText(value: string) {
             </button>
           </header>
 
-          <p class="question-prompt">{{ currentQuestion.prompt }}</p>
-          <div v-if="currentQuestion.requirements.length" class="requirement-line">
+          <p v-show="!questionCollapsed" class="question-prompt">{{ currentQuestion.prompt }}</p>
+          <div v-if="currentQuestion.requirements.length" v-show="!questionCollapsed" class="requirement-line">
             <span>要求：</span>
             <strong v-for="item in currentQuestion.requirements" :key="item">{{ item }}</strong>
           </div>
 
           <textarea
+            ref="answerTextarea"
             v-model="currentAnswer"
             :placeholder="paper.type === 'essay' ? '请在这里作答。先提炼材料要点，再展开成完整答案...' : '请按结构化面试口径组织表达，注意身份感、交流感和层次...'"
+            @input="queueAnswerResize"
           ></textarea>
 
           <footer class="compose-footer">
@@ -649,7 +691,8 @@ function highlightReaderText(value: string) {
 }
 
 .icon-button,
-.favorite-button {
+.favorite-button,
+.question-collapse-button {
   position: relative;
   display: inline-grid;
   place-items: center;
@@ -659,11 +702,13 @@ function highlightReaderText(value: string) {
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.74);
   color: #4d5d75;
+  outline: none;
   transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
 .icon-button::after,
-.favorite-button::after {
+.favorite-button::after,
+.question-collapse-button::after {
   position: absolute;
   top: calc(100% + 8px);
   left: 50%;
@@ -683,17 +728,25 @@ function highlightReaderText(value: string) {
 }
 
 .icon-button:hover::after,
-.favorite-button:hover::after {
+.favorite-button:hover::after,
+.question-collapse-button:hover::after {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
 
 .icon-button:hover,
-.favorite-button:hover {
+.favorite-button:hover,
+.question-collapse-button:hover {
   border-color: rgba(64, 107, 180, 0.24);
   background: #ffffff;
   color: #2f63b7;
   transform: translateY(-1px);
+}
+
+.icon-button:focus-visible,
+.favorite-button:focus-visible,
+.question-collapse-button:focus-visible {
+  box-shadow: 0 0 0 4px rgba(47, 99, 183, 0.14);
 }
 
 .icon-button.primary {
@@ -719,7 +772,8 @@ function highlightReaderText(value: string) {
 }
 
 .icon-button .el-icon,
-.favorite-button .el-icon {
+.favorite-button .el-icon,
+.question-collapse-button .el-icon {
   font-size: 20px;
 }
 
@@ -836,6 +890,10 @@ function highlightReaderText(value: string) {
   gap: 22px;
   width: min(1680px, calc(100vw - 48px));
   margin: 28px auto 0;
+}
+
+.focus-stage.interview-stage {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .material-rail {
@@ -968,17 +1026,14 @@ function highlightReaderText(value: string) {
   margin: 0 0 22px;
 }
 
-.reader-sheet :deep(.reader-highlight) {
-  padding: 1px 4px;
-  border-radius: 5px;
-  background: rgba(211, 180, 89, 0.2);
-  color: #1f2b42;
-}
-
 .answer-sheet {
   display: grid;
   align-content: start;
   gap: 16px;
+}
+
+.interview-stage .answer-sheet {
+  grid-column: 1;
 }
 
 .question-compose,
@@ -997,11 +1052,45 @@ function highlightReaderText(value: string) {
   padding: 30px;
 }
 
+.interview-stage .question-compose {
+  grid-template-columns: minmax(360px, 0.86fr) minmax(480px, 1.14fr);
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "head answer"
+    "prompt answer"
+    "requirements answer"
+    ". footer";
+  gap: 18px 30px;
+  min-height: calc(100vh - 112px);
+}
+
+.interview-stage .question-compose.collapsed {
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  grid-template-areas:
+    "head answer"
+    ". answer"
+    ". footer";
+}
+
 .question-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   gap: 16px;
   align-items: start;
+}
+
+.question-collapse-button {
+  width: 34px;
+  height: 34px;
+  border-radius: 999px;
+}
+
+.question-collapse-button .el-icon {
+  font-size: 17px;
+}
+
+.interview-stage .question-head {
+  grid-area: head;
 }
 
 .question-head span {
@@ -1025,12 +1114,37 @@ function highlightReaderText(value: string) {
   line-height: 1.48;
 }
 
+.question-compose.collapsed {
+  gap: 14px;
+}
+
+.question-compose.collapsed .question-head {
+  align-items: center;
+}
+
+.question-compose.collapsed .question-head h1 {
+  max-width: none;
+  margin-top: 8px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 20px;
+  line-height: 1.35;
+}
+
 .question-prompt {
   max-width: 780px;
   margin: 0;
   color: #4a5568;
   font-size: 15px;
   line-height: 1.75;
+}
+
+.interview-stage .question-prompt {
+  grid-area: prompt;
+  max-width: none;
+  font-size: 16px;
+  line-height: 1.9;
 }
 
 .requirement-line {
@@ -1040,6 +1154,11 @@ function highlightReaderText(value: string) {
   align-items: center;
   color: #596579;
   font-size: 14px;
+}
+
+.interview-stage .requirement-line {
+  grid-area: requirements;
+  align-self: start;
 }
 
 .requirement-line span {
@@ -1069,6 +1188,52 @@ function highlightReaderText(value: string) {
   line-height: 1.9;
 }
 
+.essay-paper-mode textarea {
+  --answer-line-height: 38px;
+  box-sizing: border-box;
+  justify-self: center;
+  width: min(100%, calc(25em + 44px));
+  width: min(100%, calc(25ic + 44px));
+  min-height: 620px;
+  overflow: hidden;
+  resize: none;
+  padding: 18px 22px;
+  border-color: rgba(94, 86, 65, 0.14);
+  border-radius: 10px;
+  background-color: #fffdf7;
+  background-image:
+    linear-gradient(to right, rgba(95, 107, 127, 0.16) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(95, 107, 127, 0.16) 1px, transparent 1px);
+  background-origin: content-box;
+  background-clip: padding-box;
+  background-size: 1em var(--answer-line-height);
+  background-size: 1ic var(--answer-line-height);
+  color: #1f2634;
+  font-family: "KaiTi", "STKaiti", "FangSong", "STFangsong", "Noto Serif SC", serif;
+  font-size: 20px;
+  line-height: var(--answer-line-height);
+  letter-spacing: 0;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.72);
+}
+
+.essay-paper-mode textarea::placeholder {
+  color: rgba(67, 76, 93, 0.46);
+  font-family: "FangSong", "STFangsong", "Noto Serif SC", serif;
+}
+
+.essay-paper-mode .compose-footer {
+  justify-self: center;
+  width: min(100%, calc(25em + 44px));
+  width: min(100%, calc(25ic + 44px));
+}
+
+.interview-stage .question-compose textarea {
+  grid-area: answer;
+  min-height: calc(100vh - 210px);
+  height: 100%;
+  resize: none;
+}
+
 .question-compose textarea:focus {
   border-color: rgba(47, 99, 183, 0.45);
   box-shadow: 0 0 0 4px rgba(47, 99, 183, 0.08);
@@ -1082,6 +1247,16 @@ function highlightReaderText(value: string) {
   color: #6d7889;
   font-size: 13px;
   font-weight: 800;
+}
+
+.interview-stage .compose-footer {
+  grid-area: footer;
+}
+
+.interview-stage .review-card,
+.interview-stage .review-empty {
+  width: min(880px, 100%);
+  justify-self: end;
 }
 
 .review-card {
@@ -1227,13 +1402,47 @@ function highlightReaderText(value: string) {
     grid-template-columns: 96px 1fr;
   }
 
+  .focus-stage.interview-stage {
+    grid-template-columns: 1fr;
+  }
+
   .answer-sheet {
     grid-column: 2;
+  }
+
+  .interview-stage .answer-sheet {
+    grid-column: 1;
   }
 
   .paper-reader,
   .question-compose {
     min-height: auto;
+  }
+}
+
+@media (max-width: 980px) {
+  .interview-stage .question-compose {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    grid-template-areas:
+      "head"
+      "prompt"
+      "requirements"
+      "answer"
+      "footer";
+    min-height: auto;
+  }
+
+  .interview-stage .question-compose textarea {
+    min-height: 360px;
+    height: auto;
+    resize: vertical;
+  }
+
+  .interview-stage .review-card,
+  .interview-stage .review-empty {
+    width: 100%;
+    justify-self: stretch;
   }
 }
 
@@ -1314,7 +1523,8 @@ function highlightReaderText(value: string) {
   }
 
   .icon-button::after,
-  .favorite-button::after {
+  .favorite-button::after,
+  .question-collapse-button::after {
     display: none;
   }
 }
