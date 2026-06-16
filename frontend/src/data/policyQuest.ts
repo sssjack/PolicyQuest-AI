@@ -108,8 +108,22 @@ export interface PracticeHistoryItem {
   updatedAt: string
 }
 
+export interface FavoritePaper {
+  id: string
+  paperId: string
+  paperTitle: string
+  type: PracticeType
+  systemLabel: string
+  category: string
+  year: number
+  suggestedMinutes: number
+  questionCount: number
+  favoritedAt: string
+}
+
 const RECORD_KEY = 'policyquest_real_practice_records'
 const DRAFT_KEY = 'policyquest_real_practice_drafts'
+const FAVORITE_KEY = 'policyquest_real_paper_favorites'
 
 export const essayDimensions = ['综合分析', '提出对策', '申发论述', '文章写作', '贯彻执行']
 export const interviewDimensions = ['审题准确', '逻辑层次', '岗位匹配', '应变处置', '表达感染']
@@ -298,6 +312,50 @@ export function savePracticeDraft(draft: PracticeDraft) {
 export function removePracticeDraft(paperId: string) {
   const drafts = readPracticeDrafts().filter(item => item.paperId !== paperId)
   localStorage.setItem(DRAFT_KEY, JSON.stringify(drafts))
+}
+
+export function readFavoritePapers(): FavoritePaper[] {
+  try {
+    const value = localStorage.getItem(FAVORITE_KEY)
+    if (!value) return []
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+export function isFavoritePaper(paperId: string) {
+  return readFavoritePapers().some(item => item.paperId === paperId)
+}
+
+export function toggleFavoritePaper(paper: RealPaper) {
+  const favorites = readFavoritePapers()
+  const exists = favorites.some(item => item.paperId === paper.id)
+  if (exists) {
+    localStorage.setItem(FAVORITE_KEY, JSON.stringify(favorites.filter(item => item.paperId !== paper.id)))
+    return false
+  }
+
+  const favorite: FavoritePaper = {
+    id: `favorite-${paper.id}`,
+    paperId: paper.id,
+    paperTitle: paper.title,
+    type: paper.type,
+    systemLabel: paper.systemLabel,
+    category: paper.category,
+    year: paper.year,
+    suggestedMinutes: paper.suggestedMinutes,
+    questionCount: paper.questionCount,
+    favoritedAt: new Date().toISOString(),
+  }
+  localStorage.setItem(FAVORITE_KEY, JSON.stringify([favorite, ...favorites].slice(0, 200)))
+  return true
+}
+
+export function removeFavoritePaper(paperId: string) {
+  const favorites = readFavoritePapers().filter(item => item.paperId !== paperId)
+  localStorage.setItem(FAVORITE_KEY, JSON.stringify(favorites))
 }
 
 export function buildPracticeHistory(records = readPracticeRecords(), drafts = readPracticeDrafts()): PracticeHistoryItem[] {

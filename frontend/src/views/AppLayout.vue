@@ -23,12 +23,12 @@ const userInitial = computed(() => userName.value.slice(0, 1).toUpperCase())
 const navItems: NavItem[] = [
   { key: 'coach', to: '/coach', label: '学习中心', caption: '今日计划', icon: 'dashboard', match: ['/coach'] },
   { key: 'papers', to: '/papers', label: '真题库', caption: '筛选与练习', icon: 'practice', match: ['/papers', '/practice'] },
+  { key: 'history', to: '/history', label: '做题历史', caption: '进度与收藏', icon: 'history', match: ['/history'] },
   { key: 'report', to: '/report', label: '我的报告', caption: '能力复盘', icon: 'report', match: ['/report'] },
 ]
 
 const utilityItems: NavItem[] = [
   { key: 'articles', to: '/articles', label: '素材库', caption: '政策素材', icon: 'article', match: ['/articles'] },
-  { key: 'wrongbook', to: '/wrongbook', label: '错题本', caption: '薄弱回练', icon: 'wrong', match: ['/wrongbook'] },
   { key: 'profile', to: '/profile', label: '个人档案', caption: '账号与目标', icon: 'user', match: ['/profile'] },
 ]
 
@@ -99,8 +99,8 @@ function logout() {
 
       <section class="daily-card">
         <span class="card-kicker">Today Focus</span>
-        <strong>先完成 1 次限时真题</strong>
-        <p>系统会把本次作答同步到报告，继续更新薄弱项和下一步建议。</p>
+          <strong>先完成 1 次限时真题</strong>
+        <p>系统会把本次作答同步到历史与报告，继续更新薄弱项和下一步建议。</p>
         <div class="mini-progress"><i></i></div>
       </section>
 
@@ -556,7 +556,7 @@ function logout() {
     inset: auto 10px 10px;
     z-index: 50;
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
     gap: 4px;
     padding: 8px;
     border: 1px solid rgba(198, 211, 232, 0.78);
@@ -593,7 +593,7 @@ function logout() {
 
 @media (max-width: 560px) {
   .mobile-nav {
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
     inset: auto 8px 8px;
   }
 }

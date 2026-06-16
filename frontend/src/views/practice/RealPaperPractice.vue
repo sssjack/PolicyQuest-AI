@@ -4,10 +4,15 @@ import { onBeforeRouteLeave, useRoute, useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import {
   ArrowLeft,
+  ArrowRight,
+  Back,
   CircleCheck,
   DocumentChecked,
   EditPen,
+  Finished,
+  FolderChecked,
   MagicStick,
+  Promotion,
   Reading,
   Star,
   Timer,
@@ -23,6 +28,8 @@ import {
   removePracticeDraft,
   savePracticeDraft,
   savePracticeRecord,
+  isFavoritePaper,
+  toggleFavoritePaper,
   type EvaluationResult,
   type MaterialBlock,
   type PaperQuestion,
@@ -45,6 +52,7 @@ const emptyQuestion: PaperQuestion = {
   dimensions: [],
   sampleAnswer: '',
 }
+
 const emptyMaterial: MaterialBlock = {
   id: 'empty',
   title: '材料',
@@ -52,6 +60,7 @@ const emptyMaterial: MaterialBlock = {
   content: '',
   wordCount: 0,
 }
+
 const emptyPaper: RealPaper = {
   id: '',
   type: 'essay',
@@ -82,6 +91,7 @@ const questionTimers = ref<Record<string, number>>({})
 const totalSeconds = ref(0)
 const submitting = ref(false)
 const loading = ref(false)
+const favoriteVersion = ref(0)
 let timerId: number | undefined
 let allowLeave = false
 
@@ -102,6 +112,18 @@ const currentQuestionTime = computed(() => questionTimers.value[currentQuestion.
 const allSubmitted = computed(() => paper.value.questions.length > 0 && submittedCount.value === paper.value.questions.length)
 const hasWork = computed(() => answeredCount.value > 0 || submittedCount.value > 0 || totalSeconds.value > 20)
 const shouldPromptOnLeave = computed(() => Boolean(paper.value.id && hasWork.value && !allSubmitted.value))
+const activeMaterialIndex = computed(() => Math.max(0, paper.value.materials.findIndex(material => material.id === activeMaterialId.value)))
+const activeMaterialLabel = computed(() => `材料${activeMaterialIndex.value + 1}`)
+const currentQuestionLabel = computed(() => `题${currentIndex.value + 1}`)
+const wordLimitText = computed(() => (currentQuestion.value.wordLimit > 0 ? `${currentQuestion.value.wordLimit} 字以内` : '口述不限字'))
+const wordLimitBase = computed(() => (currentQuestion.value.wordLimit > 0 ? currentQuestion.value.wordLimit : 500))
+const wordProgress = computed(() => Math.min(100, Math.round((wordCount.value / wordLimitBase.value) * 100)))
+const highlightedMaterialHtml = computed(() => buildReaderHtml(activeMaterial.value.content || activeMaterial.value.summary || ''))
+const questionPositionText = computed(() => `${currentIndex.value + 1} / ${paper.value.questions.length || 0}`)
+const paperFavorite = computed(() => {
+  favoriteVersion.value
+  return Boolean(paper.value.id && isFavoritePaper(paper.value.id))
+})
 
 watch(
   paper,
@@ -233,11 +255,17 @@ function buildDraft(): PracticeDraft {
 function saveDraft(showMessage = true) {
   if (!paper.value.id) return
   savePracticeDraft(buildDraft())
-  if (showMessage) ElMessage.success('进度已保存，可在真题库的做题历史继续')
+  if (showMessage) ElMessage.success('进度已保存，可在做题历史继续')
 }
 
-function chooseQuestion(index: number) {
-  currentIndex.value = index
+function goPreviousQuestion() {
+  if (currentIndex.value <= 0) return
+  currentIndex.value -= 1
+}
+
+function goNextQuestion() {
+  if (currentIndex.value >= paper.value.questions.length - 1) return
+  currentIndex.value += 1
 }
 
 function chooseMaterial(id: string) {
@@ -331,14 +359,44 @@ function finishPaper() {
   removePracticeDraft(paper.value.id)
   allowLeave = true
   ElMessage.success('本卷已完成，已同步到做题历史')
-  router.push('/report')
+  router.push('/history')
 }
 
-function exitPractice() {
-  router.push({
-    path: '/papers',
-    query: route.query.preview === '1' ? { preview: '1', type: paper.value.type } : { type: paper.value.type },
-  })
+async function exitPractice() {
+  if (shouldPromptOnLeave.value) {
+    try {
+      await ElMessageBox.confirm('当前真题还没有完成，是否保存进度后退出？', '保存进度', {
+        confirmButtonText: '保存并退出',
+        cancelButtonText: '直接退出',
+        distinguishCancelAndClose: true,
+        type: 'warning',
+      })
+      saveDraft(false)
+    } catch (action) {
+      if (action !== 'cancel') return
+    }
+  }
+
+  allowLeave = true
+  router.push(exitTarget())
+}
+
+function exitTarget() {
+  const fromHistory = route.query.from === 'history'
+  const query: Record<string, string> = {}
+  if (route.query.preview === '1') query.preview = '1'
+  if (!fromHistory) query.type = paper.value.type
+  return {
+    path: fromHistory ? '/history' : '/papers',
+    query,
+  }
+}
+
+function toggleFavorite() {
+  if (!paper.value.id) return
+  const isFavorited = toggleFavoritePaper(paper.value)
+  favoriteVersion.value += 1
+  ElMessage.success(isFavorited ? '已收藏到做题历史' : '已取消收藏')
 }
 
 function handleBeforeUnload(event: BeforeUnloadEvent) {
@@ -346,596 +404,736 @@ function handleBeforeUnload(event: BeforeUnloadEvent) {
   event.preventDefault()
   event.returnValue = ''
 }
+
+function buildReaderHtml(value: string) {
+  const raw = String(value || '').trim()
+  if (!raw) return '<p>暂无材料内容</p>'
+  const normalized = raw
+    .replace(/\r\n/g, '\n')
+    .replace(/([。！？])\s*((?:19|20)\d{2}年|首先|其次|再次|最后|同时|后来|转折|此后|此前)/g, '$1\n$2')
+  const paragraphs = normalized.split(/\n+/).map(item => item.trim()).filter(Boolean)
+  return paragraphs.map(paragraph => `<p>${highlightReaderText(escapeHtml(paragraph))}</p>`).join('')
+}
+
+function escapeHtml(value: string) {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+function highlightReaderText(value: string) {
+  return [
+    /((?:19|20)\d{2}年(?:[春夏秋冬]?(?:前|后|初|末|的一天)?)?)/g,
+    /(鲁师傅|广合烧饼|广合县|市场监督管理部门|监管部门|县工商局|工作人员)/g,
+    /(四个阶段|新阶段|第一阶段|第二阶段|第三阶段|第四阶段|转折|此前|此后|后来)/g,
+  ].reduce((text, pattern) => text.replace(pattern, '<mark class="reader-highlight">$1</mark>'), value)
+}
 </script>
 
 <template>
-  <main class="immersive-practice" :class="paper.type">
-    <header class="immersive-topbar">
-      <button type="button" class="ghost-button" @click="exitPractice">
-        <el-icon><ArrowLeft /></el-icon>
-        返回真题库
+  <main class="focus-practice" :class="paper.type">
+    <header class="focus-topbar">
+      <button type="button" class="icon-button" aria-label="返回真题库" data-tooltip="返回" @click="exitPractice">
+        <el-icon><Back /></el-icon>
       </button>
 
-      <section class="paper-heading">
-        <p>{{ paper.type === 'essay' ? '申论沉浸作答' : '面试沉浸作答' }}</p>
-        <h1>{{ paper.title }}</h1>
-        <span>题目 {{ currentIndex + 1 }} / {{ paper.questions.length }} · {{ paper.systemLabel }} · {{ paper.category }}</span>
+      <section class="focus-position" aria-label="当前作答位置">
+        <strong>{{ activeMaterialLabel }}</strong>
+        <span>/</span>
+        <strong>{{ currentQuestionLabel }}</strong>
       </section>
 
-      <section class="top-actions">
-        <div class="progress-box">
-          <strong>{{ progressPercent }}%</strong>
-          <i><b :style="{ width: `${progressPercent}%` }"></b></i>
+      <section class="focus-clock" aria-label="总用时">
+        <el-icon><Timer /></el-icon>
+        <strong>{{ formatSeconds(totalSeconds) }}</strong>
+      </section>
+
+      <section class="focus-progress" aria-label="题目进度">
+        <span>{{ progressPercent }}%</span>
+        <i><b :style="{ width: `${progressPercent}%` }"></b></i>
+        <div class="question-switcher">
+          <button
+            type="button"
+            aria-label="上一题"
+            :disabled="currentIndex === 0"
+            @click="goPreviousQuestion"
+          >
+            <el-icon><ArrowLeft /></el-icon>
+          </button>
+          <strong>题 {{ questionPositionText }}</strong>
+          <button
+            type="button"
+            aria-label="下一题"
+            :disabled="currentIndex >= paper.questions.length - 1"
+            @click="goNextQuestion"
+          >
+            <el-icon><ArrowRight /></el-icon>
+          </button>
         </div>
-        <div class="timer-pill">
-          <el-icon><Timer /></el-icon>
-          <strong>{{ formatSeconds(totalSeconds) }}</strong>
-          <span>总用时</span>
-        </div>
-        <button class="save-button" type="button" :disabled="loading || !paper.questions.length" @click="saveDraft()">
-          保存进度
+      </section>
+
+      <section class="focus-actions" aria-label="作答操作">
+        <button
+          type="button"
+          class="icon-button"
+          :disabled="loading || !paper.questions.length"
+          aria-label="保存进度"
+          data-tooltip="保存"
+          @click="saveDraft()"
+        >
+          <el-icon><FolderChecked /></el-icon>
         </button>
-        <button class="submit-button" type="button" :disabled="loading || submitting || !paper.questions.length" @click="submitQuestion">
-          {{ loading ? '加载中' : submitting ? '评阅中' : currentEvaluation ? '重新提交' : '提交本题' }}
+        <button
+          type="button"
+          class="icon-button primary"
+          :disabled="loading || submitting || !paper.questions.length"
+          :aria-label="currentEvaluation ? '重新提交本题' : '提交本题'"
+          :data-tooltip="currentEvaluation ? '重交本题' : '提交本题'"
+          @click="submitQuestion"
+        >
+          <el-icon><Promotion /></el-icon>
         </button>
-        <button class="finish-button" type="button" :class="{ ready: allSubmitted }" @click="finishPaper">提交本卷</button>
+        <button
+          type="button"
+          class="icon-button"
+          :class="{ ready: allSubmitted }"
+          aria-label="提交本卷"
+          data-tooltip="提交本卷"
+          @click="finishPaper"
+        >
+          <el-icon><Finished /></el-icon>
+        </button>
       </section>
     </header>
 
-    <section class="immersive-shell">
-      <section class="material-pane">
-        <nav class="side-tabs material-tabs" aria-label="材料导航">
-          <button
-            v-for="(material, index) in paper.materials"
-            :key="material.id"
-            type="button"
-            :class="{ active: activeMaterialId === material.id }"
-            @click="chooseMaterial(material.id)"
-          >
-            <span>材料</span>
-            <strong>{{ index + 1 }}</strong>
-          </button>
-        </nav>
+    <section class="focus-stage">
+      <aside class="material-rail" aria-label="材料导航">
+        <span>材料</span>
+        <button
+          v-for="(material, index) in paper.materials"
+          :key="material.id"
+          type="button"
+          :class="{ active: activeMaterialId === material.id }"
+          :aria-label="`切换到材料 ${index + 1}`"
+          @click="chooseMaterial(material.id)"
+        >
+          <strong>{{ index + 1 }}</strong>
+          <small>{{ material.title }}</small>
+        </button>
+      </aside>
 
-        <article class="reader-card">
-          <div class="pane-head">
-            <div>
-              <p>Material Reader</p>
-              <h2>{{ activeMaterial.title }}</h2>
-            </div>
-            <span>约 {{ activeMaterial.wordCount }} 字</span>
+      <article class="paper-reader">
+        <header class="reader-title">
+          <div>
+            <span>{{ paper.shortTitle || paper.title }}</span>
+            <h1>{{ activeMaterial.title }}</h1>
           </div>
-          <div class="reader-body">{{ activeMaterial.content || activeMaterial.summary || '暂无材料内容' }}</div>
+          <em>约 {{ activeMaterial.wordCount }} 字</em>
+        </header>
+        <section class="reader-sheet" v-html="highlightedMaterialHtml"></section>
+      </article>
+
+      <section class="answer-sheet">
+        <article class="question-compose">
+          <header class="question-head">
+            <div>
+              <span>{{ paper.type === 'essay' ? '申论' : '面试' }} · {{ currentQuestionLabel }}</span>
+              <h1>{{ currentQuestion.title }}</h1>
+            </div>
+            <button
+              type="button"
+              class="favorite-button"
+              :class="{ active: paperFavorite }"
+              :aria-label="paperFavorite ? '取消收藏本卷' : '收藏本卷'"
+              :data-tooltip="paperFavorite ? '取消收藏' : '收藏本卷'"
+              @click="toggleFavorite"
+            >
+              <el-icon><Star /></el-icon>
+            </button>
+          </header>
+
+          <p class="question-prompt">{{ currentQuestion.prompt }}</p>
+          <div v-if="currentQuestion.requirements.length" class="requirement-line">
+            <span>要求：</span>
+            <strong v-for="item in currentQuestion.requirements" :key="item">{{ item }}</strong>
+          </div>
+
+          <textarea
+            v-model="currentAnswer"
+            :placeholder="paper.type === 'essay' ? '请在这里作答。先提炼材料要点，再展开成完整答案...' : '请按结构化面试口径组织表达，注意身份感、交流感和层次...'"
+          ></textarea>
+
+          <footer class="compose-footer">
+            <span>字数：{{ wordCount }} / {{ currentQuestion.wordLimit > 0 ? currentQuestion.wordLimit : '不限' }}</span>
+            <span>建议用时：{{ currentQuestion.suggestedMinutes }} 分钟</span>
+            <span>{{ wordLimitText }}</span>
+            <i><b :style="{ width: `${wordProgress}%` }"></b></i>
+          </footer>
+        </article>
+
+        <article v-if="currentEvaluation" class="review-card">
+          <section class="score-summary">
+            <div class="score-ring">
+              <strong>{{ currentEvaluation.score }}</strong>
+              <span>/100</span>
+            </div>
+            <div>
+              <p>AI 评阅</p>
+              <h2>{{ currentEvaluation.level }}</h2>
+              <span>{{ currentEvaluation.summary }}</span>
+            </div>
+          </section>
+
+          <section class="review-grid">
+            <div class="review-block">
+              <h3><el-icon><MagicStick /></el-icon> 修改建议</h3>
+              <p v-for="item in currentEvaluation.suggestions.slice(0, 3)" :key="item">{{ item }}</p>
+            </div>
+            <div class="review-block success">
+              <h3><el-icon><CircleCheck /></el-icon> 优点</h3>
+              <p v-for="item in currentEvaluation.advantages.slice(0, 2)" :key="item">{{ item }}</p>
+            </div>
+            <div class="review-block danger">
+              <h3><el-icon><Warning /></el-icon> 缺点</h3>
+              <p v-for="item in currentEvaluation.disadvantages.slice(0, 2)" :key="item">{{ item }}</p>
+            </div>
+          </section>
+
+          <section class="radar-card">
+            <div>
+              <h3><el-icon><Reading /></el-icon> 维度雷达</h3>
+              <router-link to="/report">查看完整报告</router-link>
+            </div>
+            <AbilityRadar :items="currentEvaluation.dimensions" :height="220" />
+          </section>
+
+          <section class="sample-card">
+            <h3><el-icon><DocumentChecked /></el-icon> 参考表达</h3>
+            <p>{{ currentEvaluation.sampleEssay }}</p>
+          </section>
+        </article>
+
+        <article v-else class="review-empty">
+          <el-icon><EditPen /></el-icon>
+          <strong>提交本题后查看 AI 评阅</strong>
+          <span>评阅结果会安静地出现在作答区下方，不打断阅读和写作节奏。</span>
         </article>
       </section>
-
-      <section class="answer-pane">
-        <nav class="side-tabs question-tabs" aria-label="题目导航">
-          <button
-            v-for="(question, index) in paper.questions"
-            :key="question.id"
-            type="button"
-            :class="{ active: currentIndex === index, done: evaluations[question.id] }"
-            @click="chooseQuestion(index)"
-          >
-            <span>题</span>
-            <strong>{{ index + 1 }}</strong>
-          </button>
-        </nav>
-
-        <section class="answer-workbench">
-          <article class="prompt-card">
-            <div class="meta-row">
-              <span>{{ paper.type === 'essay' ? '申论' : '面试' }}</span>
-              <span>{{ currentQuestion.score }} 分</span>
-              <span>{{ currentQuestion.suggestedMinutes }} 分钟建议</span>
-              <span>{{ currentQuestion.wordLimit }} 字以内</span>
-            </div>
-            <h2>{{ currentQuestion.title }}</h2>
-            <p>{{ currentQuestion.prompt }}</p>
-            <ul v-if="currentQuestion.requirements.length">
-              <li v-for="item in currentQuestion.requirements" :key="item">{{ item }}</li>
-            </ul>
-          </article>
-
-          <article class="answer-card">
-            <div class="answer-head">
-              <strong>作答区</strong>
-              <span>已输入 {{ wordCount }} 字 · 本题用时 {{ formatSeconds(currentQuestionTime) }}</span>
-            </div>
-            <textarea
-              v-model="currentAnswer"
-              :placeholder="paper.type === 'essay' ? '请根据左侧材料作答，先提炼要点，再展开成完整答案...' : '请按结构化面试口径组织表达，注意身份感、交流感和层次...'"
-            ></textarea>
-            <div class="answer-footer">
-              <i><b :style="{ width: `${Math.min(100, Math.round((wordCount / currentQuestion.wordLimit) * 100))}%` }"></b></i>
-              <span>{{ submittedCount }} / {{ paper.questions.length }} 题已提交</span>
-            </div>
-          </article>
-
-          <article v-if="currentEvaluation" class="review-card">
-            <section class="score-summary">
-              <div class="score-ring">
-                <strong>{{ currentEvaluation.score }}</strong>
-                <span>/100</span>
-              </div>
-              <div>
-                <p>AI Review</p>
-                <h2>{{ currentEvaluation.level }}</h2>
-                <span>{{ currentEvaluation.summary }}</span>
-              </div>
-            </section>
-
-            <section class="review-grid">
-              <div class="review-block">
-                <h3><el-icon><MagicStick /></el-icon> 修改建议</h3>
-                <p v-for="item in currentEvaluation.suggestions.slice(0, 3)" :key="item">{{ item }}</p>
-              </div>
-              <div class="review-block success">
-                <h3><el-icon><CircleCheck /></el-icon> 优点</h3>
-                <p v-for="item in currentEvaluation.advantages.slice(0, 2)" :key="item">{{ item }}</p>
-              </div>
-              <div class="review-block danger">
-                <h3><el-icon><Warning /></el-icon> 缺点</h3>
-                <p v-for="item in currentEvaluation.disadvantages.slice(0, 2)" :key="item">{{ item }}</p>
-              </div>
-            </section>
-
-            <section class="radar-card">
-              <div>
-                <h3><el-icon><Reading /></el-icon> 维度雷达</h3>
-                <router-link to="/report">查看完整报告</router-link>
-              </div>
-              <AbilityRadar :items="currentEvaluation.dimensions" :height="230" />
-            </section>
-
-            <section class="sample-card">
-              <h3><el-icon><DocumentChecked /></el-icon> 参考表达</h3>
-              <p>{{ currentEvaluation.sampleEssay }}</p>
-            </section>
-          </article>
-
-          <article v-else class="review-empty">
-            <el-icon><EditPen /></el-icon>
-            <h2>提交本题后查看 AI 评阅</h2>
-            <p>评阅结果会出现在答题区下方，不会打断左侧材料阅读。</p>
-          </article>
-        </section>
-      </section>
     </section>
-
-    <button class="floating-star" type="button">
-      <el-icon><Star /></el-icon>
-      标记本题
-    </button>
   </main>
 </template>
 
 <style scoped>
-.immersive-practice {
+.focus-practice {
   min-height: 100vh;
-  padding: 18px;
-  background:
-    linear-gradient(90deg, rgba(0, 80, 203, 0.055) 1px, transparent 1px),
-    linear-gradient(180deg, #f5f9ff 0%, #ffffff 46%, #f4fbff 100%);
-  background-size: 42px 42px, auto;
+  padding: 0 24px 28px;
+  background: linear-gradient(180deg, rgba(248, 249, 247, 0.98) 0%, #f2f3ef 100%);
+  color: #172033;
 }
 
-.immersive-topbar {
+.focus-topbar {
   position: sticky;
   top: 0;
-  z-index: 30;
+  z-index: 40;
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
-  gap: 18px;
+  grid-template-columns: 44px minmax(150px, 1fr) minmax(180px, auto) minmax(250px, 0.8fr) auto;
+  gap: 16px;
   align-items: center;
-  min-height: 86px;
-  padding: 14px 18px;
-  border: 1px solid rgba(196, 211, 238, 0.86);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: 0 18px 40px rgba(19, 42, 74, 0.08);
+  min-height: 64px;
+  border-bottom: 1px solid rgba(31, 42, 64, 0.08);
+  background: rgba(248, 249, 247, 0.86);
   backdrop-filter: blur(18px);
 }
 
-.ghost-button,
-.save-button,
-.submit-button,
-.finish-button {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-height: 42px;
+.icon-button,
+.favorite-button {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgba(35, 50, 78, 0.1);
   border-radius: 12px;
-  font-weight: 900;
+  background: rgba(255, 255, 255, 0.74);
+  color: #4d5d75;
+  transition: border-color 0.18s ease, background 0.18s ease, color 0.18s ease, transform 0.18s ease;
 }
 
-.ghost-button,
-.save-button,
-.finish-button {
-  border: 1px solid var(--border);
-  background: #ffffff;
-  color: var(--text-secondary);
-}
-
-.ghost-button {
-  padding: 0 14px;
-}
-
-.save-button,
-.submit-button,
-.finish-button {
-  padding: 0 16px;
-}
-
-.submit-button {
-  border: 0;
-  background: var(--gradient-1);
+.icon-button::after,
+.favorite-button::after {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 50%;
+  z-index: 50;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: #172033;
   color: #ffffff;
-}
-
-.finish-button.ready {
-  border-color: rgba(8, 118, 108, 0.22);
-  background: var(--success-soft);
-  color: var(--success);
-}
-
-.paper-heading {
-  min-width: 0;
-}
-
-.paper-heading p,
-.pane-head p,
-.score-summary p {
-  margin: 0 0 4px;
-  color: var(--primary);
+  content: attr(data-tooltip);
   font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.paper-heading h1 {
-  overflow: hidden;
-  margin: 0;
-  color: #07182f;
-  font-size: 24px;
-  text-overflow: ellipsis;
+  font-weight: 700;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(-4px);
+  transition: opacity 0.16s ease, transform 0.16s ease;
   white-space: nowrap;
 }
 
-.paper-heading span {
-  display: block;
-  margin-top: 4px;
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 800;
+.icon-button:hover::after,
+.favorite-button:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
 }
 
-.top-actions {
+.icon-button:hover,
+.favorite-button:hover {
+  border-color: rgba(64, 107, 180, 0.24);
+  background: #ffffff;
+  color: #2f63b7;
+  transform: translateY(-1px);
+}
+
+.icon-button.primary {
+  border-color: #2f63b7;
+  background: #2f63b7;
+  color: #ffffff;
+}
+
+.icon-button.ready {
+  border-color: rgba(26, 113, 94, 0.18);
+  background: #e8f5ee;
+  color: #1a715e;
+}
+
+.favorite-button.active {
+  border-color: rgba(47, 99, 183, 0.28);
+  background: #edf3fb;
+  color: #2f63b7;
+}
+
+.favorite-button.active .el-icon {
+  fill: currentColor;
+}
+
+.icon-button .el-icon,
+.favorite-button .el-icon {
+  font-size: 20px;
+}
+
+.focus-position {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
+  color: #172033;
+  font-size: 16px;
 }
 
-.progress-box {
+.focus-position strong {
+  font-weight: 900;
+}
+
+.focus-position span {
+  color: #98a1ae;
+}
+
+.focus-clock {
+  justify-self: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-width: 174px;
+  min-height: 42px;
+  padding: 0 18px;
+  border: 1px solid rgba(35, 50, 78, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #172033;
+  font-variant-numeric: tabular-nums;
+}
+
+.focus-clock .el-icon {
+  color: #2f63b7;
+  font-size: 20px;
+}
+
+.focus-clock strong {
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.focus-progress {
   display: grid;
-  gap: 7px;
-  width: 150px;
-  color: var(--text-primary);
+  grid-template-columns: auto minmax(90px, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  color: #5d6878;
+  font-size: 13px;
+  font-weight: 900;
 }
 
-.progress-box strong {
-  font-size: 15px;
-}
-
-.progress-box i,
-.answer-footer i {
+.focus-progress > i,
+.compose-footer i {
   display: block;
   height: 7px;
   overflow: hidden;
   border-radius: 999px;
-  background: #dce9ff;
+  background: #d8ddd8;
 }
 
-.progress-box b,
-.answer-footer b {
+.focus-progress b,
+.compose-footer b {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: var(--gradient-1);
+  background: #2f63b7;
 }
 
-.timer-pill {
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: 2px 8px;
-  align-items: center;
-  color: var(--text-primary);
-}
-
-.timer-pill .el-icon {
-  grid-row: span 2;
-  color: var(--primary);
-  font-size: 24px;
-}
-
-.timer-pill strong {
-  font-size: 20px;
-  font-variant-numeric: tabular-nums;
-}
-
-.timer-pill span {
-  color: var(--text-muted);
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.immersive-shell {
-  display: grid;
-  grid-template-columns: minmax(0, 1.05fr) minmax(430px, 0.95fr);
-  gap: 16px;
-  width: min(1680px, calc(100vw - 36px));
-  margin: 16px auto 0;
-}
-
-.material-pane,
-.answer-pane {
-  display: grid;
-  gap: 12px;
-  min-height: calc(100vh - 128px);
-}
-
-.material-pane {
-  grid-template-columns: 66px minmax(0, 1fr);
-}
-
-.answer-pane {
-  grid-template-columns: 66px minmax(0, 1fr);
-}
-
-.side-tabs {
-  position: sticky;
-  top: 118px;
-  display: grid;
-  align-content: start;
-  gap: 10px;
-  height: calc(100vh - 138px);
-  padding: 10px;
-  border: 1px solid rgba(196, 211, 238, 0.86);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.76);
-  box-shadow: 0 12px 30px rgba(19, 42, 74, 0.06);
-  backdrop-filter: blur(18px);
-}
-
-.side-tabs button {
-  display: grid;
-  place-items: center;
-  gap: 2px;
-  min-height: 56px;
-  border: 1px solid #dbe6f5;
-  border-radius: 14px;
-  background: #ffffff;
-  color: #536178;
-  font-weight: 900;
-}
-
-.side-tabs button span {
-  font-size: 11px;
-}
-
-.side-tabs button strong {
-  font-size: 18px;
-}
-
-.side-tabs button.active {
-  border-color: rgba(0, 80, 203, 0.26);
-  background: var(--primary);
-  color: #ffffff;
-}
-
-.side-tabs button.done:not(.active) {
-  border-color: rgba(8, 118, 108, 0.25);
-  background: var(--success-soft);
-  color: var(--success);
-}
-
-.reader-card,
-.answer-workbench {
-  border: 1px solid rgba(196, 211, 238, 0.86);
-  border-radius: 18px;
-  background: rgba(255, 255, 255, 0.92);
-  box-shadow: 0 18px 40px rgba(19, 42, 74, 0.08);
-}
-
-.reader-card {
-  display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  min-height: calc(100vh - 128px);
-  overflow: hidden;
-}
-
-.pane-head {
+.question-switcher {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 18px 20px;
-  border-bottom: 1px solid #e6edf7;
-}
-
-.pane-head h2 {
-  margin: 0;
-  color: #07182f;
-  font-size: 22px;
-}
-
-.pane-head > span {
-  color: var(--text-muted);
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.reader-body {
-  overflow: auto;
-  padding: 24px;
-  color: #1c2c46;
-  font-size: 17px;
-  line-height: 2.05;
-  white-space: pre-wrap;
-}
-
-.answer-workbench {
-  display: grid;
-  gap: 14px;
-  min-height: calc(100vh - 128px);
-  padding: 16px;
-  overflow: auto;
-}
-
-.prompt-card,
-.answer-card,
-.review-card,
-.review-empty {
-  border: 1px solid #dfe8f5;
-  border-radius: 16px;
-  background: #ffffff;
-}
-
-.prompt-card {
-  padding: 18px;
-}
-
-.meta-row {
-  display: flex;
-  flex-wrap: wrap;
   gap: 8px;
 }
 
-.meta-row span {
-  padding: 7px 10px;
+.question-switcher button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid rgba(35, 50, 78, 0.1);
   border-radius: 999px;
-  background: #e6efff;
-  color: var(--primary);
-  font-size: 12px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #4d5d75;
+}
+
+.question-switcher button:not(:disabled):hover {
+  border-color: rgba(47, 99, 183, 0.28);
+  background: #2f63b7;
+  color: #ffffff;
+}
+
+.question-switcher strong {
+  min-width: 58px;
+  color: #172033;
+  text-align: center;
+  font-size: 13px;
   font-weight: 900;
 }
 
-.prompt-card h2 {
-  margin: 16px 0 10px;
-  color: #07182f;
-  font-size: 24px;
-  line-height: 1.35;
-}
-
-.prompt-card p,
-.prompt-card li {
-  color: var(--text-secondary);
-  line-height: 1.72;
-}
-
-.prompt-card ul {
-  margin: 12px 0 0;
-  padding-left: 20px;
-}
-
-.answer-card {
-  display: grid;
-  gap: 12px;
-  padding: 16px;
-}
-
-.answer-head,
-.answer-footer {
+.focus-actions {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content: end;
+  gap: 8px;
 }
 
-.answer-head strong {
-  color: #07182f;
-  font-size: 18px;
+.focus-stage {
+  display: grid;
+  grid-template-columns: 118px minmax(420px, 0.92fr) minmax(480px, 1.08fr);
+  gap: 22px;
+  width: min(1680px, calc(100vw - 48px));
+  margin: 28px auto 0;
 }
 
-.answer-head span,
-.answer-footer span {
-  color: var(--text-muted);
+.material-rail {
+  position: sticky;
+  top: 88px;
+  display: grid;
+  align-content: start;
+  gap: 10px;
+  height: calc(100vh - 112px);
+  padding-top: 12px;
+}
+
+.material-rail > span {
+  color: #677384;
   font-size: 13px;
   font-weight: 800;
 }
 
-.answer-card textarea {
+.material-rail button {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 8px;
+  align-items: center;
+  min-height: 46px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #758193;
+  text-align: left;
+}
+
+.material-rail strong {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: #e3e7e4;
+  color: #687385;
+  font-size: 13px;
+}
+
+.material-rail small {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.material-rail button.active {
+  padding-right: 14px;
+  background: #2f63b7;
+  color: #ffffff;
+  box-shadow: 0 12px 28px rgba(47, 99, 183, 0.18);
+}
+
+.material-rail button.active strong {
+  background: #ffffff;
+  color: #2f63b7;
+}
+
+.paper-reader,
+.answer-sheet {
+  min-height: calc(100vh - 112px);
+}
+
+.paper-reader {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(41, 52, 71, 0.08);
+  border-radius: 18px;
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.92), rgba(255, 255, 255, 0.86)), #fbfaf5;
+  box-shadow: 0 24px 50px rgba(31, 42, 64, 0.08);
+}
+
+.paper-reader::after {
+  position: absolute;
+  right: -34px;
+  bottom: -44px;
+  width: 150px;
+  height: 150px;
+  border: 1px solid rgba(190, 170, 120, 0.14);
+  background: linear-gradient(135deg, transparent 48%, rgba(229, 216, 179, 0.32) 49%);
+  content: "";
+  transform: rotate(8deg);
+}
+
+.reader-title {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 30px 42px 10px;
+}
+
+.reader-title span {
+  display: block;
+  margin-bottom: 8px;
+  color: #778091;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.reader-title h1 {
+  margin: 0;
+  color: #172033;
+  font-size: 28px;
+  line-height: 1.25;
+}
+
+.reader-title em {
+  color: #8a93a1;
+  font-size: 13px;
+  font-style: normal;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.reader-sheet {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 18px 42px 34px;
+  color: #243047;
+  font-family: "Noto Serif SC", "Songti SC", "SimSun", serif;
+  font-size: 17px;
+  line-height: 1.95;
+}
+
+.reader-sheet :deep(p) {
+  margin: 0 0 22px;
+}
+
+.reader-sheet :deep(.reader-highlight) {
+  padding: 1px 4px;
+  border-radius: 5px;
+  background: rgba(211, 180, 89, 0.2);
+  color: #1f2b42;
+}
+
+.answer-sheet {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+
+.question-compose,
+.review-card,
+.review-empty {
+  border: 1px solid rgba(41, 52, 71, 0.08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 24px 50px rgba(31, 42, 64, 0.08);
+}
+
+.question-compose {
+  display: grid;
+  gap: 16px;
+  min-height: calc(100vh - 112px);
+  padding: 30px;
+}
+
+.question-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: start;
+}
+
+.question-head span {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 34px;
+  align-items: center;
+  padding: 0 16px;
+  border-radius: 999px;
+  background: #2f63b7;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.question-head h1 {
+  max-width: 780px;
+  margin: 18px 0 0;
+  color: #172033;
+  font-size: 25px;
+  line-height: 1.48;
+}
+
+.question-prompt {
+  max-width: 780px;
+  margin: 0;
+  color: #4a5568;
+  font-size: 15px;
+  line-height: 1.75;
+}
+
+.requirement-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  color: #596579;
+  font-size: 14px;
+}
+
+.requirement-line span {
+  font-weight: 900;
+}
+
+.requirement-line strong {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #edf2f8;
+  color: #52627a;
+  font-size: 13px;
+}
+
+.question-compose textarea {
   width: 100%;
-  min-height: 420px;
-  padding: 18px;
-  border: 1px solid #cad6e8;
+  min-height: 430px;
+  flex: 1;
+  padding: 20px 22px;
+  border: 1px solid rgba(41, 52, 71, 0.1);
   border-radius: 14px;
   outline: none;
   resize: vertical;
-  color: #07182f;
-  background: #fbfdff;
+  background: #fbfcfb;
+  color: #172033;
   font-size: 16px;
   line-height: 1.9;
 }
 
-.answer-card textarea:focus {
-  border-color: var(--primary);
-  box-shadow: 0 0 0 4px rgba(0, 80, 203, 0.1);
+.question-compose textarea:focus {
+  border-color: rgba(47, 99, 183, 0.45);
+  box-shadow: 0 0 0 4px rgba(47, 99, 183, 0.08);
 }
 
-.answer-footer {
+.compose-footer {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: auto auto auto minmax(130px, 1fr);
+  gap: 14px;
+  align-items: center;
+  color: #6d7889;
+  font-size: 13px;
+  font-weight: 800;
 }
 
 .review-card {
   display: grid;
   gap: 14px;
-  padding: 16px;
+  padding: 20px;
 }
 
 .score-summary {
   display: grid;
-  grid-template-columns: 104px minmax(0, 1fr);
+  grid-template-columns: 96px minmax(0, 1fr);
   gap: 16px;
   align-items: center;
   padding-bottom: 14px;
-  border-bottom: 1px solid #e5ebf5;
+  border-bottom: 1px solid rgba(41, 52, 71, 0.08);
 }
 
 .score-ring {
   display: grid;
   place-items: center;
-  width: 96px;
-  height: 96px;
+  width: 88px;
+  height: 88px;
   border-radius: 999px;
-  background:
-    radial-gradient(circle at center, #ffffff 58%, transparent 59%),
-    conic-gradient(var(--primary) 76%, #dbeafe 0);
+  background: radial-gradient(circle at center, #ffffff 58%, transparent 59%), conic-gradient(#2f63b7 76%, #d8ddd8 0);
 }
 
 .score-ring strong {
-  color: var(--primary);
-  font-size: 34px;
+  color: #2f63b7;
+  font-size: 31px;
   line-height: 1;
 }
 
 .score-ring span {
-  color: var(--text-muted);
+  color: #7a8494;
+  font-weight: 900;
+}
+
+.score-summary p {
+  margin: 0 0 5px;
+  color: #2f63b7;
+  font-size: 13px;
   font-weight: 900;
 }
 
 .score-summary h2 {
   margin: 0 0 8px;
-  color: #07182f;
-  font-size: 24px;
+  color: #172033;
+  font-size: 22px;
 }
 
 .score-summary span {
-  color: var(--text-secondary);
+  color: #4a5568;
   line-height: 1.65;
 }
 
@@ -949,19 +1147,17 @@ function handleBeforeUnload(event: BeforeUnloadEvent) {
 .radar-card,
 .sample-card {
   padding: 16px;
-  border: 1px solid #d9e6f7;
+  border: 1px solid rgba(41, 52, 71, 0.08);
   border-radius: 14px;
   background: #ffffff;
 }
 
 .review-block.success {
-  border-color: rgba(8, 118, 108, 0.24);
-  background: #f1fffc;
+  background: #f3faf6;
 }
 
 .review-block.danger {
-  border-color: rgba(216, 41, 76, 0.24);
-  background: #fff8fa;
+  background: #fff8f8;
 }
 
 .review-block h3,
@@ -971,14 +1167,14 @@ function handleBeforeUnload(event: BeforeUnloadEvent) {
   align-items: center;
   gap: 8px;
   margin: 0 0 10px;
-  color: #07182f;
+  color: #172033;
 }
 
 .review-block p,
 .sample-card p,
-.review-empty p {
+.review-empty span {
   margin: 8px 0 0;
-  color: var(--text-secondary);
+  color: #4a5568;
   line-height: 1.72;
 }
 
@@ -990,7 +1186,7 @@ function handleBeforeUnload(event: BeforeUnloadEvent) {
 }
 
 .radar-card a {
-  color: var(--primary);
+  color: #2f63b7;
   font-weight: 900;
 }
 
@@ -1001,140 +1197,124 @@ function handleBeforeUnload(event: BeforeUnloadEvent) {
 
 .review-empty {
   display: grid;
-  place-items: center;
-  gap: 12px;
-  min-height: 240px;
-  padding: 20px;
+  justify-items: center;
+  gap: 10px;
+  min-height: 132px;
+  padding: 22px;
+  color: #6d7889;
   text-align: center;
 }
 
 .review-empty .el-icon {
-  color: var(--primary);
-  font-size: 42px;
+  color: #2f63b7;
+  font-size: 32px;
 }
 
-.review-empty h2,
-.review-empty p {
-  margin: 0;
+.review-empty strong {
+  color: #172033;
 }
 
-.floating-star {
-  position: fixed;
-  right: 24px;
-  bottom: 22px;
-  z-index: 35;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 42px;
-  padding: 0 14px;
-  border: 1px solid rgba(196, 211, 238, 0.86);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.94);
-  color: var(--text-secondary);
-  font-weight: 900;
-  box-shadow: 0 12px 30px rgba(19, 42, 74, 0.1);
-  backdrop-filter: blur(18px);
-}
-
-@media (max-width: 1280px) {
-  .immersive-topbar {
-    grid-template-columns: auto minmax(0, 1fr);
+@media (max-width: 1260px) {
+  .focus-topbar {
+    grid-template-columns: 44px minmax(120px, 1fr) auto auto;
   }
 
-  .top-actions {
-    grid-column: 1 / -1;
-    flex-wrap: wrap;
+  .focus-progress {
+    grid-column: 2 / -1;
   }
 
-  .immersive-shell {
-    grid-template-columns: 1fr;
+  .focus-stage {
+    grid-template-columns: 96px 1fr;
   }
 
-  .material-pane,
-  .answer-pane,
-  .reader-card,
-  .answer-workbench {
+  .answer-sheet {
+    grid-column: 2;
+  }
+
+  .paper-reader,
+  .question-compose {
     min-height: auto;
   }
-
-  .reader-card,
-  .answer-workbench {
-    max-height: none;
-  }
-
-  .side-tabs {
-    top: 150px;
-    height: auto;
-    max-height: calc(100vh - 172px);
-  }
 }
 
-@media (max-width: 760px) {
-  .immersive-practice {
-    padding: 10px;
+@media (max-width: 820px) {
+  .focus-practice {
+    padding: 0 12px 18px;
   }
 
-  .immersive-topbar {
+  .focus-topbar {
     position: static;
-    grid-template-columns: 1fr;
+    grid-template-columns: 40px 1fr auto;
+    min-height: auto;
+    padding: 10px 0;
   }
 
-  .paper-heading h1 {
-    white-space: normal;
-  }
-
-  .top-actions {
-    gap: 8px;
-  }
-
-  .progress-box {
-    width: 100%;
-  }
-
-  .save-button,
-  .submit-button,
-  .finish-button,
-  .ghost-button {
-    flex: 1;
+  .focus-clock {
     min-width: 132px;
+    padding: 0 12px;
   }
 
-  .immersive-shell {
-    width: 100%;
+  .focus-progress,
+  .focus-actions {
+    grid-column: 1 / -1;
   }
 
-  .material-pane,
-  .answer-pane {
+  .focus-stage {
     grid-template-columns: 1fr;
+    width: 100%;
+    margin-top: 16px;
   }
 
-  .side-tabs {
+  .material-rail {
     position: static;
     display: flex;
+    height: auto;
     overflow-x: auto;
-    padding: 8px;
+    padding: 0;
   }
 
-  .side-tabs button {
-    min-width: 62px;
+  .material-rail > span {
+    display: none;
   }
 
-  .reader-body {
-    padding: 18px;
+  .material-rail button {
+    min-width: 96px;
+  }
+
+  .answer-sheet {
+    grid-column: auto;
+  }
+
+  .reader-title,
+  .reader-sheet {
+    padding-right: 22px;
+    padding-left: 22px;
+  }
+
+  .reader-sheet {
     font-size: 16px;
   }
 
-  .answer-card textarea {
+  .question-compose {
+    padding: 22px;
+  }
+
+  .question-head h1 {
+    font-size: 21px;
+  }
+
+  .question-compose textarea {
     min-height: 360px;
   }
 
+  .compose-footer,
   .review-grid,
   .score-summary {
     grid-template-columns: 1fr;
   }
 
-  .floating-star {
+  .icon-button::after,
+  .favorite-button::after {
     display: none;
   }
 }

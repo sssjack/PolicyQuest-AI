@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { statsApi, questionApi } from '../../api'
+import { readPracticeDrafts, readPracticeRecords } from '../../data/policyQuest'
 
 const router = useRouter()
 const stats = ref<any>(null)
@@ -14,6 +15,7 @@ const categoryEntries = computed(() => Object.entries(stats.value?.category_stat
 const questionEntries = computed(() => Object.entries(qStats.value?.byCategory || {}))
 const todayTotal = computed(() => stats.value?.today?.total || 0)
 const todayAccuracy = computed(() => stats.value?.today?.accuracy || 0)
+const historyTotal = computed(() => readPracticeRecords().length + readPracticeDrafts().length)
 
 onMounted(async () => {
   try {
@@ -34,7 +36,7 @@ onMounted(async () => {
       <div>
         <p class="page-kicker">Study Dashboard</p>
         <h1 class="page-title">今天从一组高质量训练开始</h1>
-        <p class="page-subtitle">根据你的历史表现，优先完成限时练习和错题回练；每一次作答都会沉淀到成长报告里。</p>
+        <p class="page-subtitle">根据你的历史表现，优先完成限时真题；每一次作答都会沉淀到做题历史和成长报告里。</p>
       </div>
       <div class="hero-actions">
         <button class="btn-primary" type="button" @click="router.push('/app/practice')">开始练习</button>
@@ -62,9 +64,9 @@ onMounted(async () => {
           <small>今日正确率 {{ todayAccuracy }}%</small>
         </article>
         <article class="metric-card danger">
-          <span>待复习错题</span>
-          <strong>{{ stats?.wrong_count || 0 }}</strong>
-          <small>建议优先回练高频错误</small>
+          <span>历史记录</span>
+          <strong>{{ historyTotal }}</strong>
+          <small>保存进度和完成记录集中查看</small>
         </article>
       </section>
 
@@ -86,11 +88,11 @@ onMounted(async () => {
                 <small>覆盖言语、政治理论与面试判断</small>
               </span>
             </button>
-            <button type="button" @click="router.push('/app/wrongbook')" class="task-item">
+            <button type="button" @click="router.push('/history')" class="task-item">
               <span class="task-index">02</span>
               <span>
-                <strong>错题回练</strong>
-                <small>优先处理错误次数最高的题目</small>
+                <strong>继续做题历史</strong>
+                <small>恢复未完成真题，查看已收藏题卷</small>
               </span>
             </button>
             <button type="button" @click="router.push('/app/articles')" class="task-item">

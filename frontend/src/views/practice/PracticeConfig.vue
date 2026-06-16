@@ -18,7 +18,6 @@ const config = ref({
 const sessionTypes = [
   { value: 'quick', label: '快速练习', desc: '随机抽题，保持手感', tag: 'Daily' },
   { value: 'special', label: '专项练习', desc: '围绕题型集中突破', tag: 'Focus' },
-  { value: 'wrong', label: '错题练习', desc: '回练薄弱知识点', tag: 'Review' },
   { value: 'mock', label: '模拟考试', desc: '还原限时考场节奏', tag: 'Mock' },
 ]
 const categories = [
@@ -161,7 +160,7 @@ async function startPractice() {
       <div>
         <p class="page-kicker">Session Preview</p>
         <h2>{{ config.count }} 题 · {{ selectedSessionLabel }}</h2>
-        <p>建议在安静环境下完成，提交后可查看正确率、解析与错题沉淀。</p>
+        <p>建议在安静环境下完成，提交后可查看正确率、解析与学习记录。</p>
       </div>
       <button class="btn-primary" type="button" :disabled="loading" @click="startPractice">
         {{ loading ? '正在组卷...' : '确认开始' }}

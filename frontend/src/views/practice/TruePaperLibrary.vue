@@ -1,17 +1,17 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ArrowRight, Clock, DataAnalysis, Files, Search, Star } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { ArrowRight, Clock, DataAnalysis, Files, Search, Star, StarFilled } from '@element-plus/icons-vue'
 import AbilityRadar from '../../components/AbilityRadar.vue'
 import { realPaperApi } from '../../api'
 import {
   essayDimensions,
-  buildPracticeHistory,
-  formatSeconds,
   interviewDimensions,
   mapBackendPaper,
-  readPracticeDrafts,
+  readFavoritePapers,
   readPracticeRecords,
+  toggleFavoritePaper,
   type RealPaper,
   type PracticeType,
 } from '../../data/policyQuest'
@@ -25,7 +25,7 @@ const selectedYear = ref<number | 'all'>('all')
 const keyword = ref('')
 const selectedPaperId = ref('')
 const records = ref(readPracticeRecords())
-const drafts = ref(readPracticeDrafts())
+const favoriteIds = ref(new Set(readFavoritePapers().map(item => item.paperId)))
 const papers = ref<RealPaper[]>([])
 const loading = ref(false)
 
@@ -59,9 +59,7 @@ const systemOptions = computed(() => {
 const yearOptions = computed(() => [...new Set(papers.value.map(paper => paper.year))].sort((a, b) => b - a))
 const selectedPaper = computed(() => filteredPapers.value.find(paper => paper.id === selectedPaperId.value) || filteredPapers.value[0])
 const selectedRecords = computed(() => records.value.filter(record => record.paperId === selectedPaper.value?.id))
-const historyItems = computed(() => buildPracticeHistory(records.value, drafts.value).slice(0, 6))
-const draftCount = computed(() => drafts.value.length)
-const completedCount = computed(() => new Set(records.value.map(record => record.paperId)).size)
+const isSelectedPaperFavorite = computed(() => Boolean(selectedPaper.value && favoriteIds.value.has(selectedPaper.value.id)))
 const selectedAverage = computed(() => {
   if (!selectedRecords.value.length) return 72.5
   return Math.round(selectedRecords.value.reduce((sum, record) => sum + record.score, 0) / selectedRecords.value.length)
@@ -128,24 +126,18 @@ function enterPaper() {
 
 function refreshLocalState() {
   records.value = readPracticeRecords()
-  drafts.value = readPracticeDrafts()
-}
-
-function continueHistory(paperId: string, status: 'draft' | 'completed') {
-  router.push({
-    path: `/practice/${paperId}`,
-    query: libraryQuery(status === 'draft' ? { resume: '1' } : {}),
-  })
+  favoriteIds.value = new Set(readFavoritePapers().map(item => item.paperId))
 }
 
 function libraryQuery(query: Record<string, string> = {}) {
   return route.query.preview === '1' ? { preview: '1', ...query } : query
 }
 
-function formatHistoryTime(value: string) {
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return '刚刚'
-  return date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+function toggleSelectedFavorite() {
+  if (!selectedPaper.value) return
+  const favorited = toggleFavoritePaper(selectedPaper.value)
+  refreshLocalState()
+  ElMessage.success(favorited ? '已收藏到做题历史' : '已取消收藏')
 }
 </script>
 
@@ -206,45 +198,6 @@ function formatHistoryTime(value: string) {
       </div>
     </section>
 
-    <section class="history-panel surface-card">
-      <div class="history-head">
-        <div>
-          <p class="page-kicker">Practice History</p>
-          <h2>做题历史</h2>
-        </div>
-        <div class="history-stats">
-          <span>{{ draftCount }} 份保存进度</span>
-          <span>{{ completedCount }} 套已练真题</span>
-        </div>
-      </div>
-
-      <div v-if="historyItems.length" class="history-list">
-        <button
-          v-for="item in historyItems"
-          :key="item.id"
-          type="button"
-          class="history-item"
-          :class="item.status"
-          @click="continueHistory(item.paperId, item.status)"
-        >
-          <span class="history-badge">{{ item.status === 'draft' ? '继续做' : '已完成' }}</span>
-          <strong>{{ item.paperTitle }}</strong>
-          <small>
-            {{ item.type === 'essay' ? '申论' : '面试' }} ·
-            {{ item.answeredCount }} 题已作答 ·
-            用时 {{ formatSeconds(item.durationSeconds) }} ·
-            {{ formatHistoryTime(item.updatedAt) }}
-          </small>
-          <em>{{ item.status === 'draft' ? '恢复进度' : `${item.averageScore || '--'} 分` }}</em>
-        </button>
-      </div>
-
-      <div v-else class="history-empty">
-        <strong>还没有做题记录</strong>
-        <span>进入任意真题作答后，保存进度和完成记录会出现在这里。</span>
-      </div>
-    </section>
-
     <section class="library-layout">
       <section class="paper-list-panel surface-card">
         <div class="list-head">
@@ -291,7 +244,17 @@ function formatHistoryTime(value: string) {
       <aside v-if="selectedPaper" class="paper-preview surface-card">
         <div class="preview-head">
           <span>当前选中</span>
-          <button type="button" aria-label="收藏"><el-icon><Star /></el-icon></button>
+          <button
+            type="button"
+            :class="{ active: isSelectedPaperFavorite }"
+            :aria-label="isSelectedPaperFavorite ? '取消收藏' : '收藏真题'"
+            @click="toggleSelectedFavorite"
+          >
+            <el-icon>
+              <StarFilled v-if="isSelectedPaperFavorite" />
+              <Star v-else />
+            </el-icon>
+          </button>
         </div>
 
         <h2>{{ selectedPaper.title }}</h2>
@@ -717,6 +680,11 @@ function formatHistoryTime(value: string) {
   background: #f1f7ff;
   color: #65758d;
   font-size: 19px;
+}
+
+.preview-head button.active {
+  background: #eaf3ff;
+  color: var(--primary);
 }
 
 .paper-preview h2 {

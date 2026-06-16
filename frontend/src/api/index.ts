@@ -52,14 +52,6 @@ export const practiceApi = {
   history: (params: any) => api.get('/practice/history', { params }),
 }
 
-export const wrongbookApi = {
-  list: (params: any) => api.get('/wrongbook/wrong', { params }),
-  master: (id: number) => api.put(`/wrongbook/wrong/${id}/master`),
-  remove: (id: number) => api.delete(`/wrongbook/wrong/${id}`),
-  favorites: (params: any) => api.get('/wrongbook/favorites', { params }),
-  toggleFav: (qid: number) => api.post(`/wrongbook/favorites/${qid}`),
-}
-
 export const statsApi = {
   overview: () => api.get('/stats/overview'),
 }

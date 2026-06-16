@@ -83,7 +83,7 @@ onMounted(async () => {
         <div>
           <p class="page-kicker">Practice Report</p>
           <h1 class="page-title">练习结果</h1>
-          <p class="page-subtitle">这份报告会同步到你的成长数据中，错题可继续进入错题本回练。</p>
+          <p class="page-subtitle">这份报告会同步到你的成长数据中，完成记录可在做题历史里继续查看。</p>
         </div>
         <div class="score-badge" :style="{ '--score': session.accuracy }">
           <strong>{{ session.accuracy }}%</strong>
@@ -179,7 +179,7 @@ onMounted(async () => {
 
       <footer class="result-actions">
         <button class="btn-primary" type="button" @click="router.push('/app/practice')">再练一组</button>
-        <button class="btn-ghost" type="button" @click="router.push('/app/wrongbook')">错题本</button>
+        <button class="btn-ghost" type="button" @click="router.push('/history')">做题历史</button>
         <button class="btn-ghost" type="button" @click="router.push('/app/dashboard')">返回工作台</button>
       </footer>
     </template>
