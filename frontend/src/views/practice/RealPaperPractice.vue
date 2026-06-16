@@ -102,9 +102,9 @@ let allowLeave = false
 const currentQuestion = computed(() => paper.value.questions[currentIndex.value] || paper.value.questions[0] || emptyQuestion)
 const activeMaterial = computed(() => paper.value.materials.find(material => material.id === activeMaterialId.value) || paper.value.materials[0] || emptyMaterial)
 const currentAnswer = computed({
-  get: () => answers.value[currentQuestion.value.id] || '',
+  get: () => normalizeEssayAnswer(answers.value[currentQuestion.value.id] || ''),
   set: value => {
-    answers.value = { ...answers.value, [currentQuestion.value.id]: value }
+    answers.value = { ...answers.value, [currentQuestion.value.id]: normalizeEssayAnswer(value) }
   },
 })
 const currentEvaluation = computed(() => evaluations.value[currentQuestion.value.id])
@@ -256,6 +256,31 @@ function restoreDraft(draft: PracticeDraft) {
 function queueAnswerResize() {
   if (typeof window === 'undefined') return
   window.requestAnimationFrame(resizeAnswerArea)
+}
+
+function handleAnswerInput(event: Event) {
+  const target = event.target as HTMLTextAreaElement
+  const rawValue = target.value
+  const rawCaret = target.selectionStart ?? rawValue.length
+  const normalizedValue = normalizeEssayAnswer(rawValue)
+
+  if (normalizedValue !== rawValue) {
+    const normalizedCaret = normalizeEssayAnswer(rawValue.slice(0, rawCaret)).length
+    target.value = normalizedValue
+    target.setSelectionRange(normalizedCaret, normalizedCaret)
+  }
+
+  currentAnswer.value = normalizedValue
+  queueAnswerResize()
+}
+
+function normalizeEssayAnswer(value: string) {
+  if (paper.value.type !== 'essay') return value
+  const fullWidthSpace = '\u3000'
+  return value
+    .replace(/\t/g, fullWidthSpace.repeat(2))
+    .replace(/[\u0020\u00a0]/g, fullWidthSpace)
+    .replace(/[!-~]/g, character => String.fromCharCode(character.charCodeAt(0) + 0xfee0))
 }
 
 function resizeAnswerArea() {
@@ -604,9 +629,9 @@ function escapeHtml(value: string) {
 
           <textarea
             ref="answerTextarea"
-            v-model="currentAnswer"
+            :value="currentAnswer"
             :placeholder="paper.type === 'essay' ? '请在这里作答。先提炼材料要点，再展开成完整答案...' : '请按结构化面试口径组织表达，注意身份感、交流感和层次...'"
-            @input="queueAnswerResize"
+            @input="handleAnswerInput"
           ></textarea>
 
           <footer class="compose-footer">
@@ -1199,6 +1224,10 @@ function escapeHtml(value: string) {
 
 .essay-paper-mode textarea {
   --answer-cell: clamp(22px, 1.45vw, 26px);
+  --answer-row-gap: clamp(7px, 0.58vw, 10px);
+  --answer-row: calc(var(--answer-cell) + var(--answer-row-gap));
+  --answer-grid-line: rgba(195, 68, 64, 0.25);
+  --answer-gap-fill: rgba(255, 253, 246, 0.98);
   box-sizing: border-box;
   justify-self: stretch;
   width: 100%;
@@ -1210,17 +1239,30 @@ function escapeHtml(value: string) {
   border-radius: 8px;
   background-color: #fffdf6;
   background-image:
-    linear-gradient(to right, rgba(195, 68, 64, 0.26) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(195, 68, 64, 0.26) 1px, transparent 1px),
+    repeating-linear-gradient(
+      to bottom,
+      var(--answer-grid-line) 0 1px,
+      transparent 1px calc(var(--answer-cell) - 1px),
+      var(--answer-grid-line) calc(var(--answer-cell) - 1px) var(--answer-cell),
+      transparent var(--answer-cell) var(--answer-row)
+    ),
+    repeating-linear-gradient(
+      to bottom,
+      transparent 0 var(--answer-cell),
+      var(--answer-gap-fill) var(--answer-cell) var(--answer-row)
+    ),
+    repeating-linear-gradient(to right, var(--answer-grid-line) 0 1px, transparent 1px var(--answer-cell)),
     linear-gradient(to right, rgba(255, 255, 255, 0.72), rgba(255, 251, 241, 0.72));
   background-origin: content-box;
   background-clip: padding-box;
-  background-position: -1px -1px, -1px -1px, 0 0;
-  background-size: var(--answer-cell) var(--answer-cell), var(--answer-cell) var(--answer-cell), 100% 100%;
+  background-position: 0 0, 0 0, 0 0, 0 0;
+  background-size: 100% var(--answer-row), 100% var(--answer-row), var(--answer-cell) var(--answer-row), 100% 100%;
   color: #1f2634;
   font-family: "KaiTi", "STKaiti", "FangSong", "STFangsong", "Noto Serif SC", serif;
-  font-size: var(--answer-cell);
-  line-height: var(--answer-cell);
+  font-size: calc(var(--answer-cell) * 0.92);
+  line-height: var(--answer-row);
+  font-variant-east-asian: full-width;
+  font-feature-settings: "fwid" 1;
   letter-spacing: 0;
   word-break: break-all;
   overflow-wrap: anywhere;
