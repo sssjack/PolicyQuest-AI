@@ -10,13 +10,15 @@ import {
   Timer,
 } from '@element-plus/icons-vue'
 import AbilityRadar from '../../components/AbilityRadar.vue'
+import { realPaperApi } from '../../api'
 import {
   aggregateDimensions,
   averageScore,
+  mapBackendPaper,
   readPracticeRecords,
-  realPapers,
   type PracticeRecord,
   type PracticeType,
+  type RealPaper,
 } from '../../data/policyQuest'
 import { useUserStore } from '../../store/user'
 
@@ -24,11 +26,12 @@ const router = useRouter()
 const userStore = useUserStore()
 const records = ref<PracticeRecord[]>([])
 const searchText = ref('')
+const papers = ref<RealPaper[]>([])
 
 const currentUserName = computed(() => userStore.user?.nickname || userStore.user?.username || '同学')
-const essayPaper = computed(() => realPapers.find(paper => paper.type === 'essay'))
-const interviewPaper = computed(() => realPapers.find(paper => paper.type === 'interview'))
-const recentPapers = computed(() => realPapers.slice(0, 5))
+const essayPaper = computed(() => papers.value.find(paper => paper.type === 'essay'))
+const interviewPaper = computed(() => papers.value.find(paper => paper.type === 'interview'))
+const recentPapers = computed(() => papers.value.slice(0, 5))
 const average = computed(() => averageScore(records.value) || 71)
 const totalPracticeTime = computed(() => records.value.reduce((sum, record) => sum + record.durationSeconds, 0))
 const practicedCount = computed(() => records.value.length)
@@ -54,6 +57,7 @@ const weakBars = computed(() => [
 
 onMounted(() => {
   records.value = readPracticeRecords()
+  loadRecommendedPapers()
 })
 
 function openLibrary(type?: PracticeType) {
@@ -61,8 +65,22 @@ function openLibrary(type?: PracticeType) {
 }
 
 function startPaper(type: PracticeType) {
-  const paper = type === 'essay' ? essayPaper.value : interviewPaper.value
-  router.push(paper ? `/practice/${paper.id}` : `/papers?type=${type}`)
+  router.push(`/papers?type=${type}`)
+}
+
+async function loadRecommendedPapers() {
+  try {
+    const [essayRes, interviewRes]: any[] = await Promise.all([
+      realPaperApi.list({ type: 'essay', pageSize: 3 }),
+      realPaperApi.list({ type: 'interview', pageSize: 3 }),
+    ])
+    papers.value = [
+      ...(essayRes.data?.list || []).map(mapBackendPaper),
+      ...(interviewRes.data?.list || []).map(mapBackendPaper),
+    ]
+  } catch {
+    papers.value = []
+  }
 }
 </script>
 
@@ -110,7 +128,7 @@ function startPaper(type: PracticeType) {
     <section class="track-grid">
       <article class="track-card essay">
         <div class="track-copy">
-          <span><el-icon><EditPen /></el-icon> 申论训练</span>
+          <span><el-icon><EditPen /></el-icon> 申论真题</span>
           <h2>材料分析、提炼要点、规范表达</h2>
           <p>适合围绕提出对策、贯彻执行和文章写作持续提分。</p>
         </div>
@@ -120,13 +138,13 @@ function startPaper(type: PracticeType) {
           <small>{{ essayPaper?.questionCount }} 题 · 建议 {{ essayPaper?.suggestedMinutes }} 分钟 · {{ essayPaper?.systemLabel }}</small>
         </div>
         <button class="track-cta" type="button" @click="startPaper('essay')">
-          开始申论真题 <el-icon><ArrowRight /></el-icon>
+          进入申论真题库 <el-icon><ArrowRight /></el-icon>
         </button>
       </article>
 
       <article class="track-card interview">
         <div class="track-copy">
-          <span><el-icon><Collection /></el-icon> 面试训练</span>
+          <span><el-icon><Collection /></el-icon> 面试真题</span>
           <h2>结构表达、岗位匹配、临场应变</h2>
           <p>适合用结构化真题训练审题、层次和交流感。</p>
         </div>
@@ -136,7 +154,7 @@ function startPaper(type: PracticeType) {
           <small>{{ interviewPaper?.questionCount }} 题 · {{ interviewPaper?.category }} · 建议单题 7 分钟</small>
         </div>
         <button class="track-cta cyan" type="button" @click="startPaper('interview')">
-          开始面试真题 <el-icon><ArrowRight /></el-icon>
+          进入面试真题库 <el-icon><ArrowRight /></el-icon>
         </button>
       </article>
     </section>
@@ -156,7 +174,7 @@ function startPaper(type: PracticeType) {
           </div>
 
           <div class="paper-table">
-            <button v-for="paper in recentPapers" :key="paper.id" type="button" @click="router.push(`/practice/${paper.id}`)">
+            <button v-for="paper in recentPapers" :key="paper.id" type="button" @click="router.push(`/papers?type=${paper.type}`)">
               <span class="paper-type" :class="paper.type">{{ paper.type === 'essay' ? '申论' : '面试' }}</span>
               <strong>{{ paper.title }}</strong>
               <small>{{ paper.questionCount }} 题 · {{ paper.suggestedMinutes }} 分钟 · {{ paper.releaseDate }}</small>
@@ -195,14 +213,14 @@ function startPaper(type: PracticeType) {
         </div>
         <section>
           <span>今日策略</span>
-          <p>优先完成申论大作文专项练习，并复盘面试应急应变类题目。</p>
+          <p>优先进入真题库选择一套申论卷，再复盘面试应急应变类题目。</p>
         </section>
         <section>
           <span>为什么这样安排</span>
           <p>最近的薄弱项集中在“对策具体性”和“执行抓手”，需要用一套限时真题建立真实样本。</p>
         </section>
         <div class="next-actions">
-          <button type="button" @click="startPaper('essay')">申论专项训练</button>
+          <button type="button" @click="startPaper('essay')">申论真题库</button>
           <button type="button" @click="openLibrary('interview')">面试题库</button>
           <button type="button" @click="router.push('/report')">查看个人报告</button>
         </div>

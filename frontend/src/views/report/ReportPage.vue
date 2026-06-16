@@ -47,7 +47,7 @@ const insight = computed(() => {
     next:
       records.value.length < 3
         ? '继续完成 2 次限时真题，先建立稳定样本，再判断阶段性薄弱项。'
-        : `下一步建议围绕“${weakName}”做专项训练，并把每题答案改写成“判断 + 分析 + 对策 + 收束”的结构。`,
+        : `下一步建议围绕“${weakName}”做真题复盘，并把每题答案改写成“判断 + 分析 + 对策 + 收束”的结构。`,
   }
 })
 </script>
@@ -109,7 +109,7 @@ const insight = computed(() => {
         <section>
           <h3><el-icon><ArrowRight /></el-icon> 下一步做什么</h3>
           <p>{{ insight.next }}</p>
-          <button type="button" @click="router.push('/papers')">去做专项训练</button>
+          <button type="button" @click="router.push('/papers')">去真题库选题</button>
         </section>
 
         <div class="split-stats">
@@ -125,7 +125,7 @@ const insight = computed(() => {
           <p class="page-kicker">Practice Records</p>
           <h2>最近答题记录</h2>
         </div>
-        <button type="button" @click="router.push('/papers')">继续训练</button>
+        <button type="button" @click="router.push('/papers')">继续真题</button>
       </div>
 
       <div v-if="latestRecords.length" class="record-table">

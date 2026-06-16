@@ -39,6 +39,12 @@ export const questionApi = {
   stats: () => api.get('/questions/stats'),
 }
 
+export const realPaperApi = {
+  list: (params: any) => api.get('/real-papers', { params }),
+  detail: (id: string | number) => api.get(`/real-papers/${id}`),
+  stats: () => api.get('/real-papers/stats'),
+}
+
 export const practiceApi = {
   start: (data: any) => api.post('/practice/start', data),
   answer: (sessionId: number, data: any) => api.post(`/practice/${sessionId}/answer`, data),

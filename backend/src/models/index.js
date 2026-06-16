@@ -74,6 +74,70 @@ const Question = sequelize.define('Question', {
   correct_rate: { type: DataTypes.FLOAT, defaultValue: 0 },
 }, { tableName: 'questions' });
 
+const RealPaper = sequelize.define('RealPaper', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  paper_key: { type: DataTypes.STRING(160), allowNull: false, unique: true },
+  practice_type: { type: DataTypes.ENUM('essay', 'interview'), allowNull: false },
+  title: { type: DataTypes.STRING(500), allowNull: false },
+  short_title: { type: DataTypes.STRING(200) },
+  system: { type: DataTypes.STRING(50), defaultValue: 'provincial' },
+  system_label: { type: DataTypes.STRING(100), defaultValue: '省考' },
+  region: { type: DataTypes.STRING(100), defaultValue: '全国' },
+  year: { type: DataTypes.INTEGER, allowNull: false },
+  category: { type: DataTypes.STRING(120), defaultValue: '' },
+  paper_code: { type: DataTypes.STRING(120), defaultValue: '' },
+  source_name: { type: DataTypes.STRING(100), defaultValue: '' },
+  source_url: { type: DataTypes.STRING(1000), allowNull: false },
+  release_date: { type: DataTypes.STRING(30), defaultValue: '' },
+  difficulty: { type: DataTypes.STRING(30), defaultValue: '中等' },
+  suggested_minutes: { type: DataTypes.INTEGER, defaultValue: 30 },
+  question_count: { type: DataTypes.INTEGER, defaultValue: 0 },
+  tags: { type: DataTypes.JSON },
+  weak_dimensions: { type: DataTypes.JSON },
+  status: { type: DataTypes.ENUM('approved', 'archived'), defaultValue: 'approved' },
+  imported_at: { type: DataTypes.DATE },
+}, {
+  tableName: 'real_papers',
+  indexes: [
+    { fields: ['practice_type', 'year'] },
+    { fields: ['system', 'year'] },
+  ],
+});
+
+const PaperMaterial = sequelize.define('PaperMaterial', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  paper_id: { type: DataTypes.INTEGER, allowNull: false },
+  material_no: { type: DataTypes.INTEGER, allowNull: false },
+  title: { type: DataTypes.STRING(120), allowNull: false },
+  summary: { type: DataTypes.STRING(500), defaultValue: '' },
+  content: { type: DataTypes.TEXT('long') },
+  word_count: { type: DataTypes.INTEGER, defaultValue: 0 },
+  source_url: { type: DataTypes.STRING(1000), defaultValue: '' },
+}, {
+  tableName: 'paper_materials',
+  indexes: [{ fields: ['paper_id', 'material_no'] }],
+});
+
+const PaperQuestion = sequelize.define('PaperQuestion', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  paper_id: { type: DataTypes.INTEGER, allowNull: false },
+  question_no: { type: DataTypes.INTEGER, allowNull: false },
+  question_type: { type: DataTypes.STRING(60), allowNull: false },
+  title: { type: DataTypes.STRING(500), allowNull: false },
+  prompt: { type: DataTypes.TEXT('long'), allowNull: false },
+  score: { type: DataTypes.INTEGER, defaultValue: 100 },
+  word_limit: { type: DataTypes.INTEGER, defaultValue: 500 },
+  suggested_minutes: { type: DataTypes.INTEGER, defaultValue: 7 },
+  requirements: { type: DataTypes.JSON },
+  dimensions: { type: DataTypes.JSON },
+  sample_answer: { type: DataTypes.TEXT('long') },
+  source_url: { type: DataTypes.STRING(1000), defaultValue: '' },
+  status: { type: DataTypes.ENUM('approved', 'archived'), defaultValue: 'approved' },
+}, {
+  tableName: 'paper_questions',
+  indexes: [{ fields: ['paper_id', 'question_no'] }],
+});
+
 const PracticeSession = sequelize.define('PracticeSession', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   user_id: { type: DataTypes.INTEGER, allowNull: false },
@@ -140,6 +204,11 @@ Article.belongsTo(ArticleSource, { foreignKey: 'source_id' });
 Article.hasMany(Question, { foreignKey: 'source_article_id' });
 Question.belongsTo(Article, { foreignKey: 'source_article_id' });
 
+RealPaper.hasMany(PaperMaterial, { foreignKey: 'paper_id' });
+PaperMaterial.belongsTo(RealPaper, { foreignKey: 'paper_id' });
+RealPaper.hasMany(PaperQuestion, { foreignKey: 'paper_id' });
+PaperQuestion.belongsTo(RealPaper, { foreignKey: 'paper_id' });
+
 User.hasMany(PracticeSession, { foreignKey: 'user_id' });
 PracticeSession.belongsTo(User, { foreignKey: 'user_id' });
 
@@ -163,5 +232,6 @@ Favorite.belongsTo(Question, { foreignKey: 'question_id' });
 
 module.exports = {
   sequelize, User, ArticleSource, Article, Question,
+  RealPaper, PaperMaterial, PaperQuestion,
   PracticeSession, UserAnswer, WrongQuestion, Favorite, AiTask
 };

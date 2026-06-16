@@ -25,6 +25,7 @@ app.use('/api/wrongbook', require('./routes/wrongbook'));
 app.use('/api/stats', require('./routes/stats'));
 app.use('/api/articles', require('./routes/articles'));
 app.use('/api/scoring', require('./routes/scoring'));
+app.use('/api/real-papers', require('./routes/real-papers'));
 app.use('/api/admin', require('./routes/admin'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));

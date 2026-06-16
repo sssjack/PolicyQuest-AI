@@ -7,7 +7,7 @@ const routes = [
   { path: '/legacy-home', redirect: '/' },
   { path: '/coach', component: () => import('../views/AppLayout.vue'), meta: { requiresAuth: true }, children: [{ path: '', name: 'PolicyQuestCoach', component: () => import('../views/scoring/ScoringStudio.vue') }] },
   { path: '/papers', component: () => import('../views/AppLayout.vue'), meta: { requiresAuth: true }, children: [{ path: '', name: 'TruePaperLibrary', component: () => import('../views/practice/TruePaperLibrary.vue') }] },
-  { path: '/practice/:paperId', component: () => import('../views/AppLayout.vue'), meta: { requiresAuth: true }, children: [{ path: '', name: 'RealPaperPractice', component: () => import('../views/practice/RealPaperPractice.vue') }] },
+  { path: '/practice/:paperId', name: 'RealPaperPractice', component: () => import('../views/practice/RealPaperPractice.vue'), meta: { requiresAuth: true } },
   { path: '/report', component: () => import('../views/AppLayout.vue'), meta: { requiresAuth: true }, children: [{ path: '', name: 'GrowthReport', component: () => import('../views/report/ReportPage.vue') }] },
   { path: '/profile', component: () => import('../views/AppLayout.vue'), meta: { requiresAuth: true }, children: [{ path: '', name: 'Profile', component: () => import('../views/auth/ProfilePage.vue') }] },
   { path: '/wrongbook', component: () => import('../views/AppLayout.vue'), meta: { requiresAuth: true }, children: [{ path: '', name: 'WrongBook', component: () => import('../views/wrongbook/WrongBook.vue') }] },

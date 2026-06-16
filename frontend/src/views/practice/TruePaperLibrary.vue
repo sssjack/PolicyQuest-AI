@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ArrowRight, Clock, DataAnalysis, Files, Search, Star } from '@element-plus/icons-vue'
 import AbilityRadar from '../../components/AbilityRadar.vue'
+import { realPaperApi } from '../../api'
 import {
   essayDimensions,
-  examSystems,
+  buildPracticeHistory,
+  formatSeconds,
   interviewDimensions,
+  mapBackendPaper,
+  readPracticeDrafts,
   readPracticeRecords,
-  realPapers,
-  years,
+  type RealPaper,
   type PracticeType,
 } from '../../data/policyQuest'
 
@@ -22,6 +25,9 @@ const selectedYear = ref<number | 'all'>('all')
 const keyword = ref('')
 const selectedPaperId = ref('')
 const records = ref(readPracticeRecords())
+const drafts = ref(readPracticeDrafts())
+const papers = ref<RealPaper[]>([])
+const loading = ref(false)
 
 const typeOptions = [
   { value: 'essay' as PracticeType, label: '申论', desc: '材料分析与写作' },
@@ -30,7 +36,7 @@ const typeOptions = [
 
 const filteredPapers = computed(() => {
   const query = keyword.value.trim().toLowerCase()
-  return realPapers.filter(paper => {
+  return papers.value.filter(paper => {
     const typeMatch = paper.type === selectedType.value
     const systemMatch = selectedSystem.value === 'all' || paper.system === selectedSystem.value
     const yearMatch = selectedYear.value === 'all' || paper.year === selectedYear.value
@@ -41,12 +47,27 @@ const filteredPapers = computed(() => {
   })
 })
 
+const systemOptions = computed(() => {
+  const buckets = new Map<string, { value: string; label: string; count: number }>()
+  papers.value.forEach(paper => {
+    const current = buckets.get(paper.system) || { value: paper.system, label: paper.systemLabel, count: 0 }
+    current.count += 1
+    buckets.set(paper.system, current)
+  })
+  return [{ value: 'all', label: '全部系统', count: papers.value.length }, ...Array.from(buckets.values())]
+})
+const yearOptions = computed(() => [...new Set(papers.value.map(paper => paper.year))].sort((a, b) => b - a))
 const selectedPaper = computed(() => filteredPapers.value.find(paper => paper.id === selectedPaperId.value) || filteredPapers.value[0])
 const selectedRecords = computed(() => records.value.filter(record => record.paperId === selectedPaper.value?.id))
+const historyItems = computed(() => buildPracticeHistory(records.value, drafts.value).slice(0, 6))
+const draftCount = computed(() => drafts.value.length)
+const completedCount = computed(() => new Set(records.value.map(record => record.paperId)).size)
 const selectedAverage = computed(() => {
   if (!selectedRecords.value.length) return 72.5
   return Math.round(selectedRecords.value.reduce((sum, record) => sum + record.score, 0) / selectedRecords.value.length)
 })
+
+onMounted(refreshLocalState)
 const previewRadarItems = computed(() => {
   const paper = selectedPaper.value
   const names = paper?.type === 'interview' ? interviewDimensions : essayDimensions
@@ -61,6 +82,20 @@ watch(
   value => {
     if (value === 'essay' || value === 'interview') chooseType(value)
   },
+)
+
+watch(
+  selectedType,
+  async type => {
+    loading.value = true
+    try {
+      const res: any = await realPaperApi.list({ type, pageSize: 300 })
+      papers.value = (res.data?.list || []).map(mapBackendPaper)
+    } finally {
+      loading.value = false
+    }
+  },
+  { immediate: true },
 )
 
 watch(
@@ -83,11 +118,34 @@ function chooseType(type: PracticeType) {
 
 function chooseTypeAndSync(type: PracticeType) {
   chooseType(type)
-  router.replace({ path: '/papers', query: { type } })
+  router.replace({ path: '/papers', query: libraryQuery({ type }) })
 }
 
 function enterPaper() {
-  if (selectedPaper.value) router.push(`/practice/${selectedPaper.value.id}`)
+  if (!selectedPaper.value) return
+  router.push({ path: `/practice/${selectedPaper.value.id}`, query: libraryQuery() })
+}
+
+function refreshLocalState() {
+  records.value = readPracticeRecords()
+  drafts.value = readPracticeDrafts()
+}
+
+function continueHistory(paperId: string, status: 'draft' | 'completed') {
+  router.push({
+    path: `/practice/${paperId}`,
+    query: libraryQuery(status === 'draft' ? { resume: '1' } : {}),
+  })
+}
+
+function libraryQuery(query: Record<string, string> = {}) {
+  return route.query.preview === '1' ? { preview: '1', ...query } : query
+}
+
+function formatHistoryTime(value: string) {
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return '刚刚'
+  return date.toLocaleString('zh-CN', { month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 }
 </script>
 
@@ -123,7 +181,7 @@ function enterPaper() {
       <div class="filter-group chip-group">
         <span>考试系统</span>
         <button
-          v-for="item in examSystems"
+          v-for="item in systemOptions"
           :key="item.value"
           type="button"
           :class="{ active: selectedSystem === item.value }"
@@ -137,7 +195,7 @@ function enterPaper() {
         <span>年份</span>
         <button type="button" :class="{ active: selectedYear === 'all' }" @click="selectedYear = 'all'">全部年份</button>
         <button
-          v-for="year in years"
+          v-for="year in yearOptions"
           :key="year"
           type="button"
           :class="{ active: selectedYear === year }"
@@ -148,6 +206,45 @@ function enterPaper() {
       </div>
     </section>
 
+    <section class="history-panel surface-card">
+      <div class="history-head">
+        <div>
+          <p class="page-kicker">Practice History</p>
+          <h2>做题历史</h2>
+        </div>
+        <div class="history-stats">
+          <span>{{ draftCount }} 份保存进度</span>
+          <span>{{ completedCount }} 套已练真题</span>
+        </div>
+      </div>
+
+      <div v-if="historyItems.length" class="history-list">
+        <button
+          v-for="item in historyItems"
+          :key="item.id"
+          type="button"
+          class="history-item"
+          :class="item.status"
+          @click="continueHistory(item.paperId, item.status)"
+        >
+          <span class="history-badge">{{ item.status === 'draft' ? '继续做' : '已完成' }}</span>
+          <strong>{{ item.paperTitle }}</strong>
+          <small>
+            {{ item.type === 'essay' ? '申论' : '面试' }} ·
+            {{ item.answeredCount }} 题已作答 ·
+            用时 {{ formatSeconds(item.durationSeconds) }} ·
+            {{ formatHistoryTime(item.updatedAt) }}
+          </small>
+          <em>{{ item.status === 'draft' ? '恢复进度' : `${item.averageScore || '--'} 分` }}</em>
+        </button>
+      </div>
+
+      <div v-else class="history-empty">
+        <strong>还没有做题记录</strong>
+        <span>进入任意真题作答后，保存进度和完成记录会出现在这里。</span>
+      </div>
+    </section>
+
     <section class="library-layout">
       <section class="paper-list-panel surface-card">
         <div class="list-head">
@@ -155,7 +252,7 @@ function enterPaper() {
             <p class="page-kicker">{{ selectedType === 'essay' ? 'Essay Practice' : 'Interview Practice' }}</p>
             <h2>{{ selectedType === 'essay' ? '申论真题' : '面试真题' }}</h2>
           </div>
-          <span>{{ filteredPapers.length }} 套</span>
+          <span>{{ loading ? '加载中' : `${filteredPapers.length} 套` }}</span>
         </div>
 
         <div v-if="filteredPapers.length" class="paper-list">
@@ -186,8 +283,8 @@ function enterPaper() {
         </div>
 
         <div v-else class="empty-state">
-          <h2>没有找到匹配真题</h2>
-          <p>换一个考试系统、年份或关键词再试试。</p>
+          <h2>{{ loading ? '正在加载真题' : '没有找到匹配真题' }}</h2>
+          <p>{{ loading ? '题库正在从后端数据库读取。' : '换一个考试系统、年份或关键词再试试。' }}</p>
         </div>
       </section>
 
@@ -210,18 +307,6 @@ function enterPaper() {
           <div><strong>{{ selectedPaper.difficulty }}</strong><span>难度</span></div>
           <div><strong>{{ selectedPaper.releaseDate }}</strong><span>发布时间</span></div>
         </div>
-
-        <section class="material-preview">
-          <div class="subhead">
-            <h3>{{ selectedPaper.type === 'essay' ? '材料概览' : '题目背景' }}</h3>
-            <button type="button" @click="enterPaper">查看全文</button>
-          </div>
-          <article v-for="material in selectedPaper.materials" :key="material.id">
-            <strong>{{ material.title }}</strong>
-            <span>{{ material.summary }}</span>
-            <small>约 {{ material.wordCount }} 字</small>
-          </article>
-        </section>
 
         <section class="ai-diagnosis">
           <h3><el-icon><DataAnalysis /></el-icon> AI 练前诊断</h3>
@@ -292,6 +377,130 @@ function enterPaper() {
   gap: 16px;
   padding: 18px;
   border-radius: 16px;
+}
+
+.history-panel {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border-radius: 16px;
+}
+
+.history-head,
+.history-stats,
+.history-item {
+  display: flex;
+  align-items: center;
+}
+
+.history-head {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.history-head h2 {
+  margin: 0;
+  color: #07182f;
+  font-size: 22px;
+}
+
+.history-stats {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.history-stats span {
+  min-height: 30px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: #eef5ff;
+  color: var(--primary);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.history-list {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.history-item {
+  position: relative;
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  min-height: 126px;
+  padding: 16px;
+  border: 1px solid #dbe7f7;
+  border-radius: 14px;
+  background: #ffffff;
+  color: #07182f;
+  text-align: left;
+}
+
+.history-item:hover {
+  border-color: rgba(0, 80, 203, 0.3);
+  background: #f6faff;
+}
+
+.history-item.draft {
+  background: linear-gradient(145deg, #f5fbff, #ffffff);
+}
+
+.history-badge {
+  padding: 6px 9px;
+  border-radius: 999px;
+  background: var(--success-soft);
+  color: var(--success);
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.history-item.completed .history-badge {
+  background: #eaf3ff;
+  color: var(--primary);
+}
+
+.history-item strong {
+  display: -webkit-box;
+  overflow: hidden;
+  min-height: 42px;
+  font-size: 15px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.history-item small {
+  color: var(--text-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.history-item em {
+  position: absolute;
+  right: 14px;
+  bottom: 14px;
+  color: var(--primary);
+  font-size: 12px;
+  font-style: normal;
+  font-weight: 900;
+}
+
+.history-empty {
+  display: grid;
+  gap: 4px;
+  min-height: 86px;
+  place-items: center;
+  border: 1px dashed #cfdbec;
+  border-radius: 14px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.history-empty strong {
+  color: #07182f;
 }
 
 .filter-group {
@@ -548,7 +757,6 @@ function enterPaper() {
   font-weight: 800;
 }
 
-.material-preview,
 .ai-diagnosis {
   padding: 16px;
   border: 1px solid #d9e6f7;
@@ -556,38 +764,11 @@ function enterPaper() {
   background: #ffffff;
 }
 
-.subhead h3,
 .ai-diagnosis h3 {
   margin: 0;
   color: #07182f;
 }
 
-.subhead button {
-  border: 0;
-  background: transparent;
-  color: var(--primary);
-  font-weight: 900;
-}
-
-.material-preview article {
-  display: grid;
-  grid-template-columns: 66px minmax(0, 1fr) 72px;
-  gap: 10px;
-  min-height: 42px;
-  align-items: center;
-  border-top: 1px solid #edf1f8;
-}
-
-.material-preview article:first-of-type {
-  border-top: 0;
-}
-
-.material-preview strong {
-  color: var(--primary);
-}
-
-.material-preview span,
-.material-preview small,
 .diagnosis-body p {
   color: var(--text-secondary);
   font-size: 13px;
@@ -661,6 +842,10 @@ function enterPaper() {
     grid-template-columns: 1fr;
   }
 
+  .history-list {
+    grid-template-columns: 1fr 1fr;
+  }
+
   .paper-preview {
     position: static;
   }
@@ -687,6 +872,10 @@ function enterPaper() {
   .diagnosis-body {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .history-list {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 560px) {
@@ -696,7 +885,6 @@ function enterPaper() {
     padding: 18px;
   }
 
-  .material-preview article,
   .diagnosis-body {
     grid-template-columns: 1fr;
     padding: 10px 0;

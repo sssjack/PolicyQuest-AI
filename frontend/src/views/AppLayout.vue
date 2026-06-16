@@ -23,8 +23,6 @@ const userInitial = computed(() => userName.value.slice(0, 1).toUpperCase())
 const navItems: NavItem[] = [
   { key: 'coach', to: '/coach', label: '学习中心', caption: '今日计划', icon: 'dashboard', match: ['/coach'] },
   { key: 'papers', to: '/papers', label: '真题库', caption: '筛选与练习', icon: 'practice', match: ['/papers', '/practice'] },
-  { key: 'essay', to: { path: '/papers', query: { type: 'essay' } }, label: '申论训练', caption: '材料与写作', icon: 'article', match: [] },
-  { key: 'interview', to: { path: '/papers', query: { type: 'interview' } }, label: '面试训练', caption: '结构化表达', icon: 'users', match: [] },
   { key: 'report', to: '/report', label: '我的报告', caption: '能力复盘', icon: 'report', match: ['/report'] },
 ]
 
@@ -36,16 +34,12 @@ const utilityItems: NavItem[] = [
 
 const allNavItems = computed(() => [...navItems, ...utilityItems])
 const currentItem = computed(() => {
-  if (route.path.startsWith('/papers') && route.query.type === 'essay') return navItems[2]
-  if (route.path.startsWith('/papers') && route.query.type === 'interview') return navItems[3]
   if (route.path.startsWith('/practice')) return navItems[1]
   return allNavItems.value.find(item => item.match.some(path => route.path === path || route.path.startsWith(`${path}/`))) || navItems[0]
 })
 
 function isActive(item: NavItem) {
-  if (item.key === 'papers') return route.path.startsWith('/practice') || (route.path.startsWith('/papers') && !route.query.type)
-  if (item.key === 'essay') return route.path.startsWith('/papers') && route.query.type === 'essay'
-  if (item.key === 'interview') return route.path.startsWith('/papers') && route.query.type === 'interview'
+  if (item.key === 'papers') return route.path.startsWith('/practice') || route.path.startsWith('/papers')
   return item.match.some(path => route.path === path || route.path.startsWith(`${path}/`))
 }
 
