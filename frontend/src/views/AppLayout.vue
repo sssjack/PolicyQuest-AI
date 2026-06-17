@@ -38,6 +38,8 @@ const currentItem = computed(() => {
   return allNavItems.value.find(item => item.match.some(path => route.path === path || route.path.startsWith(`${path}/`))) || navItems[0]
 })
 const isCoachShell = computed(() => ['/coach', '/papers', '/history', '/report'].includes(route.path))
+const isProfileShell = computed(() => route.path === '/profile')
+const showNavigationShell = computed(() => !isCoachShell.value && !isProfileShell.value)
 
 function isActive(item: NavItem) {
   if (item.key === 'papers') return route.path.startsWith('/practice') || route.path.startsWith('/papers')
@@ -51,8 +53,8 @@ function logout() {
 </script>
 
 <template>
-  <div class="app-layout" :class="{ 'coach-shell': isCoachShell }">
-    <aside v-if="!isCoachShell" class="app-sidebar" aria-label="主导航">
+  <div class="app-layout" :class="{ 'coach-shell': isCoachShell, 'profile-shell': isProfileShell }">
+    <aside v-if="showNavigationShell" class="app-sidebar" aria-label="主导航">
       <router-link to="/coach" class="brand">
         <span class="brand-mark">PQ</span>
         <span class="brand-copy">
@@ -120,7 +122,7 @@ function logout() {
       </footer>
     </aside>
 
-    <header v-if="!isCoachShell" class="mobile-topbar">
+    <header v-if="showNavigationShell" class="mobile-topbar">
       <router-link to="/coach" class="mobile-brand"><span class="brand-mark">PQ</span></router-link>
       <div>
         <strong>{{ currentItem.label }}</strong>
@@ -130,7 +132,7 @@ function logout() {
     </header>
 
     <main class="app-main">
-      <div v-if="!isCoachShell" class="app-topline">
+      <div v-if="showNavigationShell" class="app-topline">
         <div>
           <span>{{ currentItem.caption }}</span>
           <strong>{{ currentItem.label }}</strong>
@@ -146,7 +148,7 @@ function logout() {
       <router-view />
     </main>
 
-    <nav v-if="!isCoachShell" class="mobile-nav" aria-label="移动端主导航">
+    <nav v-if="showNavigationShell" class="mobile-nav" aria-label="移动端主导航">
       <router-link
         v-for="item in navItems"
         :key="item.key"
@@ -427,6 +429,16 @@ function logout() {
   margin-left: 0;
   padding-top: 0;
   padding-bottom: 0;
+}
+
+.profile-shell .app-main {
+  margin-left: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.profile-shell.app-layout {
+  min-height: 100vh;
 }
 
 .app-main :deep(.page-container) {

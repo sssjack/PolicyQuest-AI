@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, watch, type Component } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
@@ -19,7 +19,7 @@ import {
   Warning,
 } from '@element-plus/icons-vue'
 import AbilityRadar from '../../components/AbilityRadar.vue'
-import { wrongbookApi } from '../../api'
+import { realPaperApi, wrongbookApi } from '../../api'
 import {
   averageScore,
   buildPracticeHistory,
@@ -29,6 +29,7 @@ import {
   readPracticeDrafts,
   readPracticeRecords,
   removeFavoritePaper,
+  type EvaluationResult,
   type FavoritePaper,
   type PracticeDraft,
   type PracticeHistoryItem,
@@ -39,6 +40,57 @@ import { useUserStore } from '../../store/user'
 
 type ArchiveTab = 'history' | 'report' | 'wrong' | 'notes' | 'favorite'
 type HistoryFilter = 'all' | 'completed' | 'draft'
+
+type RemoteAttemptStatus = 'grading' | 'graded' | 'failed'
+
+type RemoteAttemptAnswer = {
+  id: number
+  questionId: string | number
+  questionTitle: string
+  answer: string
+  duration: number
+  status: RemoteAttemptStatus | 'pending'
+  score?: number
+  level?: string
+  dimensions?: ScoreDimension[]
+  evaluation?: EvaluationResult | null
+  report?: any
+  gradedAt?: string
+}
+
+type RemoteAttemptItem = {
+  id: number
+  paperId: string | number
+  type: 'essay' | 'interview'
+  paperTitle: string
+  status: RemoteAttemptStatus
+  totalQuestions: number
+  answeredCount: number
+  gradedCount: number
+  averageScore: number
+  totalDuration: number
+  submittedAt: string
+  completedAt?: string
+  answers?: RemoteAttemptAnswer[]
+}
+
+type RemoteHistoryItem = {
+  id: string
+  source: 'remote-attempt'
+  attemptId: number
+  paperId: string
+  paperTitle: string
+  type: 'essay' | 'interview'
+  status: RemoteAttemptStatus
+  questionCount: number
+  answeredCount: number
+  gradedCount: number
+  averageScore: number
+  durationSeconds: number
+  updatedAt: string
+}
+
+type ArchiveHistoryItem = PracticeHistoryItem | RemoteHistoryItem
 
 type RemoteWrongItem = {
   id: number
@@ -73,12 +125,14 @@ const userStore = useUserStore()
 const records = ref<PracticeRecord[]>([])
 const drafts = ref<PracticeDraft[]>([])
 const favorites = ref<FavoritePaper[]>([])
+const remoteAttempts = ref<RemoteAttemptItem[]>([])
 const remoteWrongItems = ref<RemoteWrongItem[]>([])
 const remoteQuestionFavorites = ref<RemoteFavoriteItem[]>([])
 const remoteWrongTotal = ref(0)
 const remoteFavoriteTotal = ref(0)
 const remoteLoading = ref(false)
 const historyFilter = ref<HistoryFilter>('all')
+let attemptPollTimer: number | undefined
 
 const tabOptions: Array<{ key: ArchiveTab; label: string; icon: Component }> = [
   { key: 'history', label: '练习历史', icon: Timer },
@@ -98,27 +152,67 @@ const activeTab = computed<ArchiveTab>(() => normalizeTab(route.query.tab || (ro
 const currentUserName = computed(() => userStore.user?.nickname || userStore.user?.username || '同学')
 const currentUserInitial = computed(() => currentUserName.value.slice(0, 1).toUpperCase())
 
-const historyItems = computed(() => buildPracticeHistory(records.value, drafts.value))
+const localHistoryItems = computed(() => buildPracticeHistory(records.value, drafts.value))
+const remoteHistoryItems = computed<RemoteHistoryItem[]>(() => remoteAttempts.value.map(attempt => ({
+  id: `attempt-${attempt.id}`,
+  source: 'remote-attempt',
+  attemptId: attempt.id,
+  paperId: String(attempt.paperId),
+  paperTitle: attempt.paperTitle,
+  type: attempt.type,
+  status: attempt.status,
+  questionCount: Number(attempt.totalQuestions) || 0,
+  answeredCount: Number(attempt.answeredCount) || 0,
+  gradedCount: Number(attempt.gradedCount) || 0,
+  averageScore: Number(attempt.averageScore) || 0,
+  durationSeconds: Number(attempt.totalDuration) || 0,
+  updatedAt: attempt.completedAt || attempt.submittedAt,
+})))
+const historyItems = computed<ArchiveHistoryItem[]>(() => [...remoteHistoryItems.value, ...localHistoryItems.value].sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt)))
 const visibleHistoryItems = computed(() => {
   if (historyFilter.value === 'all') return historyItems.value
-  return historyItems.value.filter(item => item.status === historyFilter.value)
+  if (historyFilter.value === 'completed') {
+    return historyItems.value.filter(item => isRemoteHistoryItem(item) ? item.status === 'graded' : item.status === 'completed')
+  }
+  return historyItems.value.filter(item => !isRemoteHistoryItem(item) && item.status === 'draft')
 })
 const favoriteCount = computed(() => favorites.value.length + remoteFavoriteTotal.value)
-const essayRecords = computed(() => records.value.filter(record => record.type === 'essay'))
-const interviewRecords = computed(() => records.value.filter(record => record.type === 'interview'))
+const remotePracticeRecords = computed<PracticeRecord[]>(() => remoteAttempts.value.flatMap(attempt => (attempt.answers || [])
+  .filter(answer => answer.status === 'graded' && (answer.evaluation || answer.report))
+  .map(answer => {
+    const evaluation = normalizeAttemptEvaluation(answer)
+    return {
+      id: `attempt-${attempt.id}-${answer.id}`,
+      paperId: String(attempt.paperId),
+      paperTitle: attempt.paperTitle,
+      type: attempt.type,
+      questionId: String(answer.questionId),
+      questionTitle: answer.questionTitle,
+      answer: answer.answer,
+      score: evaluation.score,
+      durationSeconds: Number(answer.duration) || 0,
+      submittedAt: answer.gradedAt || attempt.completedAt || attempt.submittedAt,
+      dimensions: evaluation.dimensions,
+      evaluation,
+    }
+  }))
+)
+const allPracticeRecords = computed(() => [...records.value, ...remotePracticeRecords.value])
+const essayRecords = computed(() => allPracticeRecords.value.filter(record => record.type === 'essay'))
+const interviewRecords = computed(() => allPracticeRecords.value.filter(record => record.type === 'interview'))
 const essayRadarItems = computed(() => aggregateReportDimensions(essayRecords.value, essayDimensions))
 const interviewRadarItems = computed(() => aggregateReportDimensions(interviewRecords.value, interviewDimensions))
 const dimensionRows = computed(() => [
   ...buildDimensionRows('申论', essayRadarItems.value, essayRecords.value.length),
   ...buildDimensionRows('面试', interviewRadarItems.value, interviewRecords.value.length),
 ])
-const average = computed(() => averageScore(records.value))
+const average = computed(() => averageScore(allPracticeRecords.value))
 const essayAverage = computed(() => averageScore(essayRecords.value))
 const interviewAverage = computed(() => averageScore(interviewRecords.value))
 const weakest = computed(() => [...dimensionRows.value].sort((a, b) => a.score - b.score)[0])
 const scoreAngle = computed(() => `${Math.max(0, Math.min(100, average.value || 0)) * 3.6}deg`)
 const reportInsight = computed(() => {
-  if (!records.value.length) {
+  if (!allPracticeRecords.value.length) {
     return {
       title: '等待作答样本',
       text: '完成任意申论或面试真题后，系统会把得分、用时、维度表现同步到这里。',
@@ -157,7 +251,7 @@ const noteItems = computed(() => {
       paperId: '',
     }))
 
-  const aiNotes = records.value.slice(0, 12).map(record => ({
+  const aiNotes = allPracticeRecords.value.slice(0, 12).map(record => ({
     id: `record-note-${record.id}`,
     title: record.questionTitle,
     source: record.paperTitle,
@@ -173,6 +267,10 @@ const noteItems = computed(() => {
 onMounted(() => {
   refreshLocalState()
   loadRemoteArchive()
+})
+
+onBeforeUnmount(() => {
+  stopAttemptPolling()
 })
 
 watch(() => route.fullPath, () => {
@@ -227,6 +325,47 @@ function buildDimensionRows(typeLabel: string, dimensions: ScoreDimension[], sam
   }))
 }
 
+function normalizeAttemptEvaluation(answer: RemoteAttemptAnswer): EvaluationResult {
+  if (answer.evaluation) {
+    return {
+      score: Number(answer.evaluation.score || answer.score || 0),
+      level: String(answer.evaluation.level || answer.level || ''),
+      summary: String(answer.evaluation.summary || ''),
+      dimensions: Array.isArray(answer.evaluation.dimensions) ? answer.evaluation.dimensions : (answer.dimensions || []),
+      advantages: Array.isArray(answer.evaluation.advantages) ? answer.evaluation.advantages : [],
+      disadvantages: Array.isArray(answer.evaluation.disadvantages) ? answer.evaluation.disadvantages : [],
+      suggestions: Array.isArray(answer.evaluation.suggestions) ? answer.evaluation.suggestions : [],
+      qualityMaterials: Array.isArray(answer.evaluation.qualityMaterials) ? answer.evaluation.qualityMaterials : [],
+      governmentReportLinks: Array.isArray(answer.evaluation.governmentReportLinks) ? answer.evaluation.governmentReportLinks : [],
+      sampleEssay: String(answer.evaluation.sampleEssay || answer.report?.sampleAnswer || ''),
+    }
+  }
+
+  const report = answer.report || {}
+  return {
+    score: Number(report.score || answer.score || 0),
+    level: String(report.level || answer.level || ''),
+    summary: String(report.summary || ''),
+    dimensions: Array.isArray(report.dimensions) ? report.dimensions : (answer.dimensions || []),
+    advantages: Array.isArray(report.advantages)
+      ? report.advantages.map((item: any) => typeof item === 'string' ? item : `${item.title || '优点'}：${item.detail || ''}`)
+      : [],
+    disadvantages: Array.isArray(report.deductions)
+      ? report.deductions.map((item: any) => typeof item === 'string' ? item : `${item.title || '扣分点'}：${item.originalProblem || item.whyWrong || ''}`)
+      : [],
+    suggestions: Array.isArray(report.highScoreThinking) ? report.highScoreThinking.map(String) : [],
+    qualityMaterials: Array.isArray(report.goldenSentences)
+      ? report.goldenSentences.map((content: string, index: number) => ({ title: `金句${index + 1}`, content, usage: '适合面试表达升级。' }))
+      : [],
+    governmentReportLinks: Array.isArray(report.localPolicyInsight?.cases) ? report.localPolicyInsight.cases : [],
+    sampleEssay: String(report.sampleAnswer || ''),
+  }
+}
+
+function isRemoteHistoryItem(item: ArchiveHistoryItem): item is RemoteHistoryItem {
+  return 'source' in item && item.source === 'remote-attempt'
+}
+
 function refreshLocalState() {
   records.value = readPracticeRecords()
   drafts.value = readPracticeDrafts()
@@ -237,9 +376,10 @@ async function loadRemoteArchive() {
   if (!localStorage.getItem('pq_token')) return
   remoteLoading.value = true
   try {
-    const [wrongResult, favoriteResult] = await Promise.allSettled([
+    const [wrongResult, favoriteResult, attemptResult] = await Promise.allSettled([
       wrongbookApi.wrong({ page: 1, pageSize: 20 }),
       wrongbookApi.favorites({ page: 1, pageSize: 20 }),
+      realPaperApi.attempts({ page: 1, pageSize: 50, type: 'interview', includeAnswers: '1' }),
     ])
 
     if (wrongResult.status === 'fulfilled') {
@@ -250,13 +390,78 @@ async function loadRemoteArchive() {
       remoteQuestionFavorites.value = ((favoriteResult.value as any).data?.list || []) as RemoteFavoriteItem[]
       remoteFavoriteTotal.value = Number((favoriteResult.value as any).data?.total || remoteQuestionFavorites.value.length)
     }
+    if (attemptResult.status === 'fulfilled') {
+      remoteAttempts.value = ((attemptResult.value as any).data?.list || []) as RemoteAttemptItem[]
+      syncAttemptPolling()
+    }
   } finally {
     remoteLoading.value = false
   }
 }
 
-function openHistoryItem(item: PracticeHistoryItem) {
+async function loadRemoteAttempts() {
+  if (!localStorage.getItem('pq_token')) return
+  const response: any = await realPaperApi.attempts({ page: 1, pageSize: 50, type: 'interview', includeAnswers: '1' })
+  remoteAttempts.value = (response.data?.list || []) as RemoteAttemptItem[]
+  syncAttemptPolling()
+}
+
+function syncAttemptPolling() {
+  const hasGrading = remoteAttempts.value.some(item => item.status === 'grading')
+  if (hasGrading && !attemptPollTimer) {
+    attemptPollTimer = window.setInterval(() => {
+      loadRemoteAttempts().catch(() => undefined)
+    }, 5000)
+  }
+  if (!hasGrading) {
+    stopAttemptPolling()
+  }
+}
+
+function stopAttemptPolling() {
+  if (!attemptPollTimer) return
+  window.clearInterval(attemptPollTimer)
+  attemptPollTimer = undefined
+}
+
+function openHistoryItem(item: ArchiveHistoryItem) {
+  if (isRemoteHistoryItem(item)) {
+    router.push(routeTarget(`/practice/${item.paperId}`, {
+      from: 'history',
+      mode: 'review',
+      attemptId: String(item.attemptId),
+    }))
+    return
+  }
   router.push(routeTarget(`/practice/${item.paperId}`, item.status === 'draft' ? { from: 'history', resume: '1' } : { from: 'history' }))
+}
+
+function historyTypeLabel(item: ArchiveHistoryItem) {
+  return item.type === 'essay' ? '申论' : '面试'
+}
+
+function historyStatusLabel(item: ArchiveHistoryItem) {
+  if (isRemoteHistoryItem(item)) {
+    if (item.status === 'graded') return 'AI 批改完成'
+    if (item.status === 'failed') return '批改失败'
+    return 'AI 正在批改中'
+  }
+  return item.status === 'draft' ? '保存进度' : '已完成'
+}
+
+function historyCountPrefix(item: ArchiveHistoryItem) {
+  if (isRemoteHistoryItem(item)) return `共${item.questionCount}题，已批改`
+  return `共${item.questionCount || item.answeredCount}题，已答`
+}
+
+function historyCountValue(item: ArchiveHistoryItem) {
+  if (isRemoteHistoryItem(item)) return item.gradedCount
+  return item.answeredCount
+}
+
+function historyCountSuffix(item: ArchiveHistoryItem) {
+  if (isRemoteHistoryItem(item)) return item.status === 'graded' ? '题' : `/${item.questionCount}题`
+  return '题'
 }
 
 function openFavorite(item: FavoritePaper) {
@@ -385,12 +590,12 @@ function formatShortDate(value?: string) {
             <div>
               <strong>{{ item.paperTitle }}</strong>
               <small>
-                {{ item.type === 'essay' ? '申论' : '面试' }} ·
-                {{ item.status === 'draft' ? '保存进度' : '已完成' }} ·
+                {{ historyTypeLabel(item) }} ·
+                {{ historyStatusLabel(item) }} ·
                 {{ formatDate(item.updatedAt) }}
               </small>
             </div>
-            <span>共{{ item.questionCount || item.answeredCount }}题，已答<em>{{ item.answeredCount }}</em>题</span>
+            <span>{{ historyCountPrefix(item) }}<em>{{ historyCountValue(item) }}</em>{{ historyCountSuffix(item) }}</span>
           </button>
         </div>
 

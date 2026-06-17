@@ -7,7 +7,7 @@ const User = sequelize.define('User', {
   email: { type: DataTypes.STRING(100), allowNull: false, unique: true },
   password: { type: DataTypes.STRING(255), allowNull: false },
   nickname: { type: DataTypes.STRING(50), defaultValue: '' },
-  avatar: { type: DataTypes.STRING(255), defaultValue: '' },
+  avatar: { type: DataTypes.TEXT('medium'), defaultValue: '' },
   role: { type: DataTypes.ENUM('user', 'admin', 'super_admin'), defaultValue: 'user' },
   exam_target: { type: DataTypes.STRING(50), defaultValue: '' },
   province: { type: DataTypes.STRING(20), defaultValue: '' },
@@ -138,6 +138,58 @@ const PaperQuestion = sequelize.define('PaperQuestion', {
   indexes: [{ fields: ['paper_id', 'question_no'] }],
 });
 
+const RealPaperAttempt = sequelize.define('RealPaperAttempt', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id: { type: DataTypes.INTEGER, allowNull: false },
+  paper_id: { type: DataTypes.INTEGER, allowNull: false },
+  practice_type: { type: DataTypes.ENUM('essay', 'interview'), allowNull: false },
+  paper_title: { type: DataTypes.STRING(500), allowNull: false },
+  status: { type: DataTypes.ENUM('grading', 'graded', 'failed'), defaultValue: 'grading' },
+  total_questions: { type: DataTypes.INTEGER, defaultValue: 0 },
+  answered_count: { type: DataTypes.INTEGER, defaultValue: 0 },
+  graded_count: { type: DataTypes.INTEGER, defaultValue: 0 },
+  average_score: { type: DataTypes.FLOAT, defaultValue: 0 },
+  total_duration: { type: DataTypes.INTEGER, defaultValue: 0 },
+  submitted_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
+  completed_at: { type: DataTypes.DATE },
+  error_message: { type: DataTypes.TEXT },
+}, {
+  tableName: 'real_paper_attempts',
+  indexes: [
+    { fields: ['user_id', 'status'] },
+    { fields: ['paper_id'] },
+    { fields: ['submitted_at'] },
+  ],
+});
+
+const RealPaperAttemptAnswer = sequelize.define('RealPaperAttemptAnswer', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  attempt_id: { type: DataTypes.INTEGER, allowNull: false },
+  user_id: { type: DataTypes.INTEGER, allowNull: false },
+  paper_id: { type: DataTypes.INTEGER, allowNull: false },
+  question_id: { type: DataTypes.INTEGER, allowNull: false },
+  question_no: { type: DataTypes.INTEGER, allowNull: false },
+  question_title: { type: DataTypes.STRING(500), allowNull: false },
+  question_prompt: { type: DataTypes.TEXT('long'), allowNull: false },
+  user_answer: { type: DataTypes.TEXT('long'), allowNull: false },
+  duration: { type: DataTypes.INTEGER, defaultValue: 0 },
+  status: { type: DataTypes.ENUM('pending', 'grading', 'graded', 'failed'), defaultValue: 'pending' },
+  score: { type: DataTypes.FLOAT, defaultValue: 0 },
+  level: { type: DataTypes.STRING(30), defaultValue: '' },
+  dimensions: { type: DataTypes.JSON },
+  evaluation: { type: DataTypes.JSON },
+  report: { type: DataTypes.JSON },
+  error_message: { type: DataTypes.TEXT },
+  graded_at: { type: DataTypes.DATE },
+}, {
+  tableName: 'real_paper_attempt_answers',
+  indexes: [
+    { fields: ['attempt_id', 'question_no'] },
+    { fields: ['user_id', 'paper_id'] },
+    { fields: ['status'] },
+  ],
+});
+
 const PracticeSession = sequelize.define('PracticeSession', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   user_id: { type: DataTypes.INTEGER, allowNull: false },
@@ -209,6 +261,15 @@ PaperMaterial.belongsTo(RealPaper, { foreignKey: 'paper_id' });
 RealPaper.hasMany(PaperQuestion, { foreignKey: 'paper_id' });
 PaperQuestion.belongsTo(RealPaper, { foreignKey: 'paper_id' });
 
+User.hasMany(RealPaperAttempt, { foreignKey: 'user_id' });
+RealPaperAttempt.belongsTo(User, { foreignKey: 'user_id' });
+RealPaper.hasMany(RealPaperAttempt, { foreignKey: 'paper_id' });
+RealPaperAttempt.belongsTo(RealPaper, { foreignKey: 'paper_id' });
+RealPaperAttempt.hasMany(RealPaperAttemptAnswer, { foreignKey: 'attempt_id' });
+RealPaperAttemptAnswer.belongsTo(RealPaperAttempt, { foreignKey: 'attempt_id' });
+PaperQuestion.hasMany(RealPaperAttemptAnswer, { foreignKey: 'question_id' });
+RealPaperAttemptAnswer.belongsTo(PaperQuestion, { foreignKey: 'question_id' });
+
 User.hasMany(PracticeSession, { foreignKey: 'user_id' });
 PracticeSession.belongsTo(User, { foreignKey: 'user_id' });
 
@@ -232,6 +293,6 @@ Favorite.belongsTo(Question, { foreignKey: 'question_id' });
 
 module.exports = {
   sequelize, User, ArticleSource, Article, Question,
-  RealPaper, PaperMaterial, PaperQuestion,
+  RealPaper, PaperMaterial, PaperQuestion, RealPaperAttempt, RealPaperAttemptAnswer,
   PracticeSession, UserAnswer, WrongQuestion, Favorite, AiTask
 };

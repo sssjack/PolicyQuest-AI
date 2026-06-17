@@ -119,11 +119,46 @@ router.get('/profile', auth, async (req, res) => {
 
 router.put('/profile', auth, async (req, res) => {
   try {
-    const { nickname, avatar, exam_target, province } = req.body;
-    await req.user.update({ nickname, avatar, exam_target, province });
-    res.json({ code: 200, message: '更新成功' });
+    const nickname = String(req.body.nickname || '').trim();
+    const email = String(req.body.email || '').trim().toLowerCase();
+    const avatar = String(req.body.avatar || '').trim();
+    const exam_target = String(req.body.exam_target || '').trim();
+    const province = String(req.body.province || '').trim();
+
+    if (!nickname) {
+      return res.status(400).json({ code: 400, message: '昵称不能为空' });
+    }
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ code: 400, message: '请输入有效邮箱' });
+    }
+
+    const emailOwner = await User.findOne({
+      where: {
+        email,
+        id: { [Op.ne]: req.user.id },
+      },
+    });
+    if (emailOwner) {
+      return res.status(400).json({ code: 400, message: '该邮箱已被其他账号绑定' });
+    }
+
+    await req.user.update({ nickname, email, avatar, exam_target, province });
+    res.json({
+      code: 200,
+      message: '更新成功',
+      data: {
+        id: req.user.id,
+        username: req.user.username,
+        email: req.user.email,
+        nickname: req.user.nickname,
+        role: req.user.role,
+        avatar: req.user.avatar,
+        exam_target: req.user.exam_target,
+        province: req.user.province,
+      },
+    });
   } catch (e) {
-    res.status(500).json({ code: 500, message: '更新失败' });
+    res.status(500).json({ code: 500, message: '更新失败', error: e.message });
   }
 });
 

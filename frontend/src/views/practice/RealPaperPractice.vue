@@ -84,11 +84,51 @@ const emptyPaper: RealPaper = {
   questions: [],
 }
 
+type RemoteAttemptStatus = 'grading' | 'graded' | 'failed'
+
+type RemoteAttemptAnswerStatus = RemoteAttemptStatus | 'pending'
+
+type RemoteAttemptAnswer = {
+  id: number
+  questionId: string | number
+  questionNo: number
+  questionTitle: string
+  questionPrompt: string
+  answer: string
+  duration: number
+  status: RemoteAttemptAnswerStatus
+  score?: number
+  level?: string
+  dimensions?: Array<{ name: string; score: number; comment?: string }>
+  evaluation?: EvaluationResult | null
+  report?: any
+  errorMessage?: string
+  gradedAt?: string
+}
+
+type RemoteAttempt = {
+  id: number
+  paperId: string | number
+  type: 'essay' | 'interview'
+  paperTitle: string
+  status: RemoteAttemptStatus
+  totalQuestions: number
+  answeredCount: number
+  gradedCount: number
+  averageScore: number
+  totalDuration: number
+  submittedAt: string
+  completedAt?: string
+  errorMessage?: string
+  answers?: RemoteAttemptAnswer[]
+}
+
 const paper = ref<RealPaper>(emptyPaper)
 const currentIndex = ref(0)
 const activeMaterialId = ref('')
 const answers = ref<Record<string, string>>({})
 const evaluations = ref<Record<string, EvaluationResult>>({})
+const remoteAttempt = ref<RemoteAttempt | null>(null)
 const questionTimers = ref<Record<string, number>>({})
 const totalSeconds = ref(0)
 const submitting = ref(false)
@@ -100,24 +140,33 @@ const ANSWER_GRID_COLUMNS = 25
 let timerId: number | undefined
 let allowLeave = false
 
+const reviewMode = computed(() => Boolean(route.query.attemptId) || route.query.mode === 'review')
 const currentQuestion = computed(() => paper.value.questions[currentIndex.value] || paper.value.questions[0] || emptyQuestion)
 const activeMaterial = computed(() => paper.value.materials.find(material => material.id === activeMaterialId.value) || paper.value.materials[0] || emptyMaterial)
 const currentAnswer = computed({
   get: () => normalizeEssayAnswer(answers.value[currentQuestion.value.id] || ''),
   set: value => {
+    if (reviewMode.value) return
     answers.value = { ...answers.value, [currentQuestion.value.id]: normalizeEssayAnswer(value) }
   },
 })
 const answerGridRows = computed(() => buildAnswerGridRows(currentAnswer.value))
 const currentEvaluation = computed(() => evaluations.value[currentQuestion.value.id])
+const currentAttemptAnswer = computed(() => {
+  const questionId = String(currentQuestion.value.id)
+  return remoteAttempt.value?.answers?.find(item => String(item.questionId) === questionId) || null
+})
+const currentInterviewReport = computed(() => currentAttemptAnswer.value?.report || null)
 const wordCount = computed(() => currentAnswer.value.trim().replace(/\s/g, '').length)
 const progressPercent = computed(() => (paper.value.questions.length ? Math.round(((currentIndex.value + 1) / paper.value.questions.length) * 100) : 0))
 const submittedCount = computed(() => Object.keys(evaluations.value).length)
 const answeredCount = computed(() => Object.values(answers.value).filter(answer => answer.trim().length > 0).length)
 const currentQuestionTime = computed(() => questionTimers.value[currentQuestion.value.id] || 0)
 const allSubmitted = computed(() => paper.value.questions.length > 0 && submittedCount.value === paper.value.questions.length)
+const allAnswered = computed(() => paper.value.questions.length > 0 && paper.value.questions.every(question => (answers.value[question.id] || '').trim().length > 0))
+const canFinishPaper = computed(() => paper.value.type === 'interview' ? allAnswered.value : allSubmitted.value)
 const hasWork = computed(() => answeredCount.value > 0 || submittedCount.value > 0 || totalSeconds.value > 20)
-const shouldPromptOnLeave = computed(() => Boolean(paper.value.id && hasWork.value && !allSubmitted.value))
+const shouldPromptOnLeave = computed(() => Boolean(paper.value.id && hasWork.value && !reviewMode.value && !allSubmitted.value))
 const activeMaterialIndex = computed(() => Math.max(0, paper.value.materials.findIndex(material => material.id === activeMaterialId.value)))
 const activeMaterialLabel = computed(() => `材料${activeMaterialIndex.value + 1}`)
 const currentQuestionLabel = computed(() => `题${currentIndex.value + 1}`)
@@ -126,6 +175,22 @@ const wordLimitBase = computed(() => (currentQuestion.value.wordLimit > 0 ? curr
 const wordProgress = computed(() => Math.min(100, Math.round((wordCount.value / wordLimitBase.value) * 100)))
 const readerMaterialHtml = computed(() => buildReaderHtml(activeMaterial.value.content || activeMaterial.value.summary || ''))
 const questionPositionText = computed(() => `${currentIndex.value + 1} / ${paper.value.questions.length || 0}`)
+const submitPaperTip = computed(() => {
+  if (reviewMode.value) return '查看报告'
+  if (paper.value.type === 'interview') return allAnswered.value ? '提交本卷' : '请先填写全部题目'
+  return allSubmitted.value ? '提交本卷' : '请先提交本卷所有题目'
+})
+const reviewEmptyTitle = computed(() => {
+  if (reviewMode.value && remoteAttempt.value?.status !== 'graded') return 'AI 正在批改中'
+  if (paper.value.type === 'interview') return '填写全卷后提交，AI 将逐题批改'
+  return '提交本题后查看 AI 评阅'
+})
+const reviewEmptyText = computed(() => {
+  if (reviewMode.value && remoteAttempt.value?.status === 'failed') return remoteAttempt.value.errorMessage || '本次批改失败，请稍后重新进入报告查看。'
+  if (reviewMode.value && currentAttemptAnswer.value?.status !== 'graded') return `本题状态：${currentAttemptAnswer.value?.status === 'failed' ? '批改失败' : 'AI 正在批改中'}，完成后会在这里显示完整报告。`
+  if (paper.value.type === 'interview') return '面试题不再逐题提交；每道题都有内容后点击提交本卷，系统会后台异步批改并保存报告。'
+  return '评阅结果会安静地出现在作答区下方，不打断阅读和写作节奏。'
+})
 const paperFavorite = computed(() => {
   favoriteVersion.value
   return Boolean(paper.value.id && isFavoritePaper(paper.value.id))
@@ -152,15 +217,20 @@ watch(questionCollapsed, queueAnswerResize, { flush: 'post' })
 watch(() => paper.value.type, queueAnswerResize, { flush: 'post' })
 
 watch(
-  () => route.params.paperId,
-  async paperId => {
+  () => [route.params.paperId, route.query.attemptId, route.query.mode],
+  async ([paperId]) => {
     loading.value = true
     try {
       const response: any = await realPaperApi.detail(String(paperId))
       const nextPaper = mapBackendPaper(response.data)
       paper.value = nextPaper
       resetWorkspace()
-      await restoreDraftIfNeeded(nextPaper)
+      if (reviewMode.value && route.query.attemptId) {
+        await loadAttemptDetail(String(route.query.attemptId))
+      } else {
+        remoteAttempt.value = null
+        await restoreDraftIfNeeded(nextPaper)
+      }
     } catch {
       ElMessage.error('真题加载失败，请返回题库重试')
     } finally {
@@ -172,7 +242,7 @@ watch(
 
 onMounted(() => {
   timerId = window.setInterval(() => {
-    if (!paper.value.id || loading.value) return
+    if (!paper.value.id || loading.value || reviewMode.value) return
     totalSeconds.value += 1
     const questionId = currentQuestion.value?.id
     if (questionId) {
@@ -216,8 +286,45 @@ onBeforeRouteLeave(async () => {
 function resetWorkspace() {
   answers.value = {}
   evaluations.value = {}
+  remoteAttempt.value = null
   questionTimers.value = {}
   totalSeconds.value = 0
+}
+
+async function loadAttemptDetail(attemptId: string) {
+  const response: any = await realPaperApi.attemptDetail(attemptId)
+  const attempt = response.data as RemoteAttempt
+  remoteAttempt.value = attempt
+
+  const nextAnswers: Record<string, string> = {}
+  const nextEvaluations: Record<string, EvaluationResult> = {}
+  const nextTimers: Record<string, number> = {}
+
+  ;(attempt.answers || []).forEach(answer => {
+    const questionId = String(answer.questionId)
+    const question = paper.value.questions.find(item => String(item.id) === questionId) || {
+      ...emptyQuestion,
+      id: questionId,
+      title: answer.questionTitle,
+      prompt: answer.questionPrompt,
+    }
+    nextAnswers[questionId] = answer.answer || ''
+    nextTimers[questionId] = Number(answer.duration) || 0
+    if (answer.evaluation || answer.report) {
+      nextEvaluations[questionId] = normalizeEvaluation(
+        answer.evaluation || reportToEvaluation(answer.report, answer.answer, question),
+        answer.answer,
+        question,
+      )
+    }
+  })
+
+  answers.value = nextAnswers
+  evaluations.value = nextEvaluations
+  questionTimers.value = nextTimers
+  totalSeconds.value = Number(attempt.totalDuration) || Object.values(nextTimers).reduce((sum, value) => sum + value, 0)
+  allowLeave = true
+  queueAnswerResize()
 }
 
 async function restoreDraftIfNeeded(nextPaper: RealPaper) {
@@ -261,6 +368,7 @@ function queueAnswerResize() {
 }
 
 function handleAnswerInput(event: Event) {
+  if (reviewMode.value) return
   const target = event.target as HTMLTextAreaElement
   const rawValue = target.value
   const rawCaret = target.selectionStart ?? rawValue.length
@@ -347,7 +455,7 @@ function buildDraft(): PracticeDraft {
 }
 
 function saveDraft(showMessage = true) {
-  if (!paper.value.id) return
+  if (!paper.value.id || reviewMode.value) return
   savePracticeDraft(buildDraft())
   if (showMessage) ElMessage.success('进度已保存，可在做题历史继续')
 }
@@ -370,8 +478,33 @@ function isGarbled(text: unknown) {
   return /�|锟|閿|乱码/.test(String(text || ''))
 }
 
-function normalizeEvaluation(value: any): EvaluationResult {
-  const local = fallbackEvaluation(currentAnswer.value, currentQuestion.value, paper.value)
+function reportToEvaluation(report: any, answer: string, question: PaperQuestion): EvaluationResult | null {
+  if (!report || typeof report !== 'object') return null
+  const local = fallbackEvaluation(answer || '', question, paper.value)
+  return {
+    score: Number(report.score) || local.score,
+    level: String(report.level || local.level),
+    summary: String(report.summary || local.summary),
+    dimensions: Array.isArray(report.dimensions) ? report.dimensions : local.dimensions,
+    advantages: Array.isArray(report.advantages)
+      ? report.advantages.map((item: any) => typeof item === 'string' ? item : `${item.title || '优点'}：${item.detail || ''}`)
+      : local.advantages,
+    disadvantages: Array.isArray(report.deductions)
+      ? report.deductions.map((item: any) => typeof item === 'string' ? item : `${item.title || '扣分点'}：${item.originalProblem || item.whyWrong || ''}`)
+      : local.disadvantages,
+    suggestions: Array.isArray(report.highScoreThinking) ? report.highScoreThinking.map(String) : local.suggestions,
+    qualityMaterials: Array.isArray(report.goldenSentences)
+      ? report.goldenSentences.map((content: string, index: number) => ({ title: `金句${index + 1}`, content, usage: '适合面试表达升级。' }))
+      : local.qualityMaterials,
+    governmentReportLinks: Array.isArray(report.localPolicyInsight?.cases)
+      ? report.localPolicyInsight.cases
+      : local.governmentReportLinks,
+    sampleEssay: String(report.sampleAnswer || local.sampleEssay),
+  }
+}
+
+function normalizeEvaluation(value: any, answer = currentAnswer.value, question = currentQuestion.value): EvaluationResult {
+  const local = fallbackEvaluation(answer, question, paper.value)
   if (!value || isGarbled(value.summary) || !Array.isArray(value.dimensions)) return local
 
   return {
@@ -395,6 +528,15 @@ function normalizeEvaluation(value: any): EvaluationResult {
 }
 
 async function submitQuestion() {
+  if (reviewMode.value) {
+    ElMessage.info('历史报告为只读查看模式')
+    return
+  }
+  if (paper.value.type === 'interview') {
+    ElMessage.info('面试题请填写完本卷所有题目后，点击“提交本卷”统一批改')
+    return
+  }
+
   const answer = currentAnswer.value.trim()
   if (answer.length < 20) {
     ElMessage.warning('请至少输入 20 个字后再提交')
@@ -445,7 +587,17 @@ async function submitQuestion() {
   }
 }
 
-function finishPaper() {
+async function finishPaper() {
+  if (reviewMode.value) {
+    ElMessage.info('当前正在查看历史报告')
+    return
+  }
+
+  if (paper.value.type === 'interview') {
+    await submitInterviewPaper()
+    return
+  }
+
   if (!allSubmitted.value) {
     ElMessage.warning('请先提交本卷所有题目；暂时离开可点击保存进度')
     return
@@ -453,7 +605,33 @@ function finishPaper() {
   removePracticeDraft(paper.value.id)
   allowLeave = true
   ElMessage.success('本卷已完成，已同步到做题历史')
-  router.push('/history')
+  router.push(routeTarget('/history'))
+}
+
+async function submitInterviewPaper() {
+  if (!allAnswered.value) {
+    ElMessage.warning('请先填写本卷所有题目后再提交')
+    return
+  }
+
+  submitting.value = true
+  try {
+    await realPaperApi.submitAttempt({
+      paperId: paper.value.id,
+      totalDuration: totalSeconds.value,
+      answers: paper.value.questions.map(question => ({
+        questionId: question.id,
+        answer: answers.value[question.id],
+        duration: questionTimers.value[question.id] || 0,
+      })),
+    })
+    removePracticeDraft(paper.value.id)
+    allowLeave = true
+    ElMessage.success('本卷已提交，AI 正在后台逐题批改')
+    router.push(routeTarget('/history'))
+  } finally {
+    submitting.value = false
+  }
 }
 
 async function exitPractice() {
@@ -473,6 +651,13 @@ async function exitPractice() {
 
   allowLeave = true
   router.push(exitTarget())
+}
+
+function routeTarget(path: string, query: Record<string, string> = {}) {
+  return {
+    path,
+    query: route.query.preview === '1' ? { preview: '1', ...query } : query,
+  }
 }
 
 function exitTarget() {
@@ -516,6 +701,20 @@ function escapeHtml(value: string) {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;')
+}
+
+function reportTitle(item: any, fallback = '要点') {
+  if (typeof item === 'string') return item
+  return String(item?.title || fallback)
+}
+
+function reportText(item: any, keys: string[] = ['detail', 'content', 'usage', 'reason']) {
+  if (typeof item === 'string') return item
+  return keys.map(key => item?.[key]).filter(Boolean).map(String).join(' ')
+}
+
+function reportList(value: any) {
+  return Array.isArray(value) ? value : []
 }
 
 </script>
@@ -566,14 +765,15 @@ function escapeHtml(value: string) {
         <button
           type="button"
           class="icon-button"
-          :disabled="loading || !paper.questions.length"
+          :disabled="loading || reviewMode || !paper.questions.length"
           aria-label="保存进度"
-          data-tooltip="保存"
+          :data-tooltip="reviewMode ? '只读报告' : '保存'"
           @click="saveDraft()"
         >
           <el-icon><FolderChecked /></el-icon>
         </button>
         <button
+          v-if="paper.type === 'essay'"
           type="button"
           class="icon-button primary"
           :disabled="loading || submitting || !paper.questions.length"
@@ -586,9 +786,10 @@ function escapeHtml(value: string) {
         <button
           type="button"
           class="icon-button"
-          :class="{ ready: allSubmitted }"
+          :class="{ ready: canFinishPaper }"
+          :disabled="loading || submitting || reviewMode || !paper.questions.length"
           aria-label="提交本卷"
-          data-tooltip="提交本卷"
+          :data-tooltip="submitPaperTip"
           @click="finishPaper"
         >
           <el-icon><Finished /></el-icon>
@@ -664,6 +865,7 @@ function escapeHtml(value: string) {
           <textarea
             ref="answerTextarea"
             :value="currentAnswer"
+            :readonly="reviewMode"
             :placeholder="paper.type === 'essay' ? '请在这里作答。先提炼材料要点，再展开成完整答案...' : '请按结构化面试口径组织表达，注意身份感、交流感和层次...'"
             @input="handleAnswerInput"
           ></textarea>
@@ -684,7 +886,87 @@ function escapeHtml(value: string) {
           </footer>
         </article>
 
-        <article v-if="currentEvaluation" class="review-card">
+        <article v-if="currentInterviewReport" class="review-card interview-report-card">
+          <section class="report-section conclusion">
+            <div class="score-summary">
+              <div class="score-ring">
+                <strong>{{ currentInterviewReport.score }}</strong>
+                <span>/100</span>
+              </div>
+              <div>
+                <p>一、结论评分</p>
+                <h2>{{ currentInterviewReport.level }}</h2>
+                <span>{{ currentInterviewReport.summary }}</span>
+              </div>
+            </div>
+          </section>
+
+          <section class="report-section">
+            <h3>二、优点</h3>
+            <article v-for="item in reportList(currentInterviewReport.advantages)" :key="reportTitle(item)">
+              <strong>{{ reportTitle(item, '优点') }}</strong>
+              <p>{{ reportText(item, ['detail', 'content']) }}</p>
+            </article>
+          </section>
+
+          <section class="report-section deductions">
+            <h3>三、主要扣分原因</h3>
+            <article v-for="item in reportList(currentInterviewReport.deductions)" :key="reportTitle(item)">
+              <strong>{{ reportTitle(item, '扣分点') }}</strong>
+              <p v-if="item.originalProblem"><b>原答案问题：</b>{{ item.originalProblem }}</p>
+              <p v-if="item.whyWrong"><b>为什么丢分：</b>{{ item.whyWrong }}</p>
+              <p v-if="item.policyBasis"><b>评分依据：</b>{{ item.policyBasis }}</p>
+              <p v-if="item.rewrite"><b>可以这样改：</b>{{ item.rewrite }}</p>
+              <p v-if="typeof item === 'string'">{{ item }}</p>
+            </article>
+          </section>
+
+          <section class="report-section">
+            <h3>四、高分答题思路</h3>
+            <ol>
+              <li v-for="item in reportList(currentInterviewReport.highScoreThinking)" :key="item">{{ item }}</li>
+            </ol>
+          </section>
+
+          <section class="report-section quote-list">
+            <h3>五、金句积累</h3>
+            <p v-for="item in reportList(currentInterviewReport.goldenSentences)" :key="item">{{ item }}</p>
+          </section>
+
+          <section class="report-section sample-answer">
+            <h3>六、高分范文</h3>
+            <p>{{ currentInterviewReport.sampleAnswer }}</p>
+          </section>
+
+          <section class="report-section local-policy">
+            <h3>七、{{ currentInterviewReport.localPolicyInsight?.title || '当地案例和政策解读' }}</h3>
+            <article v-for="item in reportList(currentInterviewReport.localPolicyInsight?.cases)" :key="reportTitle(item)">
+              <strong>{{ reportTitle(item, '案例政策') }}</strong>
+              <p>{{ reportText(item, ['content']) }}</p>
+              <small>{{ reportText(item, ['usage']) }}</small>
+            </article>
+            <p v-if="currentInterviewReport.localPolicyInsight?.usage">{{ currentInterviewReport.localPolicyInsight.usage }}</p>
+          </section>
+
+          <section class="report-section upgraded">
+            <h3>八、你原答案可以直接升级的表达</h3>
+            <article v-for="item in reportList(currentInterviewReport.upgradedExpressions)" :key="reportText(item, ['improved'])">
+              <p v-if="item.original"><b>原表达：</b>{{ item.original }}</p>
+              <p v-if="item.improved"><b>升级后：</b>{{ item.improved }}</p>
+              <small v-if="item.reason">{{ item.reason }}</small>
+              <p v-if="typeof item === 'string'">{{ item }}</p>
+            </article>
+          </section>
+
+          <section class="report-section missing">
+            <h3>九、这道题你下次要补的关键内容</h3>
+            <ul>
+              <li v-for="item in reportList(currentInterviewReport.missingKeyContent)" :key="item">{{ item }}</li>
+            </ul>
+          </section>
+        </article>
+
+        <article v-else-if="currentEvaluation" class="review-card">
           <section class="score-summary">
             <div class="score-ring">
               <strong>{{ currentEvaluation.score }}</strong>
@@ -728,8 +1010,8 @@ function escapeHtml(value: string) {
 
         <article v-else class="review-empty">
           <el-icon><EditPen /></el-icon>
-          <strong>提交本题后查看 AI 评阅</strong>
-          <span>评阅结果会安静地出现在作答区下方，不打断阅读和写作节奏。</span>
+          <strong>{{ reviewEmptyTitle }}</strong>
+          <span>{{ reviewEmptyText }}</span>
         </article>
       </section>
     </section>
@@ -1395,6 +1677,12 @@ function escapeHtml(value: string) {
   box-shadow: 0 0 0 4px rgba(47, 99, 183, 0.08);
 }
 
+.question-compose textarea[readonly] {
+  cursor: default;
+  background: #f8fafc;
+  color: #243047;
+}
+
 .essay-paper-mode textarea:focus {
   border-color: rgba(184, 68, 63, 0.44);
   box-shadow:
@@ -1427,6 +1715,90 @@ function escapeHtml(value: string) {
   display: grid;
   gap: 14px;
   padding: 20px;
+}
+
+.interview-report-card {
+  gap: 18px;
+  padding: 26px 30px;
+}
+
+.report-section {
+  display: grid;
+  gap: 12px;
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(41, 52, 71, 0.08);
+}
+
+.report-section:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.report-section h3 {
+  margin: 0;
+  color: #172033;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.report-section article {
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.report-section strong {
+  display: block;
+  color: #26344a;
+  font-size: 16px;
+  font-weight: 900;
+}
+
+.report-section p,
+.report-section li,
+.report-section small {
+  margin: 8px 0 0;
+  color: #4a5568;
+  font-size: 15px;
+  line-height: 1.82;
+}
+
+.report-section b {
+  color: #1f65d6;
+}
+
+.report-section ol,
+.report-section ul {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.report-section.quote-list p {
+  padding: 12px 14px;
+  border-left: 3px solid #397bf6;
+  border-radius: 8px;
+  background: #f3f7ff;
+  color: #26344a;
+  font-weight: 800;
+}
+
+.report-section.sample-answer p {
+  padding: 16px 18px;
+  border-radius: 12px;
+  background: #fbfcff;
+  color: #243047;
+  white-space: pre-wrap;
+}
+
+.report-section.local-policy article {
+  border: 1px solid rgba(57, 123, 246, 0.12);
+  background: #f4f8ff;
+}
+
+.report-section.upgraded article {
+  background: #fbfcf8;
 }
 
 .score-summary {

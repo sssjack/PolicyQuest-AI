@@ -55,7 +55,34 @@ type BackendPracticeSession = {
   total_duration?: number
   status?: string
   created_at?: string
+  createdAt?: string
   submitted_at?: string
+  submittedAt?: string
+}
+
+type BackendRealPaperAttempt = {
+  id: number
+  paperId: string | number
+  type: PracticeType
+  paperTitle: string
+  status: 'grading' | 'graded' | 'failed'
+  totalQuestions: number
+  answeredCount: number
+  gradedCount: number
+  averageScore: number
+  totalDuration: number
+  submittedAt?: string
+  completedAt?: string
+}
+
+type HistoryRow = {
+  id: string
+  title: string
+  meta: string
+  date: string
+  status: string
+  sortTime: number
+  action: () => void
 }
 
 type EntryCard = {
@@ -76,6 +103,7 @@ const favorites = ref<FavoritePaper[]>([])
 const papers = ref<RealPaper[]>([])
 const overview = ref<BackendOverview | null>(null)
 const backendHistory = ref<BackendPracticeSession[]>([])
+const realPaperHistory = ref<BackendRealPaperAttempt[]>([])
 const paperStats = ref<any>(null)
 const searchText = ref('')
 const activeType = ref<PaperTypeFilter>('all')
@@ -166,10 +194,11 @@ const visiblePapers = computed(() => {
 })
 
 const localHistoryRows = computed(() => buildPracticeHistory(records.value, drafts.value).slice(0, 4))
-const historyRows = computed(() => {
-  if (backendHistory.value.length) return backendHistory.value.map(mapBackendHistory)
-  return localHistoryRows.value.map(mapLocalHistory)
-})
+const historyRows = computed<HistoryRow[]>(() => [
+  ...realPaperHistory.value.map(mapRealPaperHistory),
+  ...backendHistory.value.map(mapBackendHistory),
+  ...localHistoryRows.value.map(mapLocalHistory),
+].sort((a, b) => b.sortTime - a.sortTime).slice(0, 4))
 
 const adviceText = computed(() => {
   if (!records.value.length && !overview.value?.total_sessions) {
@@ -213,6 +242,12 @@ function formatDate(value?: string) {
   return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' })
 }
 
+function timestamp(value?: string) {
+  if (!value) return 0
+  const time = new Date(value).getTime()
+  return Number.isNaN(time) ? 0 : time
+}
+
 function formatHours(seconds: number) {
   if (!seconds) return '0 小时'
   const hours = Math.round((seconds / 3600) * 10) / 10
@@ -225,14 +260,40 @@ function paperCountLabel(type: PracticeType) {
 }
 
 function mapBackendHistory(item: BackendPracticeSession) {
+  const updatedAt = item.submitted_at || item.submittedAt || item.created_at || item.createdAt
   const accuracy = item.accuracy === undefined || item.accuracy === null ? '--' : `${Math.round(Number(item.accuracy))}%`
   return {
     id: `backend-${item.id}`,
     title: sessionTypeLabel(item.session_type),
     meta: `${item.answered_count || 0}/${item.total_questions || 0} 题 · 正确率 ${accuracy}`,
-    date: formatDate(item.submitted_at || item.created_at),
+    date: formatDate(updatedAt),
     status: item.status === 'completed' ? '已完成' : '进行中',
+    sortTime: timestamp(updatedAt),
     action: openHistory,
+  }
+}
+
+function mapRealPaperHistory(item: BackendRealPaperAttempt): HistoryRow {
+  const updatedAt = item.completedAt || item.submittedAt
+  const isGraded = item.status === 'graded'
+  const isFailed = item.status === 'failed'
+  const score = isGraded && Number(item.averageScore) > 0 ? ` · ${Math.round(Number(item.averageScore))} 分` : ''
+  const progressMeta = item.status === 'grading'
+    ? `AI 批改中 ${item.gradedCount || 0}/${item.totalQuestions || 0} 题`
+    : `已答 ${item.answeredCount || 0}/${item.totalQuestions || 0} 题${score}`
+
+  return {
+    id: `attempt-${item.id}`,
+    title: item.paperTitle || (item.type === 'essay' ? '申论真题' : '面试真题'),
+    meta: `${item.type === 'essay' ? '申论' : '面试'} · ${progressMeta}`,
+    date: formatDate(updatedAt),
+    status: isGraded ? 'AI 批改完成' : isFailed ? '批改失败' : 'AI 批改中',
+    sortTime: timestamp(updatedAt),
+    action: () => router.push(routeTarget(`/practice/${item.paperId}`, {
+      from: 'history',
+      mode: isGraded ? 'review' : 'grading',
+      attemptId: String(item.id),
+    })),
   }
 }
 
@@ -243,6 +304,7 @@ function mapLocalHistory(item: PracticeHistoryItem) {
     meta: `${item.type === 'essay' ? '申论' : '面试'} · ${item.answeredCount}/${item.questionCount || item.answeredCount} 题 · ${item.averageScore || '--'} 分`,
     date: formatDate(item.updatedAt),
     status: item.status === 'completed' ? '已完成' : '继续',
+    sortTime: timestamp(item.updatedAt),
     action: () => router.push(routeTarget(`/practice/${item.paperId}`, item.status === 'draft' ? { resume: '1' } : {})),
   }
 }
@@ -259,12 +321,13 @@ function sessionTypeLabel(value?: string) {
 async function loadDashboardData() {
   loading.value = true
   try {
-    const [essayResult, interviewResult, statsResult, overviewResult, historyResult] = await Promise.allSettled([
+    const [essayResult, interviewResult, statsResult, overviewResult, historyResult, attemptResult] = await Promise.allSettled([
       realPaperApi.list({ type: 'essay', pageSize: 5 }),
       realPaperApi.list({ type: 'interview', pageSize: 5 }),
       realPaperApi.stats(),
       statsApi.overview(),
       practiceApi.history({ page: 1, pageSize: 4 }),
+      realPaperApi.attempts({ page: 1, pageSize: 4 }),
     ])
 
     const nextPapers: RealPaper[] = []
@@ -279,6 +342,7 @@ async function loadDashboardData() {
     if (statsResult.status === 'fulfilled') paperStats.value = (statsResult.value as any).data
     if (overviewResult.status === 'fulfilled') overview.value = (overviewResult.value as any).data
     if (historyResult.status === 'fulfilled') backendHistory.value = ((historyResult.value as any).data?.list || []).slice(0, 4)
+    if (attemptResult.status === 'fulfilled') realPaperHistory.value = ((attemptResult.value as any).data?.list || []).slice(0, 4)
   } finally {
     loading.value = false
   }

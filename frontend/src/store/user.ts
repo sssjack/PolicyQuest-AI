@@ -39,5 +39,12 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('pq_user', JSON.stringify(res.data))
   }
 
-  return { token, user, isLoggedIn, isAdmin, login, register, logout, fetchProfile }
+  async function updateProfile(data: any) {
+    const res: any = await authApi.updateProfile(data)
+    user.value = res.data || { ...user.value, ...data }
+    localStorage.setItem('pq_user', JSON.stringify(user.value))
+    return res
+  }
+
+  return { token, user, isLoggedIn, isAdmin, login, register, logout, fetchProfile, updateProfile }
 })

@@ -176,8 +176,8 @@ function findSectionIndex(paragraphs, section) {
 function getEssayMaterials(paragraphs) {
   const materialStart = findSectionIndex(paragraphs, 'material');
   const questionStart = findSectionIndex(paragraphs, 'question');
-  const source = materialStart >= 0 && questionStart > materialStart
-    ? paragraphs.slice(materialStart + 1, questionStart)
+  const source = questionStart > 0
+    ? paragraphs.slice(materialStart >= 0 ? materialStart + 1 : 0, questionStart)
     : [];
   const materials = [];
   let current = null;
@@ -648,8 +648,49 @@ async function importRealPapers(options = {}) {
   };
 }
 
+async function importRealPaperUrls(urls = []) {
+  await sequelize.authenticate();
+  await sequelize.sync({ alter: true });
+
+  const papers = [];
+  for (const url of urls) {
+    const html = await fetchWithRetry(url, 15000, 3);
+    const paper = parsePaper(url, html);
+    if (!paper) {
+      throw new Error(`Unable to parse real paper source: ${url}`);
+    }
+    papers.push(paper);
+  }
+
+  let imported = 0;
+  for (const paper of papers) {
+    await savePaper(paper);
+    imported += 1;
+  }
+
+  const [paperCount, questionCount] = await Promise.all([
+    RealPaper.count({ where: { status: 'approved' } }),
+    PaperQuestion.count(),
+  ]);
+
+  return {
+    importedPapers: imported,
+    importedQuestions: countQuestions(papers),
+    totalPapers: paperCount,
+    totalQuestions: questionCount,
+    papers: papers.map(paper => ({
+      title: paper.title,
+      year: paper.year,
+      category: paper.category,
+      questions: paper.questions.length,
+      sourceUrl: paper.sourceUrl,
+    })),
+  };
+}
+
 module.exports = {
   importRealPapers,
+  importRealPaperUrls,
   collectPapers,
   parsePaper,
 };
