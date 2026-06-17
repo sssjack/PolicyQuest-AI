@@ -623,7 +623,7 @@ async function savePaper(paperData) {
 
 async function importRealPapers(options = {}) {
   await sequelize.authenticate();
-  await sequelize.sync({ alter: true });
+  await sequelize.sync();
 
   const papers = await collectPapers(options);
   let imported = 0;
@@ -650,7 +650,7 @@ async function importRealPapers(options = {}) {
 
 async function importRealPaperUrls(urls = []) {
   await sequelize.authenticate();
-  await sequelize.sync({ alter: true });
+  await sequelize.sync();
 
   const papers = [];
   for (const url of urls) {

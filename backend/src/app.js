@@ -39,7 +39,7 @@ async function start() {
   try {
     await sequelize.authenticate();
     console.log('Database connected');
-    await sequelize.sync({ alter: true });
+    await sequelize.sync();
     console.log('Database synced');
 
     const { seedData } = require('./seeds/initial');
