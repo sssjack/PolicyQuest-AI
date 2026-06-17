@@ -125,8 +125,26 @@ const RECORD_KEY = 'policyquest_real_practice_records'
 const DRAFT_KEY = 'policyquest_real_practice_drafts'
 const FAVORITE_KEY = 'policyquest_real_paper_favorites'
 
-export const essayDimensions = ['综合分析', '提出对策', '申发论述', '文章写作', '贯彻执行']
-export const interviewDimensions = ['审题准确', '逻辑层次', '岗位匹配', '应变处置', '表达感染']
+export const essayDimensions = ['审题立意', '要点提炼', '材料运用', '结构逻辑', '对策可行', '文字表达']
+export const interviewDimensions = ['审题理解', '综合分析', '逻辑表达', '岗位匹配', '应变处置', '举止表达']
+
+const essayRubricWeights: Record<string, number> = {
+  审题立意: 20,
+  要点提炼: 25,
+  材料运用: 20,
+  结构逻辑: 15,
+  对策可行: 10,
+  文字表达: 10,
+}
+
+const interviewRubricWeights: Record<string, number> = {
+  审题理解: 15,
+  综合分析: 20,
+  逻辑表达: 20,
+  岗位匹配: 15,
+  应变处置: 15,
+  举止表达: 15,
+}
 
 export function mapBackendPaper(item: any): RealPaper {
   return {
@@ -195,41 +213,71 @@ function scoreLevel(score: number) {
   return '待提升'
 }
 
-export function fallbackEvaluation(answer: string, question: PaperQuestion, paper: RealPaper): EvaluationResult {
-  const text = answer.trim()
-  const targetLength = paper.type === 'interview' ? 360 : Math.min(question.wordLimit, 900)
-  const lengthScore = Math.min(text.length / targetLength, 1) * 18
-  const structureHits = ['第一', '第二', '第三', '首先', '其次', '再次', '最后', '一方面', '另一方面', '因此', '总之'].filter(word =>
-    text.includes(word),
-  ).length
-  const policyHits = ['以人民为中心', '高质量发展', '基层治理', '数字政府', '公共服务', '民生', '减负', '协同', '闭环'].filter(word =>
-    text.includes(word),
-  ).length
-  const actionHits = ['机制', '清单', '平台', '监督', '培训', '落实', '反馈', '考核', '优化', '流程'].filter(word =>
-    text.includes(word),
-  ).length
-  const score = clampScore(53 + lengthScore + structureHits * 3 + policyHits * 2 + actionHits * 2)
-  const dimensionNames = paper.type === 'interview' ? interviewDimensions : essayDimensions
+function hitCount(text: string, words: string[]) {
+  return words.filter(word => text.includes(word)).length
+}
 
-  const dimensions = dimensionNames.map((name, index) => ({
-    name,
-    score: clampScore(score + [4, 0, -5, -2, 2][index], 42, 96),
-    comment:
-      index === 0
-        ? '能回应题目核心要求，但还可以进一步提炼关键词。'
-        : index === 1
-          ? '有基本分层意识，建议让每一层的递进关系更清楚。'
-          : index === 2
-            ? '论证和材料转化仍是主要提分空间。'
-            : index === 3
-              ? '表达较通顺，建议压缩口语化表述并增强规范性。'
-              : '已有执行意识，后续可补充主体、机制和评价标准。',
-  }))
+function scoreFromSignals(base: number, signals: number[], min = 25, max = 92) {
+  return clampScore(base + signals.reduce((sum, value) => sum + value, 0), min, max)
+}
+
+function weightedDimensionScore(dimensions: ScoreDimension[], type: PracticeType) {
+  const weights = type === 'interview' ? interviewRubricWeights : essayRubricWeights
+  const totalWeight = Object.values(weights).reduce((sum, value) => sum + value, 0)
+  return clampScore(
+    dimensions.reduce((sum, item) => sum + item.score * (weights[item.name] || 0), 0) / totalWeight,
+    0,
+    100,
+  )
+}
+
+function buildLocalDimensionScores(answer: string, question: PaperQuestion, paper: RealPaper): ScoreDimension[] {
+  const text = answer.trim()
+  const isInterview = paper.type === 'interview'
+  const targetLength = isInterview ? 450 : Math.max(600, Math.min(question.wordLimit || 900, 1200))
+  const lengthRatio = Math.min(text.length / targetLength, 1)
+  const structureHits = hitCount(text, ['第一', '第二', '第三', '首先', '其次', '再次', '最后', '一方面', '另一方面', '因此', '总之', '一是', '二是', '三是'])
+  const policyHits = hitCount(text, ['以人民为中心', '人民至上', '高质量发展', '基层治理', '数字政府', '法治政府', '群众获得感', '营商环境', '乡村振兴', '共同富裕', '新质生产力'])
+  const actionHits = hitCount(text, ['机制', '制度', '清单', '台账', '平台', '监督', '培训', '落实', '闭环', '考核', '反馈', '协同', '问责', '评估'])
+  const publicRoleHits = hitCount(text, ['群众', '人民', '服务', '责任', '担当', '依法', '纪律', '组织', '沟通', '协调', '汇报'])
+  const problemHits = hitCount(text, ['问题', '原因', '影响', '矛盾', '风险', '短板', '不足', '根源'])
+  const prompt = `${question.title}${question.prompt}${question.requirements.join('')}`
+  const materialKeywords = Array.from(new Set(prompt.match(/[\u4e00-\u9fa5]{2,6}/g) || []))
+    .filter(word => !['什么', '如何', '根据', '材料', '要求', '作答', '问题'].includes(word))
+    .slice(0, 12)
+  const materialHits = materialKeywords.filter(word => text.includes(word)).length
+  const tooShortPenalty = text.length < (isInterview ? 180 : 350) ? -12 : 0
+
+  if (isInterview) {
+    return [
+      { name: '审题理解', score: scoreFromSignals(38, [lengthRatio * 16, structureHits * 2, problemHits * 4, tooShortPenalty]), comment: '是否准确识别问题情境、身份定位、矛盾焦点和作答任务。' },
+      { name: '综合分析', score: scoreFromSignals(36, [lengthRatio * 12, problemHits * 4, policyHits * 3, structureHits * 2, tooShortPenalty]), comment: '是否能辩证分析原因、影响、本质和价值取向。' },
+      { name: '逻辑表达', score: scoreFromSignals(40, [lengthRatio * 12, structureHits * 4, hitCount(text, ['首先', '其次', '最后', '同时']) * 2, tooShortPenalty]), comment: '是否层次清楚、表达流畅、过渡自然、重点突出。' },
+      { name: '岗位匹配', score: scoreFromSignals(37, [publicRoleHits * 3, policyHits * 3, hitCount(text, ['我会', '作为', '岗位', '职责']) * 3, tooShortPenalty]), comment: '是否体现公职人员意识、群众立场、规矩意识和担当精神。' },
+      { name: '应变处置', score: scoreFromSignals(36, [actionHits * 3, hitCount(text, ['现场', '安抚', '核实', '汇报', '跟进', '复盘']) * 4, structureHits * 2, tooShortPenalty]), comment: '是否能稳现场、抓重点、分步骤解决，并形成长效机制。' },
+      { name: '举止表达', score: scoreFromSignals(42, [lengthRatio * 12, hitCount(text, ['谢谢', '各位考官', '获得感', '满意度', '担当']) * 3, structureHits * 2, tooShortPenalty]), comment: '是否具有现场交流感、语言亲和力和结尾收束力。' },
+    ]
+  }
+
+  return [
+    { name: '审题立意', score: scoreFromSignals(38, [lengthRatio * 14, problemHits * 3, materialHits * 2, tooShortPenalty]), comment: '是否准确把握题干任务、作答对象、身份立场和中心主旨。' },
+    { name: '要点提炼', score: scoreFromSignals(35, [lengthRatio * 12, materialHits * 4, problemHits * 2, tooShortPenalty]), comment: '是否覆盖材料核心信息，概括是否准确、全面、有层次。' },
+    { name: '材料运用', score: scoreFromSignals(34, [materialHits * 4, policyHits * 2, problemHits * 2, tooShortPenalty]), comment: '是否把材料信息转化为分析、论证和对策，而不是简单摘抄。' },
+    { name: '结构逻辑', score: scoreFromSignals(40, [lengthRatio * 10, structureHits * 4, hitCount(text, ['总之', '因此', '综上']) * 2, tooShortPenalty]), comment: '是否总分清晰、层次递进、段落安排符合阅卷习惯。' },
+    { name: '对策可行', score: scoreFromSignals(36, [actionHits * 3, hitCount(text, ['主体', '流程', '保障', '监督', '评价']) * 3, policyHits * 2, tooShortPenalty]), comment: '对策是否具备主体、动作、机制、保障和效果。' },
+    { name: '文字表达', score: scoreFromSignals(42, [lengthRatio * 10, policyHits * 2, structureHits * 2, tooShortPenalty]), comment: '语言是否规范、简洁、准确，有无口语化、空泛化和病句。' },
+  ]
+}
+
+export function fallbackEvaluation(answer: string, question: PaperQuestion, paper: RealPaper): EvaluationResult {
+  const dimensions = buildLocalDimensionScores(answer, question, paper)
+  const score = weightedDimensionScore(dimensions, paper.type)
+  const isInterview = paper.type === 'interview'
 
   return {
     score,
     level: scoreLevel(score),
-    summary: `本题作答方向基本正确，能够围绕“${question.title}”展开，具备一定结构意识。主要提分点在于增加材料转化、政策表达和可执行细节。`,
+    summary: `本题围绕“${question.title}”作答，系统按${isInterview ? '结构化面试/事业编面试' : '申论'}真实阅卷维度综合评估为 ${score} 分。主要提分点在于${isInterview ? '身份定位、综合分析、处置步骤和现场表达' : '要点覆盖、材料转化、结构递进和对策落地'}。`,
     dimensions,
     advantages: [
       '能够直接回应题干，不容易跑题。',
@@ -404,9 +452,8 @@ function averageScoreFromEvaluations(evaluations: EvaluationResult[]) {
 }
 
 export function aggregateDimensions(records: PracticeRecord[]) {
-  const source = records.length
-    ? records.flatMap(record => record.dimensions)
-    : [...essayDimensions, ...interviewDimensions].map((name, index) => ({ name, score: 62 + (index % 5) * 3 }))
+  const source = records.flatMap(record => record.dimensions)
+  if (!source.length) return []
 
   const buckets = new Map<string, number[]>()
   source.forEach(item => {

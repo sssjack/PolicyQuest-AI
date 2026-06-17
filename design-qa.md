@@ -1,43 +1,51 @@
-**Source Visual Truth**
-- PDF reference render: `D:\WEGOProject\PolicyQuest\tmp\pdfs\answer-grid-ref.png`
-- Requested issue screenshot: `C:\Users\ADMINI~1\AppData\Local\Temp\codex-clipboard-9ffb9035-e6ce-4a07-a814-e188398ee146.png`
+# Product Design QA: PolicyQuest Fenbi-Style Coach, Papers, Report
 
-**Implementation Evidence**
-- Updated answer-grid screenshot: `D:\WEGOProject\PolicyQuest\outputs\design-qa\answer-grid-spacing-normalized.png`
-- Full comparison: `D:\WEGOProject\PolicyQuest\outputs\design-qa\answer-grid-spacing-comparison.png`
-- Viewports: desktop `1440x1024`, mobile `390x844`.
-- State: local practice preview with answer textarea focused and typed via keyboard using half-width letters, digits, and spaces.
+source visual truth path:
+- `C:/Users/ADMINI~1/AppData/Local/Temp/codex-clipboard-08068cea-9222-4a05-bf96-03ee8cdb68ec.png`
+- `C:/Users/ADMINI~1/AppData/Local/Temp/codex-clipboard-b04c02e3-dcd6-47ec-8a32-5426df7b58da.png`
 
-**Focused Region Comparison**
-- The PDF reference's right answer-grid region was compared side by side with the updated answer-paper crop.
-- The focused crop is the correct QA scope because this request only changes the answer-paper surface and input behavior.
+implementation screenshot path:
+- `D:/WEGOProject/PolicyQuest/product-design-audit/coach-desktop.png`
+- `D:/WEGOProject/PolicyQuest/product-design-audit/papers-essay-mocked.png`
+- `D:/WEGOProject/PolicyQuest/product-design-audit/papers-interview-mocked.png`
+- `D:/WEGOProject/PolicyQuest/product-design-audit/report-desktop.png`
+- `D:/WEGOProject/PolicyQuest/product-design-audit/papers-mobile-mocked.png`
+- `D:/WEGOProject/PolicyQuest/product-design-audit/report-mobile.png`
 
-**Findings**
-- No actionable P0/P1/P2 issues remain.
-- [P3] The app grid remains softer than the printed PDF.
-  Location: `frontend/src/views/practice/RealPaperPractice.vue`.
-  Evidence: the PDF uses higher-contrast red ruling; the app keeps lighter grid lines to reduce eye strain in an interactive editor.
-  Impact: acceptable for screen writing while preserving the answer-card metaphor.
-  Fix: increase `--answer-grid-line` opacity later if a stricter printed-paper look is preferred.
+viewport: desktop `1600x1000`; mobile `390x844`.
+state: `/PolicyQuest/#/coach?preview=1`, `/PolicyQuest/#/papers?type=essay&preview=1`, `/PolicyQuest/#/papers?type=interview&preview=1`, `/PolicyQuest/#/report?preview=1`.
 
-**Required Fidelity Surfaces**
-- Fonts and typography: essay input now normalizes half-width ASCII letters, numbers, punctuation, and spaces to full-width characters in essay mode. Keyboard verification converted `DS 123 ABC` to `ＤＳ　１２３　ＡＢＣ`, so spaces no longer break grid alignment.
-- Spacing and layout rhythm: the paper now uses separate cell and row variables; desktop verification showed `22px` cells with `30.352px` row pitch, creating visible blank spacing between answer rows like the PDF.
-- Colors and visual tokens: the warm paper fill and red grid line remain consistent with the previous implementation and the PDF reference.
-- Image quality and asset fidelity: no bitmap UI assets were required; the PDF reference was rendered to PNG and compared against the browser capture.
-- Copy and content: no new visible instructional copy was added to the product UI.
+## Findings
 
-**Patches Made Since QA**
-- Replaced direct `v-model` input with a normalized input handler that preserves caret position when converting half-width characters.
-- Converted half-width spaces, tabs, ASCII letters, numbers, and punctuation to full-width forms only in essay answer mode.
-- Added row-gap variables and layered grid backgrounds so vertical grid lines do not visually run through the blank inter-row spacing.
-- Verified desktop keyboard input, desktop visual crop, mobile width, and production build.
+- No actionable P0/P1/P2 issues found.
 
-**Implementation Checklist**
-- Half-width spaces no longer offset following text: complete.
-- English letters and numbers occupy one grid cell each after normalization: complete.
-- Grid rows have PDF-like blank spacing between them: complete.
-- Mobile width avoids horizontal overflow: complete.
-- Production build completes: complete.
+## Required Fidelity Surfaces
+
+- Top navigation removal: Pass. The former global top links (`学习中心`, `真题库`, `练习历史`, `学习报告`, `素材库`, `个人档案`) are no longer rendered on coach, papers, history, or report shells. DOM checks found `0` `.top-links` elements.
+- True paper list style: Pass. `/papers` now uses a Fenbi-like white filter panel, blue active chips, gray count bar, and dense white list rows. The old side preview and AI pre-practice diagnosis were removed.
+- Functional scope: Pass. The papers page preserves actual PolicyQuest functions only: type switch, backend list loading through `realPaperApi.list`, keyword/filtering, local favorite toggle, local completion count, and entering `/practice/:paperId`.
+- Report data integrity: Pass. The report no longer fabricates dimension scores. Empty states are shown until real scoring records exist.
+- Dual radar requirement: Pass. The report has separate `申论能力雷达` and `面试能力雷达`, each using the correct rubric dimension set.
+- Responsive layout: Pass. Desktop and mobile DOM checks showed no horizontal overflow.
+
+## Interaction Verification
+
+- `/coach?preview=1`: no top-link nav, ability overview shows a real-data empty state when no scoring samples exist.
+- `/papers?type=essay&preview=1`: no top-link nav; mocked API QA rendered 2 essay rows with system and region filters.
+- `/papers?type=interview&preview=1`: no top-link nav; mocked API QA rendered 2 interview rows.
+- `/report?preview=1`: no top-link nav; archive tab banner remains as the requested in-page switcher for history/report/wrong/notes/favorites.
+- Mobile papers and report views stay within the viewport.
+
+## Environment Notes
+
+- The local backend on `127.0.0.1:3000` was not running during QA, so the live local `/api/real-papers` request returned no data through the dev proxy. A Playwright route mock was used only to verify list row rendering; production behavior still calls the backend API.
+- Development `preview=1` now avoids redirecting to login on API 401 in dev, so preview pages can remain inspectable without a token.
+
+## Verification
+
+- `node --check backend/src/routes/scoring.js`: passed.
+- `npm.cmd run build` in `frontend`: passed.
+- Build warnings are existing non-blocking Vite/Rolldown warnings for dependency pure annotations and large chunks.
+- Browser screenshot/DOM QA: passed.
 
 final result: passed

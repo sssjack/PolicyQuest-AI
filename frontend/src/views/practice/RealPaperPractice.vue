@@ -96,6 +96,7 @@ const loading = ref(false)
 const favoriteVersion = ref(0)
 const answerTextarea = ref<HTMLTextAreaElement | null>(null)
 const questionCollapsed = ref(false)
+const ANSWER_GRID_COLUMNS = 25
 let timerId: number | undefined
 let allowLeave = false
 
@@ -107,6 +108,7 @@ const currentAnswer = computed({
     answers.value = { ...answers.value, [currentQuestion.value.id]: normalizeEssayAnswer(value) }
   },
 })
+const answerGridRows = computed(() => buildAnswerGridRows(currentAnswer.value))
 const currentEvaluation = computed(() => evaluations.value[currentQuestion.value.id])
 const wordCount = computed(() => currentAnswer.value.trim().replace(/\s/g, '').length)
 const progressPercent = computed(() => (paper.value.questions.length ? Math.round(((currentIndex.value + 1) / paper.value.questions.length) * 100) : 0))
@@ -278,9 +280,30 @@ function normalizeEssayAnswer(value: string) {
   if (paper.value.type !== 'essay') return value
   const fullWidthSpace = '\u3000'
   return value
+    .replace(/\r\n/g, '\n')
+    .replace(/\r/g, '\n')
     .replace(/\t/g, fullWidthSpace.repeat(2))
     .replace(/[\u0020\u00a0]/g, fullWidthSpace)
     .replace(/[!-~]/g, character => String.fromCharCode(character.charCodeAt(0) + 0xfee0))
+}
+
+function buildAnswerGridRows(value: string) {
+  if (!value) return []
+
+  return value.split('\n').flatMap(line => {
+    const characters = Array.from(line)
+    if (!characters.length) return [[]]
+
+    const rows: string[][] = []
+    for (let index = 0; index < characters.length; index += ANSWER_GRID_COLUMNS) {
+      rows.push(characters.slice(index, index + ANSWER_GRID_COLUMNS))
+    }
+    return rows
+  })
+}
+
+function displayAnswerCharacter(character: string) {
+  return character === '\u3000' ? '' : character
 }
 
 function resizeAnswerArea() {
@@ -292,9 +315,19 @@ function resizeAnswerArea() {
     return
   }
 
-  textarea.style.height = 'auto'
+  const shell = textarea.parentElement
+  const availableWidth = shell?.clientWidth || textarea.clientWidth || textarea.offsetWidth
+  const cellSize = Math.min(26, Math.max(10, (availableWidth - 42) / ANSWER_GRID_COLUMNS))
+  const rowGap = Math.min(10, Math.max(6, cellSize * 0.36))
+  const rowHeight = cellSize + rowGap
+  shell?.style.setProperty('--answer-cell', `${cellSize}px`)
+  shell?.style.setProperty('--answer-row-gap', `${rowGap}px`)
+
   const minimumHeight = Math.max(620, window.innerHeight - (questionCollapsed.value ? 238 : 338))
-  textarea.style.height = `${Math.max(textarea.scrollHeight, minimumHeight)}px`
+  const contentRows = Math.max(answerGridRows.value.length + 1, 1)
+  const contentHeight = Math.ceil(contentRows * rowHeight + 38)
+  const nextHeight = Math.max(contentHeight, minimumHeight)
+  textarea.style.height = `${nextHeight}px`
 }
 
 function buildDraft(): PracticeDraft {
@@ -627,12 +660,21 @@ function escapeHtml(value: string) {
             <strong v-for="item in currentQuestion.requirements" :key="item">{{ item }}</strong>
           </div>
 
+          <div class="answer-input-shell" :class="{ 'essay-grid-shell': paper.type === 'essay' }">
           <textarea
             ref="answerTextarea"
             :value="currentAnswer"
             :placeholder="paper.type === 'essay' ? '请在这里作答。先提炼材料要点，再展开成完整答案...' : '请按结构化面试口径组织表达，注意身份感、交流感和层次...'"
             @input="handleAnswerInput"
           ></textarea>
+            <div v-if="paper.type === 'essay' && answerGridRows.length" class="answer-grid-text" aria-hidden="true">
+              <div v-for="(row, rowIndex) in answerGridRows" :key="rowIndex" class="answer-grid-row">
+                <span v-for="(character, columnIndex) in row" :key="`${rowIndex}-${columnIndex}`" class="answer-grid-cell">
+                  {{ displayAnswerCharacter(character) }}
+                </span>
+              </div>
+            </div>
+          </div>
 
           <footer class="compose-footer">
             <span>字数：{{ wordCount }} / {{ currentQuestion.wordLimit > 0 ? currentQuestion.wordLimit : '不限' }}</span>
@@ -1207,6 +1249,22 @@ function escapeHtml(value: string) {
   font-size: 13px;
 }
 
+.answer-input-shell {
+  width: 100%;
+  min-width: 0;
+}
+
+.essay-grid-shell {
+  --answer-cell: 22px;
+  --answer-row-gap: 8px;
+  --answer-row: calc(var(--answer-cell) + var(--answer-row-gap));
+  --answer-grid-line: rgba(195, 68, 64, 0.25);
+  --answer-gap-fill: rgba(255, 253, 246, 0.98);
+  position: relative;
+  display: grid;
+  justify-items: center;
+}
+
 .question-compose textarea {
   width: 100%;
   min-height: 430px;
@@ -1223,14 +1281,12 @@ function escapeHtml(value: string) {
 }
 
 .essay-paper-mode textarea {
-  --answer-cell: clamp(22px, 1.45vw, 26px);
-  --answer-row-gap: clamp(7px, 0.58vw, 10px);
-  --answer-row: calc(var(--answer-cell) + var(--answer-row-gap));
-  --answer-grid-line: rgba(195, 68, 64, 0.25);
-  --answer-gap-fill: rgba(255, 253, 246, 0.98);
   box-sizing: border-box;
-  justify-self: stretch;
-  width: 100%;
+  justify-self: center;
+  position: relative;
+  z-index: 2;
+  width: calc(var(--answer-cell) * 25 + 42px);
+  max-width: 100%;
   min-height: 620px;
   overflow: hidden;
   resize: none;
@@ -1259,13 +1315,15 @@ function escapeHtml(value: string) {
   background-size: 100% var(--answer-row), 100% var(--answer-row), var(--answer-cell) var(--answer-row), 100% 100%;
   color: #1f2634;
   font-family: "KaiTi", "STKaiti", "FangSong", "STFangsong", "Noto Serif SC", serif;
-  font-size: calc(var(--answer-cell) * 0.92);
+  font-size: var(--answer-cell);
   line-height: var(--answer-row);
   font-variant-east-asian: full-width;
   font-feature-settings: "fwid" 1;
   letter-spacing: 0;
   word-break: break-all;
   overflow-wrap: anywhere;
+  caret-color: #1f2634;
+  -webkit-text-fill-color: transparent;
   box-shadow:
     inset 0 0 0 1px rgba(255, 255, 255, 0.62),
     0 14px 30px rgba(78, 48, 29, 0.06);
@@ -1276,6 +1334,41 @@ function escapeHtml(value: string) {
   font-family: "FangSong", "STFangsong", "Noto Serif SC", serif;
   font-size: 18px;
   line-height: 1.7;
+  -webkit-text-fill-color: rgba(67, 76, 93, 0.36);
+}
+
+.answer-grid-text {
+  box-sizing: border-box;
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 3;
+  width: calc(var(--answer-cell) * 25 + 42px);
+  max-width: 100%;
+  padding: 18px 20px;
+  border: 1px solid transparent;
+  color: #1f2634;
+  font-family: "KaiTi", "STKaiti", "FangSong", "STFangsong", "Noto Serif SC", serif;
+  font-size: var(--answer-cell);
+  line-height: var(--answer-cell);
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.answer-grid-row {
+  display: grid;
+  grid-template-columns: repeat(25, var(--answer-cell));
+  height: var(--answer-row);
+}
+
+.answer-grid-cell {
+  display: block;
+  width: var(--answer-cell);
+  height: var(--answer-cell);
+  overflow: hidden;
+  line-height: var(--answer-cell);
+  text-align: center;
+  white-space: pre;
 }
 
 .essay-paper-mode .compose-footer {
@@ -1289,6 +1382,12 @@ function escapeHtml(value: string) {
   min-height: calc(100vh - 210px);
   height: 100%;
   resize: none;
+}
+
+.interview-stage .answer-input-shell {
+  grid-area: answer;
+  min-height: calc(100vh - 210px);
+  height: 100%;
 }
 
 .question-compose textarea:focus {

@@ -11,3 +11,6 @@ __pycache__/
 deploy.py
 deploy2.py
 .claude/
+outputs/
+tmp/
+product-design-audit/

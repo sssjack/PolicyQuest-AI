@@ -4,49 +4,144 @@ const config = require('../config');
 
 const router = express.Router();
 
-function clampScore(value, min = 45, max = 95) {
-  return Math.max(min, Math.min(max, Math.round(Number(value) || min)));
+const RUBRICS = {
+  essay: [
+    { name: '审题立意', weight: 20, comment: '是否准确把握题干任务、作答对象、身份立场和中心主旨。' },
+    { name: '要点提炼', weight: 25, comment: '是否覆盖材料核心信息，概括是否准确、全面、有层次。' },
+    { name: '材料运用', weight: 20, comment: '是否能把材料信息转化为分析、论证和对策，而不是简单摘抄。' },
+    { name: '结构逻辑', weight: 15, comment: '是否总分清晰、层次递进、段落安排符合阅卷习惯。' },
+    { name: '对策可行', weight: 10, comment: '对策是否具备主体、动作、机制、保障和效果，能否落地执行。' },
+    { name: '文字表达', weight: 10, comment: '语言是否规范、简洁、准确，有无口语化、空泛化和病句。' },
+  ],
+  interview: [
+    { name: '审题理解', weight: 15, comment: '是否准确识别问题情境、身份定位、矛盾焦点和作答任务。' },
+    { name: '综合分析', weight: 20, comment: '是否能辩证分析原因、影响、本质和价值取向。' },
+    { name: '逻辑表达', weight: 20, comment: '是否层次清楚、表达流畅、过渡自然、重点突出。' },
+    { name: '岗位匹配', weight: 15, comment: '是否体现公职人员意识、群众立场、规矩意识和担当精神。' },
+    { name: '应变处置', weight: 15, comment: '是否能稳现场、抓重点、分步骤解决，并形成长效机制。' },
+    { name: '举止表达', weight: 15, comment: '是否具有现场交流感、语言亲和力和结尾收束力。' },
+  ],
+};
+
+function clampScore(value, min = 0, max = 100) {
+  const parsed = Math.round(Number(value));
+  if (!Number.isFinite(parsed)) return min;
+  return Math.max(min, Math.min(max, parsed));
 }
 
-function inferScore(answer = '', type = 'essay') {
-  const text = String(answer).trim();
-  const lengthScore = type === 'interview'
-    ? Math.min(text.length / 360, 1) * 18
-    : Math.min(text.length / 900, 1) * 18;
-  const structureHits = ['第一', '第二', '第三', '首先', '其次', '再次', '最后', '一方面', '另一方面', '总之', '因此']
-    .filter(word => text.includes(word)).length;
-  const policyHits = ['以人民为中心', '基层治理', '高质量发展', '数字政府', '协同治理', '法治', '民生', '服务', '减负']
-    .filter(word => text.includes(word)).length;
-  const actionHits = ['机制', '制度', '清单', '平台', '监督', '培训', '落实', '闭环', '考核', '反馈', '优化']
-    .filter(word => text.includes(word)).length;
+function hitCount(text, words) {
+  return words.filter(word => text.includes(word)).length;
+}
 
-  return clampScore(52 + lengthScore + structureHits * 3 + policyHits * 2 + actionHits * 2);
+function scoreFromSignals(base, signals, min = 25, max = 92) {
+  return clampScore(base + signals.reduce((sum, value) => sum + value, 0), min, max);
+}
+
+function weightedTotal(dimensions, type) {
+  const rubrics = RUBRICS[type] || RUBRICS.essay;
+  const totalWeight = rubrics.reduce((sum, item) => sum + item.weight, 0);
+  return clampScore(dimensions.reduce((sum, item) => {
+    const rubric = rubrics.find(row => row.name === item.name);
+    return sum + (item.score || 0) * (rubric?.weight || 0);
+  }, 0) / totalWeight);
+}
+
+function buildLocalDimensions(answer = '', question = {}, type = 'essay') {
+  const text = String(answer).trim();
+  const prompt = `${question.title || ''}${question.prompt || ''}${Array.isArray(question.requirements) ? question.requirements.join('') : ''}`;
+  const isInterview = type === 'interview';
+  const targetLength = isInterview ? 450 : Math.max(600, Math.min(Number(question.wordLimit) || 900, 1200));
+  const lengthRatio = Math.min(text.length / targetLength, 1);
+  const structureHits = hitCount(text, ['第一', '第二', '第三', '首先', '其次', '再次', '最后', '一方面', '另一方面', '总之', '因此', '一是', '二是', '三是']);
+  const policyHits = hitCount(text, ['以人民为中心', '人民至上', '高质量发展', '基层治理', '数字政府', '法治政府', '群众获得感', '营商环境', '乡村振兴', '共同富裕', '新质生产力']);
+  const actionHits = hitCount(text, ['机制', '制度', '清单', '台账', '平台', '监督', '培训', '落实', '闭环', '考核', '反馈', '协同', '问责', '评估']);
+  const publicRoleHits = hitCount(text, ['群众', '人民', '服务', '责任', '担当', '依法', '纪律', '组织', '沟通', '协调', '汇报']);
+  const problemHits = hitCount(text, ['问题', '原因', '影响', '矛盾', '风险', '短板', '不足', '根源']);
+  const materialKeywords = Array.from(new Set(String(prompt).match(/[\u4e00-\u9fa5]{2,6}/g) || []))
+    .filter(word => !['什么', '如何', '根据', '材料', '要求', '作答', '问题'].includes(word))
+    .slice(0, 12);
+  const materialHits = materialKeywords.filter(word => text.includes(word)).length;
+  const tooShortPenalty = text.length < (isInterview ? 180 : 350) ? -12 : 0;
+
+  if (isInterview) {
+    return [
+      {
+        name: '审题理解',
+        score: scoreFromSignals(38, [lengthRatio * 16, structureHits * 2, problemHits * 4, tooShortPenalty]),
+        comment: '重点看是否抓住情境、身份和矛盾焦点。',
+      },
+      {
+        name: '综合分析',
+        score: scoreFromSignals(36, [lengthRatio * 12, problemHits * 4, policyHits * 3, structureHits * 2, tooShortPenalty]),
+        comment: '重点看分析是否辩证、是否能解释原因和影响。',
+      },
+      {
+        name: '逻辑表达',
+        score: scoreFromSignals(40, [lengthRatio * 12, structureHits * 4, hitCount(text, ['首先', '其次', '最后', '同时']) * 2, tooShortPenalty]),
+        comment: '重点看层次、过渡、重点和现场表达流畅度。',
+      },
+      {
+        name: '岗位匹配',
+        score: scoreFromSignals(37, [publicRoleHits * 3, policyHits * 3, hitCount(text, ['我会', '作为', '岗位', '职责']) * 3, tooShortPenalty]),
+        comment: '重点看公职身份意识、群众立场和规矩意识。',
+      },
+      {
+        name: '应变处置',
+        score: scoreFromSignals(36, [actionHits * 3, hitCount(text, ['现场', '安抚', '核实', '汇报', '跟进', '复盘']) * 4, structureHits * 2, tooShortPenalty]),
+        comment: '重点看步骤是否可执行、能否兼顾眼前处置和长效机制。',
+      },
+      {
+        name: '举止表达',
+        score: scoreFromSignals(42, [lengthRatio * 12, hitCount(text, ['谢谢', '各位考官', '获得感', '满意度', '担当']) * 3, structureHits * 2, tooShortPenalty]),
+        comment: '重点看交流感、亲和力和结尾收束。',
+      },
+    ];
+  }
+
+  return [
+    {
+      name: '审题立意',
+      score: scoreFromSignals(38, [lengthRatio * 14, problemHits * 3, materialHits * 2, tooShortPenalty]),
+      comment: '重点看是否扣住题干任务和中心主旨。',
+    },
+    {
+      name: '要点提炼',
+      score: scoreFromSignals(35, [lengthRatio * 12, materialHits * 4, problemHits * 2, tooShortPenalty]),
+      comment: '重点看材料核心信息是否提炼完整、准确、有层次。',
+    },
+    {
+      name: '材料运用',
+      score: scoreFromSignals(34, [materialHits * 4, policyHits * 2, problemHits * 2, tooShortPenalty]),
+      comment: '重点看材料是否转化为分析和论证，而非机械摘抄。',
+    },
+    {
+      name: '结构逻辑',
+      score: scoreFromSignals(40, [lengthRatio * 10, structureHits * 4, hitCount(text, ['总之', '因此', '综上']) * 2, tooShortPenalty]),
+      comment: '重点看总分结构、分点层次和递进关系。',
+    },
+    {
+      name: '对策可行',
+      score: scoreFromSignals(36, [actionHits * 3, hitCount(text, ['主体', '流程', '保障', '监督', '评价']) * 3, policyHits * 2, tooShortPenalty]),
+      comment: '重点看对策是否有主体、机制、步骤和保障。',
+    },
+    {
+      name: '文字表达',
+      score: scoreFromSignals(42, [lengthRatio * 10, policyHits * 2, structureHits * 2, tooShortPenalty]),
+      comment: '重点看语言是否规范、简洁、准确，有无空话套话。',
+    },
+  ];
 }
 
 function fallbackEvaluation(payload) {
   const { answer = '', question = {}, type = 'essay' } = payload;
-  const score = inferScore(answer, type);
   const isInterview = type === 'interview';
-  const dimensions = isInterview
-    ? [
-        { name: '审题准确', score: clampScore(score + 5), comment: '能够回应题目中的核心矛盾，基本没有偏题。' },
-        { name: '逻辑层次', score: clampScore(score), comment: '处理顺序比较清楚，但部分衔接可以更自然。' },
-        { name: '机关表达', score: clampScore(score - 4), comment: '表达稳妥，可继续补充规范化工作语言。' },
-        { name: '处置可行', score: clampScore(score + 2), comment: '现场处理较完整，后续机制还可以更具体。' },
-        { name: '临场感染力', score: clampScore(score - 2), comment: '语气平实，结尾可增强担当感和服务意识。' },
-      ]
-    : [
-        { name: '审题准确', score: clampScore(score + 4), comment: '能抓住题目要求，回应材料主旨。' },
-        { name: '结构完整', score: clampScore(score + 1), comment: '整体有总分结构，分论点较清楚。' },
-        { name: '论证深度', score: clampScore(score - 5), comment: '原因和对策都有涉及，但部分论证还不够展开。' },
-        { name: '政策表达', score: clampScore(score - 4), comment: '政策词汇有体现，可增加更准确的官方表述。' },
-        { name: '语言规范', score: clampScore(score + 2), comment: '文字通顺，少量句子可进一步压缩。' },
-      ];
+  const dimensions = buildLocalDimensions(answer, question, type);
+  const score = weightedTotal(dimensions, isInterview ? 'interview' : 'essay');
 
   return {
     score,
     level: score >= 88 ? '优秀' : score >= 78 ? '良好' : score >= 65 ? '中等' : '待提升',
-    summary: `本次作答围绕“${question.title || '题目'}”展开，整体方向正确，具备基本结构意识。主要提升空间在于论证细化、政策表达准确度和对策可操作性。`,
+    summary: `本次作答围绕“${question.title || '题目'}”展开，按${isInterview ? '结构化面试' : '申论'}真实阅卷维度综合评估为 ${score} 分。主要提分点在于${isInterview ? '身份定位、分析深度、处置步骤和现场表达' : '要点覆盖、材料转化、结构递进和对策落地'}。`,
     dimensions,
     advantages: [
       '能够围绕题目核心问题作答，没有明显跑题。',
@@ -110,6 +205,35 @@ function extractJson(text) {
   return JSON.parse(match[0]);
 }
 
+function normalizeAiEvaluation(value, payload) {
+  const local = fallbackEvaluation(payload);
+  if (!value || typeof value !== 'object') return local;
+  const type = payload.type === 'interview' ? 'interview' : 'essay';
+  const rubrics = RUBRICS[type];
+  const sourceDimensions = Array.isArray(value.dimensions) ? value.dimensions : [];
+  const dimensions = rubrics.map(rubric => {
+    const found = sourceDimensions.find(item => String(item?.name || '').includes(rubric.name) || rubric.name.includes(String(item?.name || '')));
+    return {
+      name: rubric.name,
+      score: clampScore(found?.score ?? local.dimensions.find(item => item.name === rubric.name)?.score ?? 0, 0, 100),
+      comment: String(found?.comment || rubric.comment),
+    };
+  });
+  const score = weightedTotal(dimensions, type);
+  return {
+    score,
+    level: score >= 88 ? '优秀' : score >= 78 ? '良好' : score >= 65 ? '中等' : '待提升',
+    summary: String(value.summary || local.summary),
+    dimensions,
+    advantages: Array.isArray(value.advantages) ? value.advantages.map(String).slice(0, 5) : local.advantages,
+    disadvantages: Array.isArray(value.disadvantages) ? value.disadvantages.map(String).slice(0, 5) : local.disadvantages,
+    suggestions: Array.isArray(value.suggestions) ? value.suggestions.map(String).slice(0, 6) : local.suggestions,
+    qualityMaterials: Array.isArray(value.qualityMaterials) ? value.qualityMaterials.slice(0, 4) : local.qualityMaterials,
+    governmentReportLinks: Array.isArray(value.governmentReportLinks) ? value.governmentReportLinks.slice(0, 4) : local.governmentReportLinks,
+    sampleEssay: String(value.sampleEssay || local.sampleEssay),
+  };
+}
+
 router.post('/evaluate', async (req, res) => {
   const { answer, question, type = 'essay' } = req.body || {};
   if (!answer || String(answer).trim().length < 20) {
@@ -127,7 +251,10 @@ router.post('/evaluate', async (req, res) => {
       institution: '事业编',
     };
     const examLabel = examLabelMap[question?.exam] || question?.exam || '公职考试';
-    const typeLabel = type === 'interview' ? '结构化面试' : '申论';
+    const typeLabel = type === 'interview' ? '结构化面试/事业编面试' : '申论';
+    const rubricLines = (RUBRICS[type === 'interview' ? 'interview' : 'essay'] || RUBRICS.essay)
+      .map(item => `${item.name}${item.weight}分：${item.comment}`)
+      .join('\n');
     const response = await fetch(config.llm.apiUrl, {
       method: 'POST',
       headers: {
@@ -142,7 +269,7 @@ router.post('/evaluate', async (req, res) => {
         messages: [
           {
             role: 'system',
-            content: '你是 PolicyQuest AI Exam Coach 的资深公考阅卷官，专门批改历年国考、地方省考、事业编的申论与结构化面试作答。你的反馈要像真实教研老师：评分严格、诊断具体、优点要讲清具体好在哪里，缺点要讲清具体不好在哪里，建议必须可改写，并结合近年政府工作报告中关于高质量发展、民生保障、数字政府、基层治理、乡村振兴等表述方向生成示范答案。请严格按 JSON 输出，不要输出 Markdown。',
+            content: '你是 PolicyQuest AI Exam Coach 的资深公考阅卷官，熟悉国考、省考、事业单位申论和结构化面试真实评分标准。你必须像真实阅卷组一样严格：不因字数堆砌给高分，不因使用政策词就默认高分；必须根据题干任务、材料转化、逻辑层次、岗位意识、可执行性和表达规范进行量化评分。请严格按 JSON 输出，不要输出 Markdown。',
           },
           {
             role: 'user',
@@ -160,12 +287,17 @@ router.post('/evaluate', async (req, res) => {
   "sampleEssay": "完整示范范文或面试示范答案"
 }
 
-要求：
-1. 总评不能只写分数，必须指出整体水平与最关键的提分点。
-2. 优点必须结合用户原文或作答结构说明具体好在哪里。
-3. 缺点必须指出具体不好在哪里，避免空泛批评。
-4. 建议必须能直接指导改写。
-5. 范文必须自然融入政府工作报告相关政策方向，不要堆砌口号。
+评分维度与权重：
+${rubricLines}
+
+严格要求：
+1. dimensions 必须逐项输出上述维度名称，score 为 0-100，不能换维度、漏维度。
+2. 总分必须依据各维度权重综合，不得随意给高分；普通空泛答案不得超过 65 分，明显跑题不得超过 45 分。
+3. 总评必须指出整体档次、主要失分点和最关键提分方向。
+4. 优点必须结合用户原文或作答结构说明具体好在哪里。
+5. 缺点必须指出具体不好在哪里，避免空泛批评。
+6. 建议必须能直接指导改写。
+7. 范文必须自然融入政府工作报告相关政策方向，不要堆砌口号。
 
 考试类型：${examLabel}
 训练题型：${typeLabel}
@@ -186,7 +318,7 @@ router.post('/evaluate', async (req, res) => {
     }
 
     const data = await response.json();
-    const parsed = extractJson(data.choices?.[0]?.message?.content);
+    const parsed = normalizeAiEvaluation(extractJson(data.choices?.[0]?.message?.content), { answer, question, type });
     if (!parsed) throw new Error('AI 返回内容不是有效 JSON');
     return res.json({ code: 200, data: parsed });
   } catch (e) {

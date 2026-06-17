@@ -37,6 +37,7 @@ const currentItem = computed(() => {
   if (route.path.startsWith('/practice')) return navItems[1]
   return allNavItems.value.find(item => item.match.some(path => route.path === path || route.path.startsWith(`${path}/`))) || navItems[0]
 })
+const isCoachShell = computed(() => ['/coach', '/papers', '/history', '/report'].includes(route.path))
 
 function isActive(item: NavItem) {
   if (item.key === 'papers') return route.path.startsWith('/practice') || route.path.startsWith('/papers')
@@ -50,8 +51,8 @@ function logout() {
 </script>
 
 <template>
-  <div class="app-layout">
-    <aside class="app-sidebar" aria-label="主导航">
+  <div class="app-layout" :class="{ 'coach-shell': isCoachShell }">
+    <aside v-if="!isCoachShell" class="app-sidebar" aria-label="主导航">
       <router-link to="/coach" class="brand">
         <span class="brand-mark">PQ</span>
         <span class="brand-copy">
@@ -119,7 +120,7 @@ function logout() {
       </footer>
     </aside>
 
-    <header class="mobile-topbar">
+    <header v-if="!isCoachShell" class="mobile-topbar">
       <router-link to="/coach" class="mobile-brand"><span class="brand-mark">PQ</span></router-link>
       <div>
         <strong>{{ currentItem.label }}</strong>
@@ -129,7 +130,7 @@ function logout() {
     </header>
 
     <main class="app-main">
-      <div class="app-topline">
+      <div v-if="!isCoachShell" class="app-topline">
         <div>
           <span>{{ currentItem.caption }}</span>
           <strong>{{ currentItem.label }}</strong>
@@ -145,7 +146,7 @@ function logout() {
       <router-view />
     </main>
 
-    <nav class="mobile-nav" aria-label="移动端主导航">
+    <nav v-if="!isCoachShell" class="mobile-nav" aria-label="移动端主导航">
       <router-link
         v-for="item in navItems"
         :key="item.key"
@@ -420,6 +421,12 @@ function logout() {
   min-height: 100vh;
   margin-left: 268px;
   padding-bottom: 42px;
+}
+
+.coach-shell .app-main {
+  margin-left: 0;
+  padding-top: 0;
+  padding-bottom: 0;
 }
 
 .app-main :deep(.page-container) {

@@ -14,7 +14,9 @@ api.interceptors.request.use(config => {
 api.interceptors.response.use(
   res => res.data,
   err => {
-    if (err.response?.status === 401) {
+    const hashQuery = window.location.hash.includes('?') ? window.location.hash.split('?')[1] : ''
+    const previewBypass = import.meta.env.DEV && new URLSearchParams(hashQuery).get('preview') === '1'
+    if (err.response?.status === 401 && !previewBypass) {
       localStorage.removeItem('pq_token')
       localStorage.removeItem('pq_user')
       window.location.hash = '#/login'
@@ -54,6 +56,14 @@ export const practiceApi = {
 
 export const statsApi = {
   overview: () => api.get('/stats/overview'),
+}
+
+export const wrongbookApi = {
+  wrong: (params: any) => api.get('/wrongbook/wrong', { params }),
+  markMastered: (id: string | number) => api.put(`/wrongbook/wrong/${id}/master`),
+  deleteWrong: (id: string | number) => api.delete(`/wrongbook/wrong/${id}`),
+  favorites: (params: any) => api.get('/wrongbook/favorites', { params }),
+  toggleFavorite: (questionId: string | number) => api.post(`/wrongbook/favorites/${questionId}`),
 }
 
 export const articlesApi = {
