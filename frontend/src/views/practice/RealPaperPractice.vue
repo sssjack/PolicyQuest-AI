@@ -157,6 +157,9 @@ const currentAttemptAnswer = computed(() => {
   return remoteAttempt.value?.answers?.find(item => String(item.questionId) === questionId) || null
 })
 const currentInterviewReport = computed(() => currentAttemptAnswer.value?.report || null)
+const hasReviewReport = computed(() => reviewMode.value && Boolean(currentInterviewReport.value || currentEvaluation.value))
+const currentReportScore = computed(() => Number(currentInterviewReport.value?.score ?? currentEvaluation.value?.score ?? 0))
+const currentReportScoreAngle = computed(() => `${Math.max(0, Math.min(100, currentReportScore.value)) * 3.6}deg`)
 const wordCount = computed(() => currentAnswer.value.trim().replace(/\s/g, '').length)
 const progressPercent = computed(() => (paper.value.questions.length ? Math.round(((currentIndex.value + 1) / paper.value.questions.length) * 100) : 0))
 const submittedCount = computed(() => Object.keys(evaluations.value).length)
@@ -797,8 +800,8 @@ function reportList(value: any) {
       </section>
     </header>
 
-    <section class="focus-stage" :class="{ 'interview-stage': paper.type === 'interview' }">
-      <aside v-if="paper.type === 'essay'" class="material-rail" aria-label="材料导航">
+    <section class="focus-stage" :class="{ 'interview-stage': paper.type === 'interview', 'review-stage': hasReviewReport }">
+      <aside v-if="paper.type === 'essay' && !hasReviewReport" class="material-rail" aria-label="材料导航">
         <span>材料</span>
         <button
           v-for="(material, index) in paper.materials"
@@ -813,7 +816,7 @@ function reportList(value: any) {
         </button>
       </aside>
 
-      <article v-if="paper.type === 'essay'" class="paper-reader">
+      <article v-if="paper.type === 'essay' && !hasReviewReport" class="paper-reader">
         <header class="reader-title">
           <div>
             <span>{{ paper.shortTitle || paper.title }}</span>
@@ -825,7 +828,34 @@ function reportList(value: any) {
       </article>
 
       <section class="answer-sheet">
-        <article class="question-compose" :class="{ collapsed: questionCollapsed, 'essay-paper-mode': paper.type === 'essay' }">
+        <article v-if="hasReviewReport" class="review-source-card">
+          <header class="review-source-head">
+            <span>{{ paper.type === 'essay' ? '申论' : '面试' }} · {{ currentQuestionLabel }}</span>
+            <h1>{{ currentQuestion.title }}</h1>
+          </header>
+
+          <section class="review-source-section">
+            <h2>原题</h2>
+            <p>{{ currentQuestion.prompt }}</p>
+          </section>
+
+          <section v-if="currentQuestion.requirements.length" class="review-source-tags">
+            <span>作答要求</span>
+            <strong v-for="item in currentQuestion.requirements" :key="item">{{ item }}</strong>
+          </section>
+
+          <section class="review-source-section answer">
+            <h2>用户回答</h2>
+            <p>{{ currentAnswer || '本题未填写作答内容' }}</p>
+          </section>
+
+          <footer class="review-source-meta">
+            <span>字数 {{ wordCount }}</span>
+            <span>用时 {{ formatSeconds(currentQuestionTime) }}</span>
+          </footer>
+        </article>
+
+        <article v-else class="question-compose" :class="{ collapsed: questionCollapsed, 'essay-paper-mode': paper.type === 'essay' }">
           <header class="question-head">
             <button
               type="button"
@@ -889,7 +919,7 @@ function reportList(value: any) {
         <article v-if="currentInterviewReport" class="review-card interview-report-card">
           <section class="report-section conclusion">
             <div class="score-summary">
-              <div class="score-ring">
+              <div class="score-ring" :style="{ '--score-angle': currentReportScoreAngle }">
                 <strong>{{ currentInterviewReport.score }}</strong>
                 <span>/100</span>
               </div>
@@ -968,7 +998,7 @@ function reportList(value: any) {
 
         <article v-else-if="currentEvaluation" class="review-card">
           <section class="score-summary">
-            <div class="score-ring">
+            <div class="score-ring" :style="{ '--score-angle': currentReportScoreAngle }">
               <strong>{{ currentEvaluation.score }}</strong>
               <span>/100</span>
             </div>
@@ -1246,6 +1276,12 @@ function reportList(value: any) {
   grid-template-columns: minmax(0, 1fr);
 }
 
+.focus-stage.review-stage {
+  grid-template-columns: minmax(0, 1fr);
+  width: min(1740px, calc(100vw - 48px));
+  align-items: start;
+}
+
 .material-rail {
   position: sticky;
   top: 88px;
@@ -1382,11 +1418,24 @@ function reportList(value: any) {
   gap: 16px;
 }
 
+.review-stage .answer-sheet {
+  grid-template-columns: minmax(420px, 0.92fr) minmax(560px, 1.08fr);
+  gap: 22px;
+  align-items: start;
+}
+
 .interview-stage .answer-sheet {
   grid-column: 1;
 }
 
+.review-stage .review-card,
+.review-stage .review-empty {
+  width: 100%;
+  justify-self: stretch;
+}
+
 .question-compose,
+.review-source-card,
 .review-card,
 .review-empty {
   border: 1px solid rgba(41, 52, 71, 0.08);
@@ -1711,6 +1760,107 @@ function reportList(value: any) {
   justify-self: end;
 }
 
+.review-stage.interview-stage .review-card,
+.review-stage.interview-stage .review-empty {
+  width: 100%;
+  justify-self: stretch;
+}
+
+.review-source-card {
+  position: sticky;
+  top: 92px;
+  display: grid;
+  gap: 18px;
+  max-height: calc(100vh - 116px);
+  overflow: auto;
+  padding: 26px;
+}
+
+.review-source-head {
+  display: grid;
+  gap: 10px;
+}
+
+.review-source-head span {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  min-height: 30px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: #2f63b7;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.review-source-head h1 {
+  margin: 0;
+  color: #172033;
+  font-size: 24px;
+  line-height: 1.45;
+}
+
+.review-source-section {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid rgba(41, 52, 71, 0.08);
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.review-source-section.answer {
+  border-color: rgba(184, 68, 63, 0.14);
+  background: #fffdf7;
+}
+
+.review-source-section h2 {
+  margin: 0;
+  color: #172033;
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.review-source-section p {
+  margin: 0;
+  color: #4a5568;
+  line-height: 1.86;
+  white-space: pre-wrap;
+}
+
+.review-source-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.review-source-tags span {
+  color: #596579;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.review-source-tags strong {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #edf2f8;
+  color: #52627a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.review-source-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 4px;
+  color: #7a8494;
+  font-size: 13px;
+  font-weight: 900;
+}
+
 .review-card {
   display: grid;
   gap: 14px;
@@ -1803,31 +1953,50 @@ function reportList(value: any) {
 
 .score-summary {
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr);
-  gap: 16px;
+  grid-template-columns: 116px minmax(0, 1fr);
+  gap: 20px;
   align-items: center;
-  padding-bottom: 14px;
+  padding: 18px 0 20px;
   border-bottom: 1px solid rgba(41, 52, 71, 0.08);
+}
+
+.interview-report-card .score-summary {
+  padding: 20px;
+  border: 1px solid rgba(47, 99, 183, 0.1);
+  border-radius: 18px;
+  background: linear-gradient(135deg, #f8fbff, #ffffff);
 }
 
 .score-ring {
   display: grid;
-  place-items: center;
-  width: 88px;
-  height: 88px;
+  grid-template-rows: auto auto;
+  align-content: center;
+  justify-items: center;
+  gap: 4px;
+  width: 104px;
+  height: 104px;
   border-radius: 999px;
-  background: radial-gradient(circle at center, #ffffff 58%, transparent 59%), conic-gradient(#2f63b7 76%, #d8ddd8 0);
+  background:
+    radial-gradient(circle at center, #ffffff 60%, transparent 61%),
+    conic-gradient(#2f63b7 var(--score-angle, 0deg), #e6ebf3 0);
+  box-shadow:
+    inset 0 0 0 1px rgba(47, 99, 183, 0.08),
+    0 12px 26px rgba(47, 99, 183, 0.12);
 }
 
 .score-ring strong {
-  color: #2f63b7;
-  font-size: 31px;
+  color: #245bb1;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: 0;
   line-height: 1;
 }
 
 .score-ring span {
   color: #7a8494;
+  font-size: 14px;
   font-weight: 900;
+  line-height: 1;
 }
 
 .score-summary p {
@@ -1946,6 +2115,10 @@ function reportList(value: any) {
     grid-column: 2;
   }
 
+  .review-stage .answer-sheet {
+    grid-column: 1;
+  }
+
   .interview-stage .answer-sheet {
     grid-column: 1;
   }
@@ -1979,6 +2152,15 @@ function reportList(value: any) {
   .interview-stage .review-empty {
     width: 100%;
     justify-self: stretch;
+  }
+
+  .review-stage .answer-sheet {
+    grid-template-columns: 1fr;
+  }
+
+  .review-source-card {
+    position: static;
+    max-height: none;
   }
 }
 

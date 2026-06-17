@@ -6,6 +6,7 @@
   "scripts": {
     "import:real-papers": "node src/seeds/import-real-papers.js",
     "import:2026-essay-papers": "node src/seeds/import-2026-essay-papers.js",
+    "import:2026-provincial-essay-papers": "node src/seeds/import-2026-provincial-essay-papers.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

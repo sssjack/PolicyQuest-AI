@@ -1113,26 +1113,34 @@ function formatShortDate(value?: string) {
 
 .score-ring {
   display: grid;
-  place-items: center;
-  width: 184px;
-  height: 184px;
+  grid-template-rows: auto auto;
+  align-content: center;
+  justify-items: center;
+  gap: 12px;
+  width: 190px;
+  height: 190px;
   margin: 34px auto 38px;
   border-radius: 999px;
   background:
-    radial-gradient(circle at center, #ffffff 58%, transparent 59%),
+    radial-gradient(circle at center, #ffffff 59%, transparent 60%),
     conic-gradient(#4b7cff var(--score-angle), #eef3fb 0);
+  box-shadow:
+    inset 0 0 0 1px rgba(75, 124, 255, 0.08),
+    0 16px 34px rgba(75, 124, 255, 0.13);
 }
 
 .score-ring strong {
   color: #24314b;
   font-size: 46px;
   font-weight: 900;
-  line-height: 1;
+  letter-spacing: 0;
+  line-height: 0.9;
 }
 
 .score-ring span {
   color: #8c98aa;
   font-weight: 800;
+  line-height: 1;
 }
 
 .score-lines {
