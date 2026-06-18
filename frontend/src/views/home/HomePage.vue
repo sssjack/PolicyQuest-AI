@@ -1,33 +1,117 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
-import { ArrowRight, CircleCheck, DataAnalysis, EditPen, Reading, Timer, TrendCharts } from '@element-plus/icons-vue'
-import heroImage from '../../assets/hero.png'
+import {
+  ArrowRight,
+  CircleCheck,
+  DataAnalysis,
+  EditPen,
+  Reading,
+  Timer,
+  TrendCharts,
+} from '@element-plus/icons-vue'
 import { useUserStore } from '../../store/user'
 
 const router = useRouter()
 const userStore = useUserStore()
+const activeType = ref<'all' | 'essay' | 'interview'>('all')
 
 const primaryTarget = computed(() => (userStore.isLoggedIn ? '/coach' : '/login'))
 
-const stats = [
-  { value: '2', label: '申论 / 面试主线' },
-  { value: '5+', label: 'AI 评阅维度' },
-  { value: '80', label: '本地历史记录上限' },
+const navItems = [
+  { label: '首页', href: '#hero' },
+  { label: '申论真题', to: '/papers?type=essay' },
+  { label: '面试真题', to: '/papers?type=interview' },
+  { label: '学习报告', to: '/report' },
+  { label: '练习历史', to: '/history' },
 ]
 
-const steps = [
-  { icon: Reading, title: '选真题', desc: '按申论、面试、国考、省考、地区和年份定位训练题。' },
-  { icon: Timer, title: '限时作答', desc: '进入题目后开始计时，材料、题目和答题区保持清晰。' },
-  { icon: DataAnalysis, title: 'AI 阅卷', desc: '提交后生成分数、优点、缺点、建议、解读和参考答案。' },
-  { icon: TrendCharts, title: '复盘提升', desc: '个人报告沉淀能力雷达、练习统计和下一步建议。' },
+const paperTabs = [
+  { key: 'all', label: '全部真题' },
+  { key: 'essay', label: '申论' },
+  { key: 'interview', label: '面试' },
+] as const
+
+const papers = [
+  {
+    type: '申论',
+    tag: '国考',
+    title: '2026国考申论真题及答案解析（行政执法卷）',
+    meta: '5题 · 150分钟 · AI逐题批改',
+    color: 'blue',
+  },
+  {
+    type: '申论',
+    tag: '省考',
+    title: '2025浙江省考申论真题及答案解析（A类）',
+    meta: '3题 · 150分钟 · 政策素材解读',
+    color: 'teal',
+  },
+  {
+    type: '面试',
+    tag: '结构化',
+    title: '2025浙江省考面试真题及答案解析（2月22日B类）',
+    meta: '3题 · 21分钟 · 表达逐题诊断',
+    color: 'amber',
+  },
+]
+
+const filteredPapers = computed(() => {
+  if (activeType.value === 'all') return papers
+  return papers.filter(item => activeType.value === 'essay' ? item.type === '申论' : item.type === '面试')
+})
+
+const reportItems = [
+  { title: '结论评分', value: '87', note: '良好 · 主要提升空间在材料转化' },
+  { title: '主要扣分原因', value: '3项', note: '要点遗漏、对策偏宏观、政策结合不足' },
+  { title: '高分参考表达', value: '1000字', note: '按题干字数与文体要求生成' },
 ]
 
 const modules = [
-  { title: '学习中心', text: '今日建议、预测分数、薄弱项和推荐真题集中呈现。', to: '/coach' },
-  { title: '真题库', text: '统一管理申论与面试真题，支持类型、系统、年份和关键词筛选。', to: '/papers' },
-  { title: '我的报告', text: '把每次作答沉淀为可解释的能力图谱和训练建议。', to: '/report' },
+  {
+    icon: Reading,
+    title: '申论真题',
+    desc: '按地区、年份、题型进入整卷练习，提交后生成逐题批改报告。',
+    action: '去练申论',
+    to: '/papers?type=essay',
+  },
+  {
+    icon: Timer,
+    title: '面试真题',
+    desc: '结构化面试按题作答，重点训练审题、逻辑、岗位匹配和应变。',
+    action: '去练面试',
+    to: '/papers?type=interview',
+  },
+  {
+    icon: DataAnalysis,
+    title: '学习报告',
+    desc: '把练习历史、错题、笔记、收藏和能力雷达沉淀到同一页面。',
+    action: '看报告',
+    to: '/report',
+  },
 ]
+
+const workflow = [
+  { title: '选真题', desc: '从申论或面试题库开始。' },
+  { title: '限时作答', desc: '材料、题干和答题区同屏。' },
+  { title: 'AI批改', desc: '按真实评分维度逐题诊断。' },
+  { title: '复盘提分', desc: '形成报告、笔记和下一步建议。' },
+]
+
+const reportFeatures = [
+  '总分与维度分统一展示',
+  '引用原答案指出扣分原因',
+  '高分范文严格贴合作答要求',
+  '政策案例说明如何融入本题',
+]
+
+function routeTo(target: string) {
+  if (!userStore.isLoggedIn && target !== '/login' && target !== '/register') {
+    router.push('/login')
+    return
+  }
+  router.push(target)
+}
 
 function goPrimary() {
   router.push(primaryTarget.value)
@@ -35,86 +119,175 @@ function goPrimary() {
 </script>
 
 <template>
-  <main class="landing-page">
+  <main id="hero" class="landing-page">
     <header class="landing-header">
-      <router-link to="/" class="brand">
+      <router-link to="/" class="brand" aria-label="PolicyQuest 首页">
         <span class="brand-mark">PQ</span>
-        <span>
+        <span class="brand-text">
           <strong>PolicyQuest</strong>
-          <small>AI 公考学习引擎</small>
+          <small>AI 公考训练引擎</small>
         </span>
       </router-link>
 
-      <nav class="landing-nav">
-        <a href="#flow">产品链路</a>
-        <a href="#modules">功能入口</a>
-        <button class="btn-ghost" type="button" @click="router.push('/login')">登录</button>
-        <button class="btn-primary" type="button" @click="router.push(userStore.isLoggedIn ? '/coach' : '/register')">
-          {{ userStore.isLoggedIn ? '进入学习中心' : '免费注册' }}
+      <nav class="landing-nav" aria-label="首页导航">
+        <button
+          v-for="item in navItems"
+          :key="item.label"
+          type="button"
+          class="nav-link"
+          @click="item.to ? routeTo(item.to) : undefined"
+        >
+          <a v-if="item.href" :href="item.href">{{ item.label }}</a>
+          <span v-else>{{ item.label }}</span>
         </button>
       </nav>
+
+      <div class="header-actions">
+        <button class="btn-ghost" type="button" @click="router.push('/login')">登录</button>
+        <button class="btn-primary" type="button" @click="goPrimary">
+          {{ userStore.isLoggedIn ? '进入学习中心' : '开始练习' }}
+        </button>
+      </div>
     </header>
 
-    <section class="hero-section" :style="{ '--hero-image': `url(${heroImage})` }">
-      <div class="hero-inner">
-        <p class="page-kicker">AI Study Command Center</p>
-        <h1>PolicyQuest</h1>
+    <section class="hero-section">
+      <div class="hero-copy">
+        <p class="page-kicker">AI EXAM COACH</p>
+        <h1>真题练习到批改报告，一页完成</h1>
         <p class="hero-subtitle">
-          把公考申论、面试真题、限时作答、AI 阅卷和个人能力报告放进同一条训练链路。
-          先登录或注册，再进入统一学习中心，后续所有功能都从同一套工作台进入。
+          申论、面试真题练习和 AI 批改报告连成一条训练链路。每次作答都能看到分数、扣分原因、高分范文、政策素材和下一步提分建议。
         </p>
         <div class="hero-actions">
           <button class="btn-primary hero-btn" type="button" @click="goPrimary">
-            {{ userStore.isLoggedIn ? '进入学习中心' : '登录后开始训练' }}
+            开始一次 AI 批改
             <el-icon><ArrowRight /></el-icon>
           </button>
-          <button class="btn-ghost hero-btn" type="button" @click="router.push('/register')">创建备考档案</button>
+          <button class="btn-ghost hero-btn" type="button" @click="routeTo('/report')">查看示例报告</button>
         </div>
-        <div class="hero-stats" aria-label="产品能力概览">
-          <article v-for="item in stats" :key="item.label">
-            <strong>{{ item.value }}</strong>
-            <span>{{ item.label }}</span>
-          </article>
+        <div class="trust-row" aria-label="产品能力">
+          <span>真实题库</span>
+          <span>逐题批改</span>
+          <span>能力雷达</span>
+          <span>笔记沉淀</span>
         </div>
+      </div>
+
+      <div class="hero-product" aria-label="产品预览">
+        <section class="paper-board">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">TRUE PAPER</p>
+              <h2>真题速选</h2>
+            </div>
+            <button type="button" @click="routeTo('/papers')">全部真题 <el-icon><ArrowRight /></el-icon></button>
+          </div>
+          <div class="paper-tabs" role="tablist" aria-label="真题类型">
+            <button
+              v-for="tab in paperTabs"
+              :key="tab.key"
+              type="button"
+              :class="{ active: activeType === tab.key }"
+              @click="activeType = tab.key"
+            >
+              {{ tab.label }}
+            </button>
+          </div>
+          <div class="paper-list">
+            <article v-for="paper in filteredPapers" :key="paper.title" class="paper-row">
+              <span class="type-chip" :class="paper.color">{{ paper.type }}</span>
+              <div>
+                <h3>{{ paper.title }}</h3>
+                <p>{{ paper.tag }} · {{ paper.meta }}</p>
+              </div>
+              <button type="button" @click="routeTo('/papers')">开始</button>
+            </article>
+          </div>
+        </section>
+
+        <section class="report-preview">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">AI REPORT</p>
+              <h2>批改报告预览</h2>
+            </div>
+            <span class="live-pill">批改完成</span>
+          </div>
+
+          <div class="score-summary">
+            <div class="score-ring">
+              <strong>87</strong>
+              <span>/100</span>
+            </div>
+            <div>
+              <h3>良好</h3>
+              <p>材料转化、政策结合和对策落地还有提分空间。</p>
+            </div>
+          </div>
+
+          <div class="report-list">
+            <article v-for="item in reportItems" :key="item.title">
+              <span>{{ item.title }}</span>
+              <strong>{{ item.value }}</strong>
+              <p>{{ item.note }}</p>
+            </article>
+          </div>
+        </section>
       </div>
     </section>
 
-    <section id="flow" class="flow-section">
+    <section class="module-section" aria-label="核心入口">
+      <article v-for="item in modules" :key="item.title" class="module-item">
+        <el-icon><component :is="item.icon" /></el-icon>
+        <h2>{{ item.title }}</h2>
+        <p>{{ item.desc }}</p>
+        <button type="button" @click="routeTo(item.to)">
+          {{ item.action }}
+          <el-icon><ArrowRight /></el-icon>
+        </button>
+      </article>
+    </section>
+
+    <section class="workflow-section">
       <div class="section-head">
-        <p class="page-kicker">How It Works</p>
-        <h2>一条完整训练链路</h2>
-        <p>首页介绍产品，登录注册建立身份，进入学习中心后再分流到真题、训练和报告。</p>
+        <p class="page-kicker">LEARNING LOOP</p>
+        <h2>从做题到提分，形成闭环</h2>
+        <p>首页不是让用户看热闹，而是把最重要的训练路径放到眼前：选题、作答、批改、复盘。</p>
       </div>
-      <div class="flow-grid">
-        <article v-for="item in steps" :key="item.title">
-          <el-icon><component :is="item.icon" /></el-icon>
+      <div class="workflow-strip">
+        <article v-for="(item, index) in workflow" :key="item.title">
+          <span>{{ index + 1 }}</span>
           <h3>{{ item.title }}</h3>
           <p>{{ item.desc }}</p>
         </article>
       </div>
     </section>
 
-    <section id="modules" class="modules-section">
-      <article v-for="item in modules" :key="item.title" class="module-card">
-        <span><CircleCheck /></span>
-        <h3>{{ item.title }}</h3>
-        <p>{{ item.text }}</p>
-        <button type="button" @click="router.push(userStore.isLoggedIn ? item.to : '/login')">
-          {{ userStore.isLoggedIn ? '进入功能' : '登录后进入' }}
-          <el-icon><ArrowRight /></el-icon>
-        </button>
-      </article>
-    </section>
-
     <section class="report-band">
-      <div>
-        <p class="page-kicker">Growth Report</p>
-        <h2>报告不只展示数据，还解释为什么和下一步</h2>
-        <p>系统会按综合分析、提出对策、文章写作、贯彻执行、应变处置等维度生成能力图谱，并结合最近作答记录给出训练建议。</p>
+      <div class="report-band-copy">
+        <p class="page-kicker">WHY IT WORKS</p>
+        <h2>AI 批改不是打个分，而是告诉你怎么改</h2>
+        <p>
+          批改报告会把原答案、评分依据、高分表达和政策素材放在一起，帮助你知道为什么丢分、下一次应该怎么写。
+        </p>
+        <div class="feature-checks">
+          <span v-for="item in reportFeatures" :key="item">
+            <el-icon><CircleCheck /></el-icon>
+            {{ item }}
+          </span>
+        </div>
       </div>
-      <button class="btn-primary" type="button" @click="goPrimary">
-        进入学习中心 <el-icon><EditPen /></el-icon>
-      </button>
+      <div class="answer-upgrade">
+        <div class="upgrade-head">
+          <el-icon><EditPen /></el-icon>
+          <strong>表达升级示例</strong>
+        </div>
+        <p class="before">原表达：加强管理，提高服务意识。</p>
+        <p class="after">升级后：建立问题台账、责任清单和整改闭环，明确办理时限并跟踪问效。</p>
+        <button class="btn-primary" type="button" @click="goPrimary">
+          进入学习中心
+          <el-icon><TrendCharts /></el-icon>
+        </button>
+      </div>
     </section>
   </main>
 </template>
@@ -124,19 +297,20 @@ function goPrimary() {
   min-height: 100vh;
   overflow: hidden;
   background:
-    linear-gradient(90deg, rgba(0, 184, 217, 0.045) 1px, transparent 1px),
-    linear-gradient(180deg, #f7fbff 0%, #ffffff 56%, #f1f8ff 100%);
-  background-size: 46px 46px, auto;
+    linear-gradient(90deg, rgba(47, 99, 246, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, #f6f9ff 0%, #ffffff 50%, #f3f8ff 100%);
+  background-size: 48px 48px, auto;
 }
 
 .landing-header {
   position: sticky;
   top: 0;
-  z-index: 20;
-  display: flex;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
-  justify-content: space-between;
-  height: 72px;
+  gap: 28px;
+  height: 76px;
   padding: 0 max(24px, calc((100vw - 1180px) / 2));
   border-bottom: 1px solid rgba(198, 211, 232, 0.72);
   background: rgba(255, 255, 255, 0.9);
@@ -145,9 +319,14 @@ function goPrimary() {
 
 .brand,
 .landing-nav,
+.header-actions,
 .hero-actions,
-.hero-stats,
-.module-card button {
+.trust-row,
+.panel-head,
+.paper-row,
+.score-summary,
+.feature-checks span,
+.upgrade-head {
   display: flex;
   align-items: center;
 }
@@ -160,286 +339,620 @@ function goPrimary() {
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 42px;
-  height: 42px;
-  border-radius: 12px;
-  background: var(--gradient-1);
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: #2f63f6;
   color: #ffffff;
+  font-size: 14px;
   font-weight: 900;
+  box-shadow: 0 10px 24px rgba(47, 99, 246, 0.22);
 }
 
-.brand strong,
-.brand small {
+.brand-text strong,
+.brand-text small {
   display: block;
 }
 
-.brand small {
+.brand-text strong {
+  color: #0b1c30;
+  font-size: 19px;
+  letter-spacing: 0;
+}
+
+.brand-text small {
   margin-top: 2px;
-  color: var(--text-muted);
+  color: #758195;
   font-size: 12px;
+  font-weight: 800;
 }
 
 .landing-nav {
-  gap: 10px;
+  justify-content: center;
+  gap: 6px;
 }
 
-.landing-nav a {
+.nav-link {
+  border: 0;
   padding: 10px 12px;
-  color: var(--text-secondary);
+  background: transparent;
+  color: #536078;
   font-size: 14px;
   font-weight: 900;
 }
 
-.hero-section {
-  position: relative;
-  min-height: calc(100vh - 72px);
-  padding: 84px 0 72px;
-  background:
-    linear-gradient(90deg, rgba(247, 251, 255, 0.94) 0%, rgba(247, 251, 255, 0.8) 48%, rgba(247, 251, 255, 0.18) 100%),
-    var(--hero-image) right 11% center / min(34vw, 430px) auto no-repeat;
+.nav-link a,
+.nav-link span {
+  color: inherit;
 }
 
-.hero-section::after {
-  position: absolute;
-  right: max(20px, calc((100vw - 1180px) / 2));
-  bottom: 34px;
-  left: max(20px, calc((100vw - 1180px) / 2));
-  height: 1px;
-  content: "";
-  background: linear-gradient(90deg, transparent, rgba(0, 80, 203, 0.22), transparent);
+.nav-link:hover {
+  color: #2f63f6;
 }
 
-.hero-inner {
+.header-actions {
+  gap: 10px;
+}
+
+.hero-section,
+.module-section,
+.workflow-section,
+.report-band {
   width: min(1180px, calc(100vw - 48px));
   margin: 0 auto;
 }
 
-.hero-inner h1 {
-  max-width: 700px;
+.hero-section {
+  display: grid;
+  grid-template-columns: minmax(460px, 0.95fr) minmax(560px, 1.05fr);
+  gap: 36px;
+  align-items: center;
+  padding: 72px 0 64px;
+}
+
+.hero-copy h1 {
+  max-width: 620px;
   margin: 0;
   color: #07182f;
-  font-size: 80px;
+  font-size: clamp(46px, 4.6vw, 64px);
   font-weight: 900;
-  line-height: 0.98;
+  line-height: 1.06;
 }
 
 .hero-subtitle {
-  max-width: 690px;
-  margin: 24px 0 0;
-  color: var(--text-secondary);
-  font-size: 18px;
-  line-height: 1.85;
+  max-width: 620px;
+  margin: 22px 0 0;
+  color: #415066;
+  font-size: 17px;
+  line-height: 1.9;
 }
 
 .hero-actions {
   flex-wrap: wrap;
   gap: 12px;
-  margin-top: 32px;
+  margin-top: 30px;
 }
 
 .hero-btn {
   min-height: 52px;
-  padding: 0 24px;
+  padding-inline: 24px;
 }
 
-.hero-stats {
+.trust-row {
   flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 38px;
+  gap: 10px;
+  margin-top: 24px;
 }
 
-.hero-stats article,
-.flow-grid article,
-.module-card,
-.report-band {
-  border: 1px solid rgba(196, 211, 238, 0.82);
-  background: rgba(255, 255, 255, 0.88);
-  box-shadow: var(--shadow-sm);
-  backdrop-filter: blur(18px);
-}
-
-.hero-stats article {
-  min-width: 168px;
-  padding: 16px;
-  border-radius: 14px;
-}
-
-.hero-stats strong,
-.hero-stats span {
-  display: block;
-}
-
-.hero-stats strong {
-  color: var(--primary);
-  font-size: 30px;
-}
-
-.hero-stats span {
-  margin-top: 4px;
-  color: var(--text-muted);
+.trust-row span {
+  min-height: 30px;
+  padding: 0 12px;
+  border: 1px solid rgba(47, 99, 246, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  color: #536078;
   font-size: 12px;
   font-weight: 900;
 }
 
-.flow-section,
-.modules-section,
-.report-band {
-  width: min(1180px, calc(100vw - 48px));
-  margin: 0 auto;
+.hero-product {
+  display: grid;
+  grid-template-columns: minmax(0, 1.12fr) minmax(280px, 0.88fr);
+  gap: 18px;
+  align-items: stretch;
 }
 
-.flow-section {
-  padding: 64px 0 28px;
+.paper-board,
+.report-preview,
+.module-item,
+.workflow-strip,
+.report-band,
+.answer-upgrade {
+  border: 1px solid rgba(196, 211, 238, 0.78);
+  background: rgba(255, 255, 255, 0.88);
+  box-shadow: 0 18px 46px rgba(19, 42, 74, 0.09);
+  backdrop-filter: blur(18px);
 }
 
+.paper-board,
+.report-preview {
+  min-height: 456px;
+  padding: 22px;
+  border-radius: 18px;
+}
+
+.panel-head {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.panel-head h2 {
+  margin: 2px 0 0;
+  color: #07182f;
+  font-size: 24px;
+  font-weight: 900;
+}
+
+.panel-kicker {
+  margin: 0;
+  color: #2f63f6;
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+}
+
+.panel-head button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 0;
+  background: transparent;
+  color: #7a8494;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.paper-tabs {
+  display: inline-flex;
+  gap: 6px;
+  margin: 22px 0 8px;
+  padding: 5px;
+  border-radius: 12px;
+  background: #edf3ff;
+}
+
+.paper-tabs button {
+  min-width: 76px;
+  min-height: 34px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #758195;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.paper-tabs button.active {
+  background: #2f63f6;
+  color: #ffffff;
+  box-shadow: 0 10px 22px rgba(47, 99, 246, 0.18);
+}
+
+.paper-list {
+  display: grid;
+}
+
+.paper-row {
+  gap: 14px;
+  min-height: 96px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(33, 48, 74, 0.08);
+}
+
+.paper-row:last-child {
+  border-bottom: 0;
+}
+
+.paper-row h3 {
+  margin: 0;
+  color: #111d32;
+  font-size: 16px;
+  font-weight: 900;
+  line-height: 1.45;
+}
+
+.paper-row p {
+  margin: 7px 0 0;
+  color: #8190a5;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.paper-row button {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: #2f63f6;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.type-chip,
+.live-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 0 11px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.type-chip.blue {
+  background: #e8f0ff;
+  color: #2f63f6;
+}
+
+.type-chip.teal {
+  background: #e7faf5;
+  color: #00796b;
+}
+
+.type-chip.amber {
+  background: #fff6dc;
+  color: #b86c00;
+}
+
+.live-pill {
+  background: #e7faf5;
+  color: #00796b;
+}
+
+.score-summary {
+  gap: 18px;
+  margin-top: 24px;
+  padding: 18px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #f6f9ff, #ffffff);
+}
+
+.score-ring {
+  display: grid;
+  grid-template-rows: auto auto;
+  width: 96px;
+  height: 96px;
+  align-content: center;
+  justify-items: center;
+  gap: 3px;
+  border-radius: 999px;
+  background:
+    radial-gradient(circle at center, #ffffff 58%, transparent 60%),
+    conic-gradient(#2f63f6 313deg, #e6ecf6 0);
+}
+
+.score-ring strong,
+.score-ring span {
+  display: block;
+  color: #245bb1;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.score-ring strong {
+  font-size: 34px;
+}
+
+.score-ring span {
+  font-size: 13px;
+}
+
+.score-summary h3 {
+  margin: 0 0 6px;
+  color: #07182f;
+  font-size: 24px;
+}
+
+.score-summary p,
+.report-list p {
+  margin: 0;
+  color: #59687d;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.report-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 16px;
+}
+
+.report-list article {
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(33, 48, 74, 0.08);
+}
+
+.report-list article:last-child {
+  border-bottom: 0;
+}
+
+.report-list span {
+  color: #8190a5;
+  font-size: 12px;
+  font-weight: 900;
+}
+
+.report-list strong {
+  display: block;
+  margin: 2px 0 4px;
+  color: #111d32;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.module-section {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  padding: 28px 0 44px;
+}
+
+.module-item {
+  display: grid;
+  gap: 12px;
+  padding: 24px;
+  border-radius: 18px;
+}
+
+.module-item > .el-icon {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  border-radius: 12px;
+  background: #edf3ff;
+  color: #2f63f6;
+  font-size: 22px;
+}
+
+.module-item h2,
 .section-head h2,
 .report-band h2 {
   margin: 0;
   color: #07182f;
-  font-size: 34px;
-}
-
-.section-head p:last-child,
-.report-band p {
-  max-width: 760px;
-  margin: 12px 0 0;
-  color: var(--text-secondary);
-  line-height: 1.72;
-}
-
-.flow-grid,
-.modules-section {
-  display: grid;
-  gap: 16px;
-}
-
-.flow-grid {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  margin-top: 24px;
-}
-
-.flow-grid article,
-.module-card {
-  display: grid;
-  gap: 12px;
-  min-height: 190px;
-  padding: 22px;
-  border-radius: 14px;
-}
-
-.flow-grid .el-icon,
-.module-card > span {
-  display: grid;
-  width: 42px;
-  height: 42px;
-  place-items: center;
-  border-radius: 12px;
-  background: #eaf3ff;
-  color: var(--primary);
-  font-size: 22px;
-}
-
-.flow-grid h3,
-.module-card h3 {
-  margin: 0;
-  color: #07182f;
-  font-size: 20px;
-}
-
-.flow-grid p,
-.module-card p {
-  margin: 0;
-  color: var(--text-secondary);
-  line-height: 1.7;
-}
-
-.modules-section {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  padding: 34px 0;
-}
-
-.module-card button {
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  min-height: 44px;
-  border: 0;
-  border-radius: 10px;
-  background: var(--surface-muted);
-  color: var(--primary);
+  font-size: 30px;
   font-weight: 900;
 }
 
-.report-band {
-  display: flex;
+.module-item h2 {
+  font-size: 22px;
+}
+
+.module-item p,
+.section-head p:last-child,
+.report-band-copy p {
+  margin: 0;
+  color: #536078;
+  line-height: 1.75;
+}
+
+.module-item button {
+  display: inline-flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 28px;
-  margin-bottom: 74px;
-  padding: 30px;
+  gap: 6px;
+  width: fit-content;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: #2f63f6;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.workflow-section {
+  padding: 24px 0 54px;
+}
+
+.section-head {
+  display: grid;
+  gap: 10px;
+  max-width: 760px;
+}
+
+.workflow-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  margin-top: 22px;
+  border-radius: 18px;
+  overflow: hidden;
+}
+
+.workflow-strip article {
+  min-height: 154px;
+  padding: 24px;
+  border-right: 1px solid rgba(33, 48, 74, 0.08);
+}
+
+.workflow-strip article:last-child {
+  border-right: 0;
+}
+
+.workflow-strip span {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border-radius: 8px;
+  background: #2f63f6;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.workflow-strip h3 {
+  margin: 14px 0 6px;
+  color: #07182f;
+  font-size: 18px;
+  font-weight: 900;
+}
+
+.workflow-strip p {
+  margin: 0;
+  color: #64748b;
+  line-height: 1.7;
+}
+
+.report-band {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(340px, 0.9fr);
+  gap: 32px;
+  align-items: center;
+  margin-bottom: 72px;
+  padding: 32px;
+  border-radius: 18px;
+}
+
+.report-band-copy {
+  display: grid;
+  gap: 12px;
+}
+
+.feature-checks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px 16px;
+  margin-top: 8px;
+}
+
+.feature-checks span {
+  gap: 8px;
+  color: #30415d;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.feature-checks .el-icon {
+  color: #00796b;
+}
+
+.answer-upgrade {
+  display: grid;
+  gap: 14px;
+  padding: 22px;
   border-radius: 16px;
+  background: #ffffff;
 }
 
-@media (max-width: 980px) {
-  .hero-section {
-    min-height: auto;
-    background:
-      linear-gradient(180deg, rgba(247, 251, 255, 0.96) 0%, rgba(247, 251, 255, 0.84) 100%),
-      var(--hero-image) right 28px top 70px / 220px auto no-repeat;
-  }
-
-  .hero-inner h1 {
-    font-size: 58px;
-  }
-
-  .flow-grid,
-  .modules-section {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
+.upgrade-head {
+  gap: 8px;
+  color: #2f63f6;
+  font-weight: 900;
 }
 
-@media (max-width: 700px) {
+.answer-upgrade p {
+  margin: 0;
+  padding: 14px;
+  border-radius: 10px;
+  color: #35445b;
+  line-height: 1.75;
+}
+
+.answer-upgrade .before {
+  background: #f6f8fc;
+}
+
+.answer-upgrade .after {
+  border-left: 4px solid #2f63f6;
+  background: #eef5ff;
+  font-weight: 800;
+}
+
+.answer-upgrade .btn-primary {
+  width: fit-content;
+  margin-top: 4px;
+}
+
+@media (max-width: 1120px) {
   .landing-header {
-    height: 68px;
-    padding: 0 16px;
+    grid-template-columns: auto auto;
   }
 
-  .landing-nav a,
-  .landing-nav .btn-ghost,
-  .brand small {
+  .landing-nav {
     display: none;
   }
 
-  .hero-section {
-    padding: 52px 0 46px;
-    background:
-      linear-gradient(180deg, rgba(247, 251, 255, 0.98) 0%, rgba(247, 251, 255, 0.92) 100%),
-      var(--hero-image) right -34px top 36px / 180px auto no-repeat;
+  .hero-section,
+  .hero-product,
+  .report-band {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 820px) {
+  .landing-header {
+    height: auto;
+    padding: 14px 16px;
   }
 
-  .hero-inner,
-  .flow-section,
-  .modules-section,
+  .brand-text small,
+  .header-actions .btn-ghost {
+    display: none;
+  }
+
+  .hero-section,
+  .module-section,
+  .workflow-section,
   .report-band {
     width: calc(100vw - 32px);
   }
 
-  .hero-inner h1 {
-    font-size: 44px;
+  .hero-section {
+    min-height: auto;
+    padding: 46px 0 34px;
+  }
+
+  .hero-copy h1 {
+    font-size: 40px;
   }
 
   .hero-subtitle {
-    font-size: 16px;
+    font-size: 15px;
   }
 
-  .flow-grid,
-  .modules-section,
-  .report-band {
+  .hero-product,
+  .module-section,
+  .workflow-strip,
+  .feature-checks {
     grid-template-columns: 1fr;
   }
 
+  .paper-board,
+  .report-preview {
+    min-height: auto;
+  }
+
+  .paper-row {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+
+  .paper-row button {
+    margin-left: 0;
+  }
+
+  .workflow-strip article {
+    border-right: 0;
+    border-bottom: 1px solid rgba(33, 48, 74, 0.08);
+  }
+
+  .workflow-strip article:last-child {
+    border-bottom: 0;
+  }
+
   .report-band {
-    display: grid;
+    padding: 22px;
   }
 }
 </style>
