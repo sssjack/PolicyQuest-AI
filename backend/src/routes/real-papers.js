@@ -322,10 +322,6 @@ router.post('/attempts', auth, async (req, res) => {
     if (!paper) {
       return res.status(404).json({ code: 404, message: '真题不存在' });
     }
-    if (paper.practice_type !== 'interview') {
-      return res.status(400).json({ code: 400, message: '当前整卷异步批改仅用于面试真题' });
-    }
-
     const questions = (paper.PaperQuestions || []).sort((a, b) => a.question_no - b.question_no);
     if (!questions.length) {
       return res.status(400).json({ code: 400, message: '本卷暂无题目，无法提交' });
@@ -378,7 +374,7 @@ router.post('/attempts', auth, async (req, res) => {
 
     return res.status(201).json({ code: 201, data: mapAttempt(attempt) });
   } catch (e) {
-    return res.status(500).json({ code: 500, message: '提交面试真题失败', error: e.message });
+    return res.status(500).json({ code: 500, message: '提交真题试卷失败', error: e.message });
   }
 });
 

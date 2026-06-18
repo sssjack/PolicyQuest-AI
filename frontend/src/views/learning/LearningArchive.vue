@@ -428,7 +428,7 @@ async function loadRemoteArchive() {
     const [wrongResult, favoriteResult, attemptResult, noteResult] = await Promise.allSettled([
       wrongbookApi.wrong({ page: 1, pageSize: 20 }),
       wrongbookApi.favorites({ page: 1, pageSize: 20 }),
-      realPaperApi.attempts({ page: 1, pageSize: 50, type: 'interview', includeAnswers: '1' }),
+      realPaperApi.attempts({ page: 1, pageSize: 50, includeAnswers: '1' }),
       notesApi.list({ page: 1, pageSize: 200 }),
     ])
 
@@ -462,7 +462,7 @@ async function loadUserNotes() {
 
 async function loadRemoteAttempts() {
   if (!localStorage.getItem('pq_token')) return
-  const response: any = await realPaperApi.attempts({ page: 1, pageSize: 50, type: 'interview', includeAnswers: '1' })
+  const response: any = await realPaperApi.attempts({ page: 1, pageSize: 50, includeAnswers: '1' })
   remoteAttempts.value = (response.data?.list || []) as RemoteAttemptItem[]
   syncAttemptPolling()
 }
@@ -494,7 +494,10 @@ function openHistoryItem(item: ArchiveHistoryItem) {
     }))
     return
   }
-  router.push(routeTarget(`/practice/${item.paperId}`, item.status === 'draft' ? { from: 'history', resume: '1' } : { from: 'history' }))
+  router.push(routeTarget(
+    `/practice/${item.paperId}`,
+    item.status === 'draft' ? { from: 'history', resume: '1' } : { from: 'history', mode: 'local-review' },
+  ))
 }
 
 function historyTypeLabel(item: ArchiveHistoryItem) {

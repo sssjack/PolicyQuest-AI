@@ -15,14 +15,13 @@ import {
   Finished,
   FolderChecked,
   MagicStick,
-  Promotion,
   Reading,
   RefreshLeft,
   Star,
   Timer,
   Warning,
 } from '@element-plus/icons-vue'
-import { notesApi, realPaperApi, scoringApi } from '../../api'
+import { notesApi, realPaperApi } from '../../api'
 import AbilityRadar from '../../components/AbilityRadar.vue'
 import {
   fallbackEvaluation,
@@ -30,16 +29,15 @@ import {
   mapBackendPaper,
   normalizeScoreDimensionName,
   readPracticeDrafts,
+  readPracticeRecords,
   removePracticeDraft,
   savePracticeDraft,
-  savePracticeRecord,
   isFavoritePaper,
   toggleFavoritePaper,
   type EvaluationResult,
   type MaterialBlock,
   type PaperQuestion,
   type PracticeDraft,
-  type PracticeRecord,
   type RealPaper,
 } from '../../data/policyQuest'
 
@@ -146,7 +144,7 @@ const ANSWER_GRID_COLUMNS = 25
 let timerId: number | undefined
 let allowLeave = false
 
-const reviewMode = computed(() => Boolean(route.query.attemptId) || route.query.mode === 'review')
+const reviewMode = computed(() => Boolean(route.query.attemptId) || route.query.mode === 'review' || route.query.mode === 'local-review')
 const currentQuestion = computed(() => paper.value.questions[currentIndex.value] || paper.value.questions[0] || emptyQuestion)
 const activeMaterial = computed(() => paper.value.materials.find(material => material.id === activeMaterialId.value) || paper.value.materials[0] || emptyMaterial)
 const currentAnswer = computed({
@@ -168,14 +166,12 @@ const currentReportScore = computed(() => Number(currentInterviewReport.value?.s
 const currentReportScoreAngle = computed(() => `${Math.max(0, Math.min(100, currentReportScore.value)) * 3.6}deg`)
 const wordCount = computed(() => currentAnswer.value.trim().replace(/\s/g, '').length)
 const progressPercent = computed(() => (paper.value.questions.length ? Math.round(((currentIndex.value + 1) / paper.value.questions.length) * 100) : 0))
-const submittedCount = computed(() => Object.keys(evaluations.value).length)
 const answeredCount = computed(() => Object.values(answers.value).filter(answer => answer.trim().length > 0).length)
 const currentQuestionTime = computed(() => questionTimers.value[currentQuestion.value.id] || 0)
-const allSubmitted = computed(() => paper.value.questions.length > 0 && submittedCount.value === paper.value.questions.length)
 const allAnswered = computed(() => paper.value.questions.length > 0 && paper.value.questions.every(question => (answers.value[question.id] || '').trim().length > 0))
-const canFinishPaper = computed(() => paper.value.type === 'interview' ? allAnswered.value : allSubmitted.value)
-const hasWork = computed(() => answeredCount.value > 0 || submittedCount.value > 0 || totalSeconds.value > 20)
-const shouldPromptOnLeave = computed(() => Boolean(paper.value.id && hasWork.value && !reviewMode.value && !allSubmitted.value))
+const canFinishPaper = computed(() => allAnswered.value)
+const hasWork = computed(() => answeredCount.value > 0 || totalSeconds.value > 20)
+const shouldPromptOnLeave = computed(() => Boolean(paper.value.id && hasWork.value && !reviewMode.value))
 const activeMaterialIndex = computed(() => Math.max(0, paper.value.materials.findIndex(material => material.id === activeMaterialId.value)))
 const activeMaterialLabel = computed(() => `材料${activeMaterialIndex.value + 1}`)
 const currentQuestionLabel = computed(() => `题${currentIndex.value + 1}`)
@@ -189,19 +185,16 @@ const noteSelectionTotal = computed(() => noteSelections.value.reduce((sum, item
 const noteSelectionText = computed(() => (noteSelections.value.length ? `已选择 ${noteSelections.value.length} 段 / ${noteSelectionTotal.value} 字` : '拖拽选择文字'))
 const submitPaperTip = computed(() => {
   if (reviewMode.value) return '查看报告'
-  if (paper.value.type === 'interview') return allAnswered.value ? '提交本卷' : '请先填写全部题目'
-  return allSubmitted.value ? '提交本卷' : '请先提交本卷所有题目'
+  return allAnswered.value ? '提交本卷' : '请先填写本卷所有题目'
 })
 const reviewEmptyTitle = computed(() => {
   if (reviewMode.value && remoteAttempt.value?.status !== 'graded') return 'AI 正在批改中'
-  if (paper.value.type === 'interview') return '填写全卷后提交，AI 将逐题批改'
-  return '提交本题后查看 AI 评阅'
+  return '填写全卷后提交，AI 将逐题批改'
 })
 const reviewEmptyText = computed(() => {
   if (reviewMode.value && remoteAttempt.value?.status === 'failed') return remoteAttempt.value.errorMessage || '本次批改失败，请稍后重新进入报告查看。'
   if (reviewMode.value && currentAttemptAnswer.value?.status !== 'graded') return `本题状态：${currentAttemptAnswer.value?.status === 'failed' ? '批改失败' : 'AI 正在批改中'}，完成后会在这里显示完整报告。`
-  if (paper.value.type === 'interview') return '面试题不再逐题提交；每道题都有内容后点击提交本卷，系统会后台异步批改并保存报告。'
-  return '评阅结果会安静地出现在作答区下方，不打断阅读和写作节奏。'
+  return '每道题都有内容后点击提交本卷，系统会后台异步批改并保存报告。'
 })
 const paperFavorite = computed(() => {
   favoriteVersion.value
@@ -239,6 +232,8 @@ watch(
       resetWorkspace()
       if (reviewMode.value && route.query.attemptId) {
         await loadAttemptDetail(String(route.query.attemptId))
+      } else if (route.query.mode === 'local-review') {
+        restoreLocalRecords(nextPaper)
       } else {
         remoteAttempt.value = null
         await restoreDraftIfNeeded(nextPaper)
@@ -335,6 +330,31 @@ async function loadAttemptDetail(attemptId: string) {
   evaluations.value = nextEvaluations
   questionTimers.value = nextTimers
   totalSeconds.value = Number(attempt.totalDuration) || Object.values(nextTimers).reduce((sum, value) => sum + value, 0)
+  allowLeave = true
+  queueAnswerResize()
+}
+
+function restoreLocalRecords(nextPaper: RealPaper) {
+  const relatedRecords = readPracticeRecords()
+    .filter(record => record.paperId === nextPaper.id)
+    .sort((a, b) => Date.parse(a.submittedAt) - Date.parse(b.submittedAt))
+
+  const nextAnswers: Record<string, string> = {}
+  const nextEvaluations: Record<string, EvaluationResult> = {}
+  const nextTimers: Record<string, number> = {}
+
+  relatedRecords.forEach(record => {
+    nextAnswers[record.questionId] = record.answer || ''
+    nextTimers[record.questionId] = Number(record.durationSeconds) || 0
+    if (record.evaluation) {
+      nextEvaluations[record.questionId] = normalizeEvaluation(record.evaluation, record.answer, nextPaper.questions.find(question => question.id === record.questionId) || emptyQuestion)
+    }
+  })
+
+  answers.value = nextAnswers
+  evaluations.value = nextEvaluations
+  questionTimers.value = nextTimers
+  totalSeconds.value = Object.values(nextTimers).reduce((sum, value) => sum + value, 0)
   allowLeave = true
   queueAnswerResize()
 }
@@ -546,90 +566,28 @@ function normalizeEvaluation(value: any, answer = currentAnswer.value, question 
   }
 }
 
-async function submitQuestion() {
-  if (reviewMode.value) {
-    ElMessage.info('历史报告为只读查看模式')
-    return
-  }
-  if (paper.value.type === 'interview') {
-    ElMessage.info('面试题请填写完本卷所有题目后，点击“提交本卷”统一批改')
-    return
-  }
-
-  const answer = currentAnswer.value.trim()
-  if (answer.length < 20) {
-    ElMessage.warning('请至少输入 20 个字后再提交')
-    return
-  }
-
-  submitting.value = true
-  try {
-    let evaluation: EvaluationResult
-    try {
-      const response: any = await scoringApi.evaluate({
-        answer,
-        type: paper.value.type,
-        question: {
-          title: currentQuestion.value.title,
-          source: paper.value.title,
-          exam: paper.value.system,
-          prompt: currentQuestion.value.prompt,
-          requirements: currentQuestion.value.requirements,
-          tags: paper.value.tags,
-        },
-      })
-      evaluation = normalizeEvaluation(response.data)
-    } catch {
-      evaluation = fallbackEvaluation(answer, currentQuestion.value, paper.value)
-    }
-
-    evaluations.value = { ...evaluations.value, [currentQuestion.value.id]: evaluation }
-    const record: PracticeRecord = {
-      id: `${Date.now()}-${currentQuestion.value.id}`,
-      paperId: paper.value.id,
-      paperTitle: paper.value.title,
-      type: paper.value.type,
-      questionId: currentQuestion.value.id,
-      questionTitle: currentQuestion.value.title,
-      answer,
-      score: evaluation.score,
-      durationSeconds: currentQuestionTime.value,
-      submittedAt: new Date().toISOString(),
-      dimensions: evaluation.dimensions,
-      evaluation,
-    }
-    savePracticeRecord(record)
-    saveDraft(false)
-    ElMessage.success('本题已提交，AI 评阅结果已生成')
-  } finally {
-    submitting.value = false
-  }
-}
-
 async function finishPaper() {
   if (reviewMode.value) {
     ElMessage.info('当前正在查看历史报告')
     return
   }
 
-  if (paper.value.type === 'interview') {
-    await submitInterviewPaper()
-    return
-  }
-
-  if (!allSubmitted.value) {
-    ElMessage.warning('请先提交本卷所有题目；暂时离开可点击保存进度')
-    return
-  }
-  removePracticeDraft(paper.value.id)
-  allowLeave = true
-  ElMessage.success('本卷已完成，已同步到做题历史')
-  router.push(routeTarget('/history'))
-}
-
-async function submitInterviewPaper() {
   if (!allAnswered.value) {
     ElMessage.warning('请先填写本卷所有题目后再提交')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      '提交后整张试卷会进入 AI 批改，批改完成前不能继续修改本次答案。是否确认提交？',
+      '确认提交本卷',
+      {
+        confirmButtonText: '确认提交',
+        cancelButtonText: '再检查一下',
+        type: 'warning',
+      },
+    )
+  } catch {
     return
   }
 
@@ -915,17 +873,6 @@ async function saveSelectedNote() {
           @click="saveDraft()"
         >
           <el-icon><FolderChecked /></el-icon>
-        </button>
-        <button
-          v-if="paper.type === 'essay'"
-          type="button"
-          class="icon-button primary"
-          :disabled="loading || submitting || !paper.questions.length"
-          :aria-label="currentEvaluation ? '重新提交本题' : '提交本题'"
-          :data-tooltip="currentEvaluation ? '重交本题' : '提交本题'"
-          @click="submitQuestion"
-        >
-          <el-icon><Promotion /></el-icon>
         </button>
         <button
           type="button"

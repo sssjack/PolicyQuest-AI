@@ -16,6 +16,15 @@ const INTERVIEW_RUBRICS = [
   { name: '语言规范', weight: 15, comment: '是否语言准确、简洁、自然，少空话套话，适合面试现场口述。' },
 ];
 
+const ESSAY_RUBRICS = [
+  { name: '审题立意', weight: 20, comment: '是否准确把握题干任务、作答对象、身份立场和中心主旨。' },
+  { name: '要点提炼', weight: 25, comment: '是否覆盖材料核心信息，概括是否准确、全面、有层次。' },
+  { name: '材料运用', weight: 20, comment: '是否能把材料信息转化为分析、论证和对策，而不是简单摘抄。' },
+  { name: '结构逻辑', weight: 15, comment: '是否总分清晰、层次递进、段落安排符合阅卷习惯。' },
+  { name: '对策可行', weight: 10, comment: '对策是否具备主体、动作、机制、保障和效果，能否落地执行。' },
+  { name: '文字表达', weight: 10, comment: '语言是否规范、简洁、准确，有无口语化、空泛化和病句。' },
+];
+
 function clampScore(value, min = 0, max = 100) {
   const parsed = Math.round(Number(value));
   if (!Number.isFinite(parsed)) return min;
@@ -34,6 +43,14 @@ function weightedTotal(dimensions) {
   const totalWeight = INTERVIEW_RUBRICS.reduce((sum, item) => sum + item.weight, 0);
   return clampScore(dimensions.reduce((sum, item) => {
     const rubric = INTERVIEW_RUBRICS.find(row => row.name === item.name);
+    return sum + (Number(item.score) || 0) * (rubric?.weight || 0);
+  }, 0) / totalWeight);
+}
+
+function weightedRubricTotal(dimensions, rubrics) {
+  const totalWeight = rubrics.reduce((sum, item) => sum + item.weight, 0);
+  return clampScore(dimensions.reduce((sum, item) => {
+    const rubric = rubrics.find(row => row.name === item.name);
     return sum + (Number(item.score) || 0) * (rubric?.weight || 0);
   }, 0) / totalWeight);
 }
@@ -220,6 +237,105 @@ function buildFallbackReport({ answer, paper, question }) {
   };
 }
 
+function buildEssayDimensions(answer = '', question = {}) {
+  const text = String(answer).trim();
+  const prompt = `${question.title || ''}${question.prompt || ''}${Array.isArray(question.requirements) ? question.requirements.join('') : ''}`;
+  const targetLength = Math.max(600, Math.min(Number(question.word_limit || question.wordLimit) || 900, 1200));
+  const lengthRatio = Math.min(text.length / targetLength, 1);
+  const structureHits = hitCount(text, ['第一', '第二', '第三', '首先', '其次', '再次', '最后', '一方面', '另一方面', '一是', '二是', '三是', '总之', '因此', '综上']);
+  const policyHits = hitCount(text, ['以人民为中心', '人民至上', '高质量发展', '基层治理', '数字政府', '法治政府', '群众获得感', '营商环境', '乡村振兴', '共同富裕', '新质生产力']);
+  const actionHits = hitCount(text, ['机制', '制度', '清单', '台账', '平台', '监督', '培训', '落实', '闭环', '考核', '反馈', '协同', '问责', '评估']);
+  const problemHits = hitCount(text, ['问题', '原因', '影响', '矛盾', '风险', '短板', '不足', '根源']);
+  const materialKeywords = Array.from(new Set(prompt.match(/[\u4e00-\u9fa5]{2,6}/g) || []))
+    .filter(word => !['什么', '如何', '根据', '材料', '要求', '作答', '问题', '以下'].includes(word))
+    .slice(0, 12);
+  const materialHits = materialKeywords.filter(word => text.includes(word)).length;
+  const tooShortPenalty = text.length < 350 ? -12 : 0;
+
+  return [
+    { name: '审题立意', score: scoreFromSignals(38, [lengthRatio * 14, problemHits * 3, materialHits * 2, tooShortPenalty]), comment: '重点看是否扣住题干任务、身份立场和中心主旨。' },
+    { name: '要点提炼', score: scoreFromSignals(35, [lengthRatio * 12, materialHits * 4, problemHits * 2, tooShortPenalty]), comment: '重点看材料核心信息是否提炼完整、准确、分层。' },
+    { name: '材料运用', score: scoreFromSignals(34, [materialHits * 4, policyHits * 2, problemHits * 2, tooShortPenalty]), comment: '重点看材料是否转化为分析、论证和对策，而不是机械摘抄。' },
+    { name: '结构逻辑', score: scoreFromSignals(40, [lengthRatio * 10, structureHits * 4, hitCount(text, ['总之', '因此', '综上']) * 2, tooShortPenalty]), comment: '重点看总分结构、分点层次和递进关系。' },
+    { name: '对策可行', score: scoreFromSignals(36, [actionHits * 3, hitCount(text, ['主体', '流程', '保障', '监督', '评价']) * 3, policyHits * 2, tooShortPenalty]), comment: '重点看对策是否有主体、机制、步骤和保障。' },
+    { name: '文字表达', score: scoreFromSignals(42, [lengthRatio * 10, policyHits * 2, structureHits * 2, tooShortPenalty]), comment: '重点看语言是否规范、简洁、准确，有无空话套话和病句。' },
+  ];
+}
+
+function buildEssayFallbackReport({ answer, paper, question }) {
+  const dimensions = buildEssayDimensions(answer, question);
+  const score = weightedRubricTotal(dimensions, ESSAY_RUBRICS);
+  const level = scoreLevel(score);
+  const localName = detectLocalContext(paper, question);
+
+  return {
+    reportType: 'essay',
+    score,
+    level,
+    summary: `本题得分 ${score} 分，属于${level}档。整体看，作答能够围绕“${question.title || '题目'}”展开，但仍需在材料要点覆盖、政策高度、结构递进和对策落地方面继续强化。`,
+    dimensions,
+    advantages: [
+      { title: '能够回应题干任务', detail: '作答方向基本贴合题目，没有明显偏离主题。' },
+      { title: '具备基本分层意识', detail: '答案中能看到分点表达，阅卷者可以较快识别作答框架。' },
+      { title: '已有解决问题意识', detail: '能提出若干对策方向，为进一步展开提供了基础。' },
+    ],
+    deductions: [
+      {
+        title: '材料要点覆盖还不够完整',
+        originalProblem: '部分关键材料信息没有被充分概括，个别表达停留在概念层面。',
+        whyWrong: '申论阅卷重视从给定资料中提炼要点，遗漏核心信息会直接影响要点分。',
+        policyBasis: '应围绕题干任务，把材料中的主体、问题、原因、影响、做法和成效分层提炼。',
+        rewrite: '建议先列材料要点清单，再按“问题表现-原因机制-治理路径-成效目标”组织答案。',
+      },
+      {
+        title: '对策可执行性不足',
+        originalProblem: '部分对策比较宏观，缺少责任主体、实施路径、保障机制和反馈闭环。',
+        whyWrong: '真实阅卷中，空泛对策容易被认定为模板化表达，难以体现治理能力。',
+        policyBasis: '可以使用清单化管理、闭环整改、跨部门协同、数字赋能、监督评估等治理工具。',
+        rewrite: '把“加强管理”改成“由主管部门牵头建立问题台账，明确整改时限，定期公开反馈结果”。',
+      },
+      {
+        title: '结构递进还可以更清晰',
+        originalProblem: '分论点之间并列较多，递进关系、因果关系和总括升华不够突出。',
+        whyWrong: '申论答案需要让阅卷者快速看到逻辑链条，而不仅是材料堆叠。',
+        policyBasis: '可采用“是什么-为什么-怎么办”或“现状问题-原因分析-对策建议-价值升华”的结构。',
+        rewrite: '每段开头先亮明中心句，再用材料事实支撑，最后落到治理启示或具体举措。',
+      },
+    ],
+    highScoreThinking: [
+      '先审清题型和作答对象，明确是概括、分析、对策、贯彻执行还是文章写作。',
+      '再回到材料找关键词，把主体、问题、原因、做法、成效分别标注。',
+      '答案结构优先服务阅卷效率，分点清楚、层次递进、关键词前置。',
+      '对策要写出主体、动作、机制、保障和效果，避免空泛口号。',
+    ],
+    goldenSentences: [
+      '把群众急难愁盼作为治理的起点，把群众满意作为检验工作的标尺。',
+      '既要解决一件事，更要完善一类机制，推动治理从个案处理走向长效提升。',
+      '以数字赋能提升治理效率，以制度闭环守住公平底线。',
+      '让政策温度转化为民生质感，让治理效能沉淀为群众获得感。',
+    ],
+    sampleAnswer: question.sample_answer || question.sampleAnswer || '作答时可先概括材料核心问题，再结合政策背景分析原因，最后从完善机制、压实责任、优化服务、强化监督等方面提出可执行对策。',
+    localPolicyInsight: {
+      title: `${localName}材料与政策解读`,
+      region: localName,
+      cases: [
+        { title: `${localName}基层治理与民生服务`, content: '可从诉求收集、分类办理、限时反馈、结果公开、复盘问效等环节切入，体现治理闭环。', usage: '适合放在对策部分，用来说明答案不止停留在原则层面。' },
+        { title: `${localName}政务服务优化`, content: '围绕一次性告知、帮办代办、线上线下协同和特殊群体兜底服务展开。', usage: '适合公共服务、基层治理、营商环境和民生保障类题目。' },
+      ],
+      usage: '政策解读要服务本题材料，不要机械套用地区经验。',
+    },
+    upgradedExpressions: [
+      { original: '加强管理', improved: '建立问题台账、责任清单和整改闭环，明确办理时限并跟踪问效。', reason: '从空泛口号升级为可执行措施。' },
+      { original: '提高服务意识', improved: '把群众满意度作为检验工作成效的重要标准，做到诉求有回应、办理有结果、反馈有闭环。', reason: '更贴近申论阅卷中的治理表达。' },
+    ],
+    missingKeyContent: [
+      '补充材料关键词，避免只写观点不回扣资料。',
+      '补充原因分析，至少写出制度、执行、协同或监督中的一个角度。',
+      '对策要具体到主体、流程、时限、反馈和监督。',
+    ],
+  };
+}
+
 function normalizeDimensions(sourceDimensions, localDimensions) {
   return INTERVIEW_RUBRICS.map(rubric => {
     const found = (Array.isArray(sourceDimensions) ? sourceDimensions : [])
@@ -231,6 +347,39 @@ function normalizeDimensions(sourceDimensions, localDimensions) {
       comment: String(found?.comment || local?.comment || rubric.comment),
     };
   });
+}
+
+function normalizeEssayReport(value, payload) {
+  const local = buildEssayFallbackReport(payload);
+  if (!value || typeof value !== 'object') return local;
+
+  const sourceDimensions = Array.isArray(value.dimensions) ? value.dimensions : [];
+  const dimensions = ESSAY_RUBRICS.map(rubric => {
+    const found = sourceDimensions.find(item => String(item?.name || '').includes(rubric.name) || rubric.name.includes(String(item?.name || '')));
+    const fallback = local.dimensions.find(item => item.name === rubric.name);
+    return {
+      name: rubric.name,
+      score: clampScore(found?.score ?? fallback?.score ?? 0),
+      comment: String(found?.comment || fallback?.comment || rubric.comment),
+    };
+  });
+  const score = weightedRubricTotal(dimensions, ESSAY_RUBRICS);
+
+  return {
+    ...local,
+    score,
+    level: scoreLevel(score),
+    summary: String(value.summary || local.summary),
+    dimensions,
+    advantages: ensureArray(value.advantages, local.advantages).slice(0, 5),
+    deductions: ensureArray(value.deductions || value.disadvantages, local.deductions).slice(0, 6),
+    highScoreThinking: ensureArray(value.highScoreThinking || value.suggestions, local.highScoreThinking).slice(0, 8),
+    goldenSentences: ensureArray(value.goldenSentences, local.goldenSentences).slice(0, 8),
+    sampleAnswer: String(value.sampleAnswer || value.sampleEssay || local.sampleAnswer),
+    localPolicyInsight: value.localPolicyInsight && typeof value.localPolicyInsight === 'object' ? value.localPolicyInsight : local.localPolicyInsight,
+    upgradedExpressions: ensureArray(value.upgradedExpressions, local.upgradedExpressions).slice(0, 8),
+    missingKeyContent: ensureArray(value.missingKeyContent, local.missingKeyContent).slice(0, 8),
+  };
 }
 
 function normalizeReport(value, payload) {
@@ -386,6 +535,88 @@ ${answer}`,
   }
 }
 
+async function gradeEssayAnswer(payload) {
+  const local = buildEssayFallbackReport(payload);
+  if (!config.llm.apiUrl || !config.llm.apiKey) {
+    return local;
+  }
+
+  const { answer, paper = {}, question = {} } = payload;
+  const localName = detectLocalContext(paper, question);
+  const rubricLines = ESSAY_RUBRICS.map(item => `${item.name}${item.weight}分：${item.comment}`).join('\n');
+
+  try {
+    const response = await fetch(config.llm.apiUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.llm.apiKey}`,
+      },
+      body: JSON.stringify({
+        model: config.llm.model,
+        temperature: 0.28,
+        max_tokens: 9000,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content: '你是 PolicyQuest AI Exam Coach 的资深公务员/事业编申论阅卷老师。你熟悉国考、省考申论真实阅卷标准，批改必须严格、具体、可改写。不要因为字数多、政策词多就给高分，要依据审题立意、要点提炼、材料运用、结构逻辑、对策可行、文字表达逐项评分。必须输出合法 JSON，不要 Markdown，不要额外解释。',
+          },
+          {
+            role: 'user',
+            content: `请按真实申论阅卷标准批改下列作答，并输出 JSON：
+{
+  "score": 0-100,
+  "level": "优秀/良好/中等/待提升",
+  "summary": "一、结论评分：包含总分、档次、整体评价、最大提分方向",
+  "dimensions": [{"name":"审题立意","score":0-100,"comment":"具体点评"}],
+  "advantages": [{"title":"优点标题","detail":"结合用户原答案说明具体好在哪里"}],
+  "deductions": [{"title":"主要扣分原因标题","originalProblem":"指出原答案具体问题","whyWrong":"说明为什么丢分","policyBasis":"结合申论阅卷标准或政策背景解释","rewrite":"给出可直接替换的高分表达"}],
+  "highScoreThinking": ["四、高分答题思路：逐条给出本题高分框架"],
+  "goldenSentences": ["五、金句积累：适合本题的申论表达"],
+  "sampleAnswer": "六、高分范文：完整、规范、贴合材料的示范答案",
+  "localPolicyInsight": {"title":"${localName}材料与政策解读","region":"${localName}","cases":[{"title":"案例/政策标题","content":"与本题相关的案例或政策解读","usage":"怎么嵌入答案"}],"usage":"总用法"},
+  "upgradedExpressions": [{"original":"用户原答案中的普通表达","improved":"可直接升级的表达","reason":"为什么这样更高分"}],
+  "missingKeyContent": ["九、这道题下次要补的关键内容"]
+}
+
+评分维度和权重：
+${rubricLines}
+
+严格要求：
+1. dimensions 必须完整输出 6 个指定维度，名称不能替换，分数必须 0-100。
+2. 总分必须依据维度权重综合；普通空泛答案不得超过 65 分，跑题不得超过 45 分。
+3. 批改报告要对应长报告结构：一、结论评分；二、优点；三、主要扣分原因；四、高分答题思路；五、金句积累；六、高分范文；七、${localName}材料与政策解读；八、你原答案可以直接升级的表达；九、这道题下次要补的关键内容。
+4. 每个扣分点都要写清楚原答案哪里有问题、为什么丢分、怎么改。
+5. 范文必须贴合材料和题干，不要写成泛泛政策评论。
+试卷：${paper.title || ''}
+地区/系统：${paper.region || ''} ${paper.system_label || ''}
+年份：${paper.year || ''}
+题目序号：${question.question_no || ''}
+题目标题：${question.title || ''}
+题干：${question.prompt || ''}
+要求：${Array.isArray(question.requirements) ? question.requirements.join('；') : ''}
+用户作答：${answer}`,
+          },
+        ],
+      }),
+      timeout: 70000,
+    });
+
+    if (!response.ok) {
+      throw new Error(`AI 服务返回 HTTP ${response.status}`);
+    }
+
+    const data = await response.json();
+    return normalizeEssayReport(extractJson(data.choices?.[0]?.message?.content), payload);
+  } catch (error) {
+    return {
+      ...local,
+      summary: `${local.summary}（AI 服务暂不可用，本次先按本地严格申论评分规则生成报告。）`,
+    };
+  }
+}
+
 async function refreshAttemptStatus(attemptId) {
   const attempt = await RealPaperAttempt.findByPk(attemptId);
   if (!attempt) return;
@@ -429,7 +660,8 @@ async function gradeAttempt(attemptId) {
       await answerRow.update({ status: 'grading', error_message: null });
       const question = await PaperQuestion.findByPk(answerRow.question_id);
       const paper = attempt.RealPaper || {};
-      const report = await gradeInterviewAnswer({
+      const gradeAnswer = attempt.practice_type === 'essay' ? gradeEssayAnswer : gradeInterviewAnswer;
+      const report = await gradeAnswer({
         answer: answerRow.user_answer,
         paper,
         question: {
@@ -466,6 +698,7 @@ async function gradeAttempt(attemptId) {
 
 module.exports = {
   gradeAttempt,
+  gradeEssayAnswer,
   gradeInterviewAnswer,
   toEvaluation,
 };
