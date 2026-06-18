@@ -305,7 +305,10 @@ function mapLocalHistory(item: PracticeHistoryItem) {
     date: formatDate(item.updatedAt),
     status: item.status === 'completed' ? '已完成' : '继续',
     sortTime: timestamp(item.updatedAt),
-    action: () => router.push(routeTarget(`/practice/${item.paperId}`, item.status === 'draft' ? { resume: '1' } : {})),
+    action: () => router.push(routeTarget(
+      `/practice/${item.paperId}`,
+      item.status === 'draft' ? { resume: '1' } : { from: 'history', mode: 'local-review' },
+    )),
   }
 }
 

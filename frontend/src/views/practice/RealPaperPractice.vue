@@ -140,10 +140,12 @@ const questionCollapsed = ref(false)
 const reviewSourceTab = ref<'question' | 'materials' | 'answer'>('answer')
 const noteCaptureMode = ref(false)
 const noteSelections = ref<string[]>([])
+const noteHighlightIds = ref<string[]>([])
 const savingNote = ref(false)
 const ANSWER_GRID_COLUMNS = 25
 let timerId: number | undefined
 let allowLeave = false
+let noteHighlightSequence = 0
 
 const reviewMode = computed(() => Boolean(route.query.attemptId) || route.query.mode === 'review' || route.query.mode === 'local-review')
 const currentQuestion = computed(() => paper.value.questions[currentIndex.value] || paper.value.questions[0] || emptyQuestion)
@@ -163,7 +165,11 @@ const currentAttemptAnswer = computed(() => {
 })
 const currentInterviewReport = computed(() => currentAttemptAnswer.value?.report || null)
 const hasReviewReport = computed(() => reviewMode.value && Boolean(currentInterviewReport.value || currentEvaluation.value))
-const currentReportScore = computed(() => Number(currentInterviewReport.value?.score ?? currentEvaluation.value?.score ?? 0))
+const currentReportScore = computed(() => normalizeDisplayScore(
+  currentInterviewReport.value?.score ?? currentEvaluation.value?.score ?? 0,
+  currentInterviewReport.value?.summary ?? currentEvaluation.value?.summary ?? '',
+))
+const currentReportLevel = computed(() => scoreLevelLabel(currentReportScore.value))
 const currentReportScoreAngle = computed(() => `${Math.max(0, Math.min(100, currentReportScore.value)) * 3.6}deg`)
 const wordCount = computed(() => currentAnswer.value.trim().replace(/\s/g, '').length)
 const progressPercent = computed(() => (paper.value.questions.length ? Math.round(((currentIndex.value + 1) / paper.value.questions.length) * 100) : 0))
@@ -273,6 +279,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   if (timerId) window.clearInterval(timerId)
   window.removeEventListener('beforeunload', handleBeforeUnload)
+  clearNoteHighlights()
 })
 
 onBeforeRouteLeave(async () => {
@@ -298,6 +305,7 @@ onBeforeRouteLeave(async () => {
 })
 
 function resetWorkspace() {
+  clearNoteHighlights()
   answers.value = {}
   evaluations.value = {}
   remoteAttempt.value = null
@@ -701,6 +709,29 @@ function reportList(value: any) {
   return Array.isArray(value) ? value : []
 }
 
+function extractScoreFromSummary(summary: unknown) {
+  const match = String(summary || '').match(/(?:总分|得分|本题得分)\s*(?:为|是|：|:)?\s*(\d{1,3}(?:\.\d+)?)/)
+  if (!match) return null
+  const score = Number(match[1])
+  return Number.isFinite(score) && score >= 0 && score <= 100 ? score : null
+}
+
+function normalizeDisplayScore(rawScore: unknown, summary: unknown) {
+  const parsed = Number(rawScore)
+  const summaryScore = extractScoreFromSummary(summary)
+  if (summaryScore !== null && (!Number.isFinite(parsed) || Math.abs(parsed - summaryScore) > 0.5)) {
+    return Math.round(summaryScore)
+  }
+  return Number.isFinite(parsed) ? Math.round(Math.max(0, Math.min(100, parsed))) : 0
+}
+
+function scoreLevelLabel(score: number) {
+  if (score >= 88) return '优秀'
+  if (score >= 78) return '良好'
+  if (score >= 65) return '中等'
+  return '待提升'
+}
+
 function cleanMarkdownText(value: string) {
   return String(value || '')
     .replace(/\*\*(.*?)\*\*/g, '$1')
@@ -710,23 +741,86 @@ function cleanMarkdownText(value: string) {
 }
 
 function richTextBlocks(value: string) {
-  return String(value || '')
+  const lines = String(value || '')
     .replace(/\r\n/g, '\n')
     .split(/\n+/)
     .map(line => line.trim())
     .filter(Boolean)
-    .map(line => {
-      if (line.startsWith('### ')) return { type: 'h3', text: cleanMarkdownText(line.slice(4)) }
-      if (line.startsWith('## ')) return { type: 'h2', text: cleanMarkdownText(line.slice(3)) }
-      if (line.startsWith('# ')) return { type: 'h1', text: cleanMarkdownText(line.slice(2)) }
-      if (/^\*\*.+\*\*$/.test(line)) return { type: 'h3', text: cleanMarkdownText(line) }
-      if (/^[-*]\s+/.test(line) || /^\d+[.、]\s*/.test(line)) return { type: 'li', text: cleanMarkdownText(line) }
-      return { type: 'p', text: cleanMarkdownText(line) }
-    })
+
+  return lines.flatMap((line, index) => {
+    if (line.startsWith('### ')) return [{ type: 'h3', text: cleanMarkdownText(line.slice(4)) }]
+    if (line.startsWith('## ')) return [{ type: 'h2', text: cleanMarkdownText(line.slice(3)) }]
+    if (line.startsWith('# ')) return [{ type: 'h1', text: cleanMarkdownText(line.slice(2)) }]
+
+    const boldPrefix = line.match(/^\*\*(.+?)\*\*\s*(.*)$/)
+    if (boldPrefix) {
+      const blocks = [{ type: 'h3', text: cleanMarkdownText(boldPrefix[1]) }]
+      if (boldPrefix[2]?.trim()) blocks.push({ type: 'p', text: cleanMarkdownText(boldPrefix[2]) })
+      return blocks
+    }
+
+    const colonTitle = line.match(/^([\u4e00-\u9fa5A-Za-z0-9《》（）“”\-—、，,·\s]{2,28})[:：]\s*(.+)$/)
+    if (colonTitle && !/[。！？；;]/.test(colonTitle[1])) {
+      return [
+        { type: index === 0 ? 'h1' : 'h3', text: cleanMarkdownText(colonTitle[1]) },
+        { type: 'p', text: cleanMarkdownText(colonTitle[2]) },
+      ]
+    }
+
+    if (index === 0 && line.length <= 42 && !/[。！？；;]/.test(line)) {
+      return [{ type: 'h1', text: cleanMarkdownText(line) }]
+    }
+
+    if (/^[-*]\s+/.test(line) || /^\d+[.、]\s*/.test(line)) return [{ type: 'li', text: cleanMarkdownText(line) }]
+    return [{ type: 'p', text: cleanMarkdownText(line) }]
+  })
 }
 
 function normalizeSelectedText(value: string) {
   return value.replace(/\s+/g, ' ').trim()
+}
+
+function unwrapHighlight(element: Element) {
+  const parent = element.parentNode
+  if (!parent) return
+  while (element.firstChild) parent.insertBefore(element.firstChild, element)
+  parent.removeChild(element)
+  parent.normalize()
+}
+
+function removeNoteHighlight(id: string) {
+  const element = document.querySelector(`[data-note-highlight="${id}"]`)
+  if (element) unwrapHighlight(element)
+}
+
+function clearNoteHighlights() {
+  noteHighlightIds.value.forEach(removeNoteHighlight)
+  noteHighlightIds.value = []
+}
+
+function persistSelectionHighlight(selection: Selection | null) {
+  if (!selection || selection.rangeCount === 0 || selection.isCollapsed) return null
+  const range = selection.getRangeAt(0)
+  const container = range.commonAncestorContainer
+  const element = container.nodeType === Node.ELEMENT_NODE
+    ? container as Element
+    : (container.parentNode instanceof Element ? container.parentNode : null)
+  if (!element?.closest('.focus-practice') || element.closest('.note-capture-toolbar')) return null
+
+  const id = `note-${Date.now()}-${noteHighlightSequence += 1}`
+  const marker = document.createElement('span')
+  marker.className = 'note-persistent-highlight'
+  marker.dataset.noteHighlight = id
+
+  try {
+    range.surroundContents(marker)
+  } catch {
+    const content = range.extractContents()
+    marker.appendChild(content)
+    range.insertNode(marker)
+  }
+  noteHighlightIds.value = [...noteHighlightIds.value, id]
+  return id
 }
 
 function captureSelectedNoteText(event?: Event) {
@@ -734,6 +828,7 @@ function captureSelectedNoteText(event?: Event) {
   window.setTimeout(() => {
     let text = ''
     const target = event?.target as HTMLTextAreaElement | HTMLInputElement | null
+    const isTextField = Boolean(target && ['TEXTAREA', 'INPUT'].includes(target.tagName))
     if (target && ['TEXTAREA', 'INPUT'].includes(target.tagName)) {
       const start = target.selectionStart ?? 0
       const end = target.selectionEnd ?? 0
@@ -744,14 +839,16 @@ function captureSelectedNoteText(event?: Event) {
 
     const selected = normalizeSelectedText(text)
     if (!selected || selected === noteSelections.value[noteSelections.value.length - 1]) return
+    if (!isTextField) persistSelectionHighlight(window.getSelection())
     noteSelections.value = [...noteSelections.value, selected]
-    window.getSelection()?.removeAllRanges()
+    if (!isTextField) window.getSelection()?.removeAllRanges()
   }, 0)
 }
 
 function toggleNoteCapture() {
   noteCaptureMode.value = !noteCaptureMode.value
   noteSelections.value = []
+  clearNoteHighlights()
   if (noteCaptureMode.value) {
     ElMessage.info('已进入划词记笔记模式，可多次拖拽收集片段后保存')
   } else {
@@ -762,10 +859,16 @@ function toggleNoteCapture() {
 function cancelNoteCapture() {
   noteCaptureMode.value = false
   noteSelections.value = []
+  clearNoteHighlights()
   window.getSelection()?.removeAllRanges()
 }
 
 function undoNoteSelection() {
+  const lastHighlightId = noteHighlightIds.value[noteHighlightIds.value.length - 1]
+  if (lastHighlightId) {
+    removeNoteHighlight(lastHighlightId)
+    noteHighlightIds.value = noteHighlightIds.value.slice(0, -1)
+  }
   noteSelections.value = noteSelections.value.slice(0, -1)
   window.getSelection()?.removeAllRanges()
 }
@@ -802,6 +905,7 @@ async function saveSelectedNote() {
     })
     ElMessage.success('笔记已保存')
     noteSelections.value = []
+    clearNoteHighlights()
     window.getSelection()?.removeAllRanges()
   } finally {
     savingNote.value = false
@@ -1065,7 +1169,7 @@ async function saveSelectedNote() {
               </div>
               <div>
                 <p>一、结论评分</p>
-                <h2>{{ currentInterviewReport.level }}</h2>
+                <h2>{{ currentReportLevel }}</h2>
                 <span>{{ currentInterviewReport.summary }}</span>
               </div>
             </div>
@@ -1164,7 +1268,7 @@ async function saveSelectedNote() {
             </div>
             <div>
               <p>AI 评阅</p>
-              <h2>{{ currentEvaluation.level }}</h2>
+              <h2>{{ currentReportLevel }}</h2>
               <span>{{ currentEvaluation.summary }}</span>
             </div>
           </section>
@@ -1459,6 +1563,12 @@ async function saveSelectedNote() {
 .note-capture-mode ::selection {
   background: rgba(255, 196, 61, 0.38);
   color: #172033;
+}
+
+.note-persistent-highlight {
+  border-radius: 4px;
+  background: rgba(255, 211, 94, 0.58);
+  box-shadow: 0 0 0 2px rgba(255, 211, 94, 0.18);
 }
 
 .focus-stage {

@@ -56,6 +56,33 @@ function weightedRubricTotal(dimensions, rubrics) {
   }, 0) / totalWeight);
 }
 
+function normalizeDimensionScore(value, rubric) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return 0;
+  if (parsed >= 0 && parsed <= rubric.weight + 0.5 && rubric.weight < 100) {
+    return clampScore((parsed / rubric.weight) * 100);
+  }
+  return clampScore(parsed);
+}
+
+function extractScoreFromSummary(summary) {
+  const text = String(summary || '');
+  const match = text.match(/(?:总分|得分|本题得分)\s*(?:为|是|：|:)?\s*(\d{1,3}(?:\.\d+)?)/);
+  if (!match) return null;
+  const score = Number(match[1]);
+  return Number.isFinite(score) && score >= 0 && score <= 100 ? score : null;
+}
+
+function normalizeTotalScore(rawScore, fallbackScore, summary) {
+  const parsed = Number(rawScore);
+  const summaryScore = extractScoreFromSummary(summary);
+  if (summaryScore !== null && (!Number.isFinite(parsed) || Math.abs(parsed - summaryScore) > 8)) {
+    return clampScore(summaryScore);
+  }
+  if (Number.isFinite(parsed)) return clampScore(parsed);
+  return clampScore(fallbackScore);
+}
+
 function scoreLevel(score) {
   if (score >= 88) return '优秀';
   if (score >= 78) return '良好';
@@ -261,12 +288,22 @@ function buildFallbackReport({ answer, paper, question }) {
       cases: [
         {
           title: `${localName}基层治理中的诉求办理闭环`,
-          content: '可从群众诉求收集、分类交办、限时办理、结果反馈、复盘问效五个环节切入，体现治理能力。',
+          date: '',
+          location: localName,
+          actors: '属地政府、街道社区、公共服务部门',
+          content: '背景是群众诉求更加多元，基层事项跨部门、跨层级，单靠一个窗口难以解决。可从群众诉求收集、分类交办、限时办理、结果反馈、复盘问效五个环节切入，形成类似政策报道中的“背景—措施—成效”链条，体现治理能力。',
+          sourceUrl: '',
+          verificationNote: '需以当地政府工作报告、政府官网公开文件或主流媒体报道核验具体出处。',
           usage: '适合放在对策部分，说明你不仅会处理眼前问题，还能推动制度完善。',
         },
         {
           title: `${localName}政务服务优化`,
-          content: '围绕一次性告知、帮办代办、线上线下协同、特殊群体服务兜底展开。',
+          date: '',
+          location: localName,
+          actors: '政务服务管理部门、基层窗口单位',
+          content: '政策背景通常是优化营商环境和提升公共服务效能。可围绕一次性告知、帮办代办、线上线下协同、特殊群体服务兜底展开，说明改革解决了群众“多头跑、反复问、等待久”的问题，并以办理效率、群众满意度和服务可及性作为影响说明。',
+          sourceUrl: '',
+          verificationNote: '引用时优先查找当地年度政府工作报告、政务服务改革文件或官方新闻稿。',
           usage: '适合窗口服务、基层矛盾、群众投诉类面试题。',
         },
       ],
@@ -411,8 +448,8 @@ function buildEssayFallbackReport({ answer, paper, question }) {
       title: `${localName}材料与政策解读`,
       region: localName,
       cases: [
-        { title: `${localName}基层治理与民生服务`, content: '可从诉求收集、分类办理、限时反馈、结果公开、复盘问效等环节切入，体现治理闭环。', usage: '适合放在对策部分，用来说明答案不止停留在原则层面。', sourceUrl: '', verificationNote: '本地兜底报告不编造具体新闻链接，AI 批改时会优先给出可核验来源。' },
-        { title: `${localName}政务服务优化`, content: '围绕一次性告知、帮办代办、线上线下协同和特殊群体兜底服务展开。', usage: '适合公共服务、基层治理、营商环境和民生保障类题目。', sourceUrl: '', verificationNote: '如需引用真实案例，应以政府官网、主流媒体或题目材料为准。' },
+        { title: `${localName}基层治理与民生服务`, date: '', location: localName, actors: '属地政府、街道社区、公共服务部门', content: '可按政府工作报告或官方新闻稿的写法展开：背景是基层诉求多元、治理资源分散；措施是诉求收集、分类办理、限时反馈、结果公开、复盘问效；影响是推动个案办理转向制度闭环，提升群众获得感和治理效率。', usage: '适合放在对策部分，用来说明答案不止停留在原则层面。', sourceUrl: '', verificationNote: '本地兜底报告不编造具体新闻链接，AI 批改时会优先给出可核验来源。' },
+        { title: `${localName}政务服务优化`, date: '', location: localName, actors: '政务服务管理部门、基层窗口单位', content: '可按“政策背景—改革措施—实施效果”写：围绕一次性告知、帮办代办、线上线下协同和特殊群体兜底服务展开，解决群众办事多头跑、材料重复交、反馈不及时等问题。', usage: '适合公共服务、基层治理、营商环境和民生保障类题目。', sourceUrl: '', verificationNote: '如需引用真实案例，应以政府官网、主流媒体或题目材料为准。' },
       ],
       usage: '政策解读要服务本题材料，不要机械套用地区经验。',
     },
@@ -440,7 +477,7 @@ function normalizeDimensions(sourceDimensions, localDimensions) {
     const local = localDimensions.find(item => item.name === rubric.name);
     return {
       name: rubric.name,
-      score: clampScore(found?.score ?? local?.score ?? 0),
+      score: normalizeDimensionScore(found?.score ?? local?.score ?? 0, rubric),
       comment: String(found?.comment || local?.comment || rubric.comment),
     };
   });
@@ -456,11 +493,12 @@ function normalizeEssayReport(value, payload) {
     const fallback = local.dimensions.find(item => item.name === rubric.name);
     return {
       name: rubric.name,
-      score: clampScore(found?.score ?? fallback?.score ?? 0),
+      score: normalizeDimensionScore(found?.score ?? fallback?.score ?? 0, rubric),
       comment: String(found?.comment || fallback?.comment || rubric.comment),
     };
   });
-  const score = weightedRubricTotal(dimensions, ESSAY_RUBRICS);
+  const weightedScore = weightedRubricTotal(dimensions, ESSAY_RUBRICS);
+  const score = normalizeTotalScore(value.score, weightedScore, value.summary);
 
   return {
     ...local,
@@ -486,7 +524,8 @@ function normalizeReport(value, payload) {
   if (!value || typeof value !== 'object') return local;
 
   const dimensions = normalizeDimensions(value.dimensions, local.dimensions);
-  const score = weightedTotal(dimensions);
+  const weightedScore = weightedTotal(dimensions);
+  const score = normalizeTotalScore(value.score, weightedScore, value.summary);
   const localName = detectLocalContext(payload.paper, payload.question);
   const localPolicyInsight = value.localPolicyInsight && typeof value.localPolicyInsight === 'object'
     ? value.localPolicyInsight
@@ -609,6 +648,7 @@ ${rubricLines}
 7. 优点和缺点必须引用用户原答案中的具体句子，不允许只写泛泛评价。
 8. upgradedExpressions 必须采用“原表达-升级后-为什么更好”的对比，至少 3 条；pitfalls 至少 3 条。
 9. 案例链接不得编造；无法确认真实原文链接时 sourceUrl 留空，并在 verificationNote 写“需以官方公开材料核验”。
+10. localPolicyInsight.cases 要优先结合政府工作报告、政府官网政策文件、官方新闻发布或主流媒体报道来写，内容必须像新闻事件/政策报道：写清发布时间、发布主体、政策/事件名称、出台背景、解决的问题、关键措施、实际影响和可用于答案的位置。
 
 试卷：${paper.title || ''}
 地区/系统：${paper.region || ''} ${paper.system_label || ''}
@@ -705,6 +745,7 @@ ${rubricLines}
 7. upgradedExpressions 必须采用“原表达-升级后-为什么更好”的对比，至少 3 条；pitfalls 至少 3 条。
 8. 金句只在本题适合观点分析、文章写作、综合分析时给出；如果本题完全是抄材料的归纳概括题，可以少给或不给，避免硬凑。
 9. 案例链接不得编造；无法确认真实原文链接时 sourceUrl 留空，并在 verificationNote 写“需以官方公开材料核验”。
+10. localPolicyInsight.cases 要优先结合政府工作报告、政府官网政策文件、官方新闻发布或主流媒体报道来写，内容必须像新闻事件/政策报道：写清发布时间、发布主体、政策/事件名称、出台背景、解决的问题、关键措施、实际影响和可用于答案的位置。
 试卷：${paper.title || ''}
 地区/系统：${paper.region || ''} ${paper.system_label || ''}
 年份：${paper.year || ''}
