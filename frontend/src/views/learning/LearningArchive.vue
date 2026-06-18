@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref, watch, type Component } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import {
@@ -19,12 +19,13 @@ import {
   Warning,
 } from '@element-plus/icons-vue'
 import AbilityRadar from '../../components/AbilityRadar.vue'
-import { realPaperApi, wrongbookApi } from '../../api'
+import { notesApi, realPaperApi, wrongbookApi } from '../../api'
 import {
   averageScore,
   buildPracticeHistory,
   essayDimensions,
   interviewDimensions,
+  normalizeScoreDimensionName,
   readFavoritePapers,
   readPracticeDrafts,
   readPracticeRecords,
@@ -118,6 +119,24 @@ type RemoteFavoriteItem = {
   }
 }
 
+type UserNote = {
+  id: number
+  title: string
+  content: string
+  plainText: string
+  sourceType: string
+  sourceTitle: string
+  sourcePath: string
+  paperId?: number
+  questionId?: number
+  attemptId?: number
+  attemptAnswerId?: number
+  tags: string[]
+  readingMode: 'paper' | 'green' | 'plain'
+  createdAt: string
+  updatedAt: string
+}
+
 const route = useRoute()
 const router = useRouter()
 const userStore = useUserStore()
@@ -128,10 +147,20 @@ const favorites = ref<FavoritePaper[]>([])
 const remoteAttempts = ref<RemoteAttemptItem[]>([])
 const remoteWrongItems = ref<RemoteWrongItem[]>([])
 const remoteQuestionFavorites = ref<RemoteFavoriteItem[]>([])
+const userNotes = ref<UserNote[]>([])
 const remoteWrongTotal = ref(0)
 const remoteFavoriteTotal = ref(0)
+const userNoteTotal = ref(0)
 const remoteLoading = ref(false)
 const historyFilter = ref<HistoryFilter>('all')
+const noteManageMode = ref(false)
+const selectedNoteIds = ref<number[]>([])
+const activeNoteId = ref<number | null>(null)
+const noteEditMode = ref(false)
+const noteDraftTitle = ref('')
+const noteDraftContent = ref('')
+const noteDraftReadingMode = ref<'paper' | 'green' | 'plain'>('paper')
+const noteEditorRef = ref<HTMLElement | null>(null)
 let attemptPollTimer: number | undefined
 
 const tabOptions: Array<{ key: ArchiveTab; label: string; icon: Component }> = [
@@ -238,31 +267,8 @@ const reportStats = computed(() => [
   { label: '面试均分', value: interviewAverage.value ? interviewAverage.value.toFixed(1) : '--', suffix: interviewRecords.value.length ? ` / ${interviewRecords.value.length}道` : '' },
 ])
 
-const noteItems = computed(() => {
-  const wrongNotes = remoteWrongItems.value
-    .filter(item => item.notes?.trim())
-    .map(item => ({
-      id: `wrong-note-${item.id}`,
-      title: item.Question?.stem || '错题笔记',
-      source: '错题笔记',
-      excerpt: item.notes || '',
-      date: item.last_wrong_at,
-      tags: [item.Question?.question_type || '错题', item.Question?.difficulty || '待复盘'].filter(Boolean),
-      paperId: '',
-    }))
-
-  const aiNotes = allPracticeRecords.value.slice(0, 12).map(record => ({
-    id: `record-note-${record.id}`,
-    title: record.questionTitle,
-    source: record.paperTitle,
-    excerpt: record.evaluation.summary,
-    date: record.submittedAt,
-    tags: record.evaluation.suggestions.slice(0, 2),
-    paperId: record.paperId,
-  }))
-
-  return [...wrongNotes, ...aiNotes]
-})
+const noteItems = computed(() => userNotes.value)
+const activeNote = computed(() => userNotes.value.find(item => item.id === activeNoteId.value) || null)
 
 onMounted(() => {
   refreshLocalState()
@@ -305,7 +311,7 @@ function aggregateReportDimensions(source: PracticeRecord[], names: string[]) {
 
   return names
     .map(name => {
-      const scores = source.flatMap(record => record.dimensions.filter(item => item.name === name).map(item => item.score))
+      const scores = source.flatMap(record => record.dimensions.filter(item => normalizeScoreDimensionName(item.name) === name).map(item => item.score))
       if (!scores.length) return null
       return {
         name,
@@ -313,6 +319,15 @@ function aggregateReportDimensions(source: PracticeRecord[], names: string[]) {
       }
     })
     .filter((item): item is ScoreDimension => Boolean(item))
+}
+
+function normalizeScoreDimensions(dimensions?: ScoreDimension[]) {
+  return Array.isArray(dimensions)
+    ? dimensions.map(item => ({
+        ...item,
+        name: normalizeScoreDimensionName(item.name),
+      }))
+    : []
 }
 
 function buildDimensionRows(typeLabel: string, dimensions: ScoreDimension[], sampleCount: number) {
@@ -331,7 +346,7 @@ function normalizeAttemptEvaluation(answer: RemoteAttemptAnswer): EvaluationResu
       score: Number(answer.evaluation.score || answer.score || 0),
       level: String(answer.evaluation.level || answer.level || ''),
       summary: String(answer.evaluation.summary || ''),
-      dimensions: Array.isArray(answer.evaluation.dimensions) ? answer.evaluation.dimensions : (answer.dimensions || []),
+      dimensions: normalizeScoreDimensions(Array.isArray(answer.evaluation.dimensions) ? answer.evaluation.dimensions : (answer.dimensions || [])),
       advantages: Array.isArray(answer.evaluation.advantages) ? answer.evaluation.advantages : [],
       disadvantages: Array.isArray(answer.evaluation.disadvantages) ? answer.evaluation.disadvantages : [],
       suggestions: Array.isArray(answer.evaluation.suggestions) ? answer.evaluation.suggestions : [],
@@ -346,7 +361,7 @@ function normalizeAttemptEvaluation(answer: RemoteAttemptAnswer): EvaluationResu
     score: Number(report.score || answer.score || 0),
     level: String(report.level || answer.level || ''),
     summary: String(report.summary || ''),
-    dimensions: Array.isArray(report.dimensions) ? report.dimensions : (answer.dimensions || []),
+    dimensions: normalizeScoreDimensions(Array.isArray(report.dimensions) ? report.dimensions : (answer.dimensions || [])),
     advantages: Array.isArray(report.advantages)
       ? report.advantages.map((item: any) => typeof item === 'string' ? item : `${item.title || '优点'}：${item.detail || ''}`)
       : [],
@@ -376,10 +391,11 @@ async function loadRemoteArchive() {
   if (!localStorage.getItem('pq_token')) return
   remoteLoading.value = true
   try {
-    const [wrongResult, favoriteResult, attemptResult] = await Promise.allSettled([
+    const [wrongResult, favoriteResult, attemptResult, noteResult] = await Promise.allSettled([
       wrongbookApi.wrong({ page: 1, pageSize: 20 }),
       wrongbookApi.favorites({ page: 1, pageSize: 20 }),
       realPaperApi.attempts({ page: 1, pageSize: 50, type: 'interview', includeAnswers: '1' }),
+      notesApi.list({ page: 1, pageSize: 200 }),
     ])
 
     if (wrongResult.status === 'fulfilled') {
@@ -394,9 +410,20 @@ async function loadRemoteArchive() {
       remoteAttempts.value = ((attemptResult.value as any).data?.list || []) as RemoteAttemptItem[]
       syncAttemptPolling()
     }
+    if (noteResult.status === 'fulfilled') {
+      userNotes.value = ((noteResult.value as any).data?.list || []) as UserNote[]
+      userNoteTotal.value = Number((noteResult.value as any).data?.total || userNotes.value.length)
+    }
   } finally {
     remoteLoading.value = false
   }
+}
+
+async function loadUserNotes() {
+  if (!localStorage.getItem('pq_token')) return
+  const response: any = await notesApi.list({ page: 1, pageSize: 200 })
+  userNotes.value = (response.data?.list || []) as UserNote[]
+  userNoteTotal.value = Number(response.data?.total || userNotes.value.length)
 }
 
 async function loadRemoteAttempts() {
@@ -468,9 +495,95 @@ function openFavorite(item: FavoritePaper) {
   router.push(routeTarget(`/practice/${item.paperId}`, { from: 'history', type: item.type }))
 }
 
-function openNote(item: { paperId: string }) {
-  if (!item.paperId) return
-  router.push(routeTarget(`/practice/${item.paperId}`, { from: 'history' }))
+function openNote(item: UserNote) {
+  activeNoteId.value = item.id
+  noteEditMode.value = false
+  noteDraftReadingMode.value = item.readingMode || 'paper'
+}
+
+function backToNoteList() {
+  activeNoteId.value = null
+  noteEditMode.value = false
+}
+
+function openNoteSource(item: UserNote) {
+  if (item.sourcePath) {
+    router.push(item.sourcePath)
+    return
+  }
+  if (item.paperId) {
+    router.push(routeTarget(`/practice/${item.paperId}`, { from: 'history' }))
+  }
+}
+
+function toggleNoteManageMode() {
+  noteManageMode.value = !noteManageMode.value
+  selectedNoteIds.value = []
+}
+
+function toggleNoteSelection(id: number) {
+  selectedNoteIds.value = selectedNoteIds.value.includes(id)
+    ? selectedNoteIds.value.filter(item => item !== id)
+    : [...selectedNoteIds.value, id]
+}
+
+async function deleteSelectedNotes() {
+  if (!selectedNoteIds.value.length) {
+    ElMessage.warning('请先勾选要删除的笔记')
+    return
+  }
+  await notesApi.batchDelete(selectedNoteIds.value)
+  userNotes.value = userNotes.value.filter(item => !selectedNoteIds.value.includes(item.id))
+  userNoteTotal.value = Math.max(0, userNoteTotal.value - selectedNoteIds.value.length)
+  selectedNoteIds.value = []
+  noteManageMode.value = false
+  ElMessage.success('笔记已删除')
+}
+
+function startNoteEdit(item: UserNote) {
+  noteEditMode.value = true
+  noteDraftTitle.value = item.title || ''
+  noteDraftContent.value = item.content || ''
+  noteDraftReadingMode.value = item.readingMode || 'paper'
+  nextTick(() => {
+    if (noteEditorRef.value) noteEditorRef.value.innerHTML = noteDraftContent.value
+  })
+}
+
+function cancelNoteEdit() {
+  noteEditMode.value = false
+  if (activeNote.value) noteDraftReadingMode.value = activeNote.value.readingMode || 'paper'
+}
+
+function applyNoteFormat(command: string, value?: string) {
+  noteEditorRef.value?.focus()
+  document.execCommand(command, false, value)
+}
+
+async function saveNoteEdit() {
+  if (!activeNote.value) return
+  const content = noteEditorRef.value?.innerHTML || noteDraftContent.value
+  const plainText = noteEditorRef.value?.innerText || ''
+  await notesApi.update(activeNote.value.id, {
+    title: noteDraftTitle.value || plainText.slice(0, 28) || '我的笔记',
+    content,
+    plainText,
+    readingMode: noteDraftReadingMode.value,
+  })
+  const index = userNotes.value.findIndex(item => item.id === activeNote.value?.id)
+  if (index >= 0) {
+    userNotes.value[index] = {
+      ...userNotes.value[index],
+      title: noteDraftTitle.value || plainText.slice(0, 28) || '我的笔记',
+      content,
+      plainText,
+      readingMode: noteDraftReadingMode.value,
+      updatedAt: new Date().toISOString(),
+    }
+  }
+  noteEditMode.value = false
+  ElMessage.success('笔记已保存')
+  loadUserNotes().catch(() => undefined)
 }
 
 function removeLocalFavorite(item: FavoritePaper) {
@@ -714,31 +827,96 @@ function formatShortDate(value?: string) {
         </div>
       </section>
 
-      <section v-else-if="activeTab === 'notes'" class="archive-panel">
-        <div class="panel-toolbar">
-          <h2>我的笔记</h2>
-          <span>共 {{ noteItems.length }} 条</span>
-        </div>
-
-        <div v-if="noteItems.length" class="note-grid">
-          <article v-for="item in noteItems" :key="item.id" class="note-card">
-            <span>{{ item.source }}</span>
-            <h3>{{ item.title }}</h3>
-            <p>{{ item.excerpt }}</p>
+      <section v-else-if="activeTab === 'notes'" class="archive-panel note-panel">
+        <template v-if="!activeNote">
+          <div class="panel-toolbar">
             <div>
-              <small v-for="tag in item.tags" :key="tag">{{ tag }}</small>
+              <h2>我的笔记</h2>
+              <span>共 {{ userNoteTotal || noteItems.length }} 条</span>
             </div>
-            <button v-if="item.paperId" type="button" @click="openNote(item)">
-              查看来源 <el-icon><ArrowRight /></el-icon>
-            </button>
-          </article>
-        </div>
+            <div class="toolbar-actions">
+              <button type="button" class="ghost-action" @click="toggleNoteManageMode">
+                <el-icon><EditPen /></el-icon>{{ noteManageMode ? '完成' : '编辑' }}
+              </button>
+              <button v-if="noteManageMode" type="button" class="danger-action" @click="deleteSelectedNotes">
+                <el-icon><Delete /></el-icon>删除 {{ selectedNoteIds.length || '' }}
+              </button>
+            </div>
+          </div>
 
-        <div v-else class="empty-state">
-          <strong>还没有笔记</strong>
-          <span>完成作答后的 AI 复盘摘要、错题备注会汇总到这里。</span>
-          <button type="button" @click="router.push(routeTarget('/papers'))">去完成一题</button>
-        </div>
+          <div v-if="noteItems.length" class="note-grid" :class="{ managing: noteManageMode }">
+            <article v-for="item in noteItems" :key="item.id" class="note-card" @click="!noteManageMode && openNote(item)">
+              <button
+                v-if="noteManageMode"
+                type="button"
+                class="note-check"
+                :class="{ checked: selectedNoteIds.includes(item.id) }"
+                aria-label="选择笔记"
+                @click.stop="toggleNoteSelection(item.id)"
+              ></button>
+              <span>{{ item.sourceTitle || '划词笔记' }}</span>
+              <h3>{{ item.title || '未命名笔记' }}</h3>
+              <p>{{ item.plainText }}</p>
+              <div>
+                <small v-for="tag in item.tags" :key="tag">{{ tag }}</small>
+                <small>{{ formatShortDate(item.updatedAt || item.createdAt) }}</small>
+              </div>
+              <button v-if="!noteManageMode" type="button" @click.stop="openNote(item)">
+                阅读笔记 <el-icon><ArrowRight /></el-icon>
+              </button>
+            </article>
+          </div>
+
+          <div v-else class="empty-state">
+            <strong>还没有笔记</strong>
+            <span>在做题或查看历史报告时，点击右上角笔记图标，划词保存后会出现在这里。</span>
+            <button type="button" @click="router.push(routeTarget('/papers'))">去完成一题</button>
+          </div>
+        </template>
+
+        <template v-else>
+          <div class="note-detail-head">
+            <button type="button" class="ghost-action" @click="backToNoteList">
+              <el-icon><ArrowLeft /></el-icon>返回笔记
+            </button>
+            <div class="reading-modes" aria-label="阅读模式">
+              <button type="button" :class="{ active: noteDraftReadingMode === 'paper' }" @click="noteDraftReadingMode = 'paper'">牛皮纸</button>
+              <button type="button" :class="{ active: noteDraftReadingMode === 'green' }" @click="noteDraftReadingMode = 'green'">护眼绿</button>
+              <button type="button" :class="{ active: noteDraftReadingMode === 'plain' }" @click="noteDraftReadingMode = 'plain'">简洁</button>
+            </div>
+            <div class="toolbar-actions">
+              <button type="button" class="ghost-action" @click="openNoteSource(activeNote)">
+                查看来源 <el-icon><ArrowRight /></el-icon>
+              </button>
+              <button v-if="!noteEditMode" type="button" class="ghost-action" @click="startNoteEdit(activeNote)">
+                <el-icon><EditPen /></el-icon>编辑
+              </button>
+              <button v-if="noteEditMode" type="button" class="ghost-action" @click="cancelNoteEdit">取消</button>
+              <button v-if="noteEditMode" type="button" class="primary-action small" @click="saveNoteEdit">保存</button>
+            </div>
+          </div>
+
+          <article class="note-reader" :class="noteDraftReadingMode">
+            <template v-if="noteEditMode">
+              <input v-model="noteDraftTitle" class="note-title-input" placeholder="给这篇笔记加一个总标题" />
+              <div class="note-formatbar">
+                <button type="button" @click="applyNoteFormat('formatBlock', 'H2')">H2</button>
+                <button type="button" @click="applyNoteFormat('formatBlock', 'H3')">H3</button>
+                <button type="button" @click="applyNoteFormat('bold')">B</button>
+                <button type="button" @click="applyNoteFormat('underline')">U</button>
+                <button type="button" @click="applyNoteFormat('foreColor', '#2f63b7')">蓝</button>
+                <button type="button" @click="applyNoteFormat('foreColor', '#0f8b6f')">绿</button>
+                <button type="button" @click="applyNoteFormat('removeFormat')">清除</button>
+              </div>
+              <div ref="noteEditorRef" class="note-rich-editor" contenteditable="true"></div>
+            </template>
+            <template v-else>
+              <span>{{ activeNote.sourceTitle || '划词笔记' }}</span>
+              <h1>{{ activeNote.title || '未命名笔记' }}</h1>
+              <section class="note-content" v-html="activeNote.content"></section>
+            </template>
+          </article>
+        </template>
       </section>
 
       <section v-else class="archive-panel">
@@ -822,6 +1000,7 @@ function formatShortDate(value?: string) {
 .archive-tabs,
 .summary-strip article,
 .panel-toolbar,
+.toolbar-actions,
 .sub-tabs,
 .ghost-action,
 .history-row,
@@ -1011,6 +1190,20 @@ function formatShortDate(value?: string) {
   font-weight: 800;
 }
 
+.panel-toolbar > div:first-child {
+  display: grid;
+  gap: 4px;
+}
+
+.panel-toolbar > div:first-child span {
+  color: #8d98aa;
+  font-weight: 800;
+}
+
+.toolbar-actions {
+  gap: 10px;
+}
+
 .sub-tabs {
   gap: 36px;
 }
@@ -1030,6 +1223,20 @@ function formatShortDate(value?: string) {
 
 .ghost-action {
   gap: 4px;
+}
+
+.danger-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 6px;
+  background: #fff1ee;
+  color: #f05f3b;
+  font-weight: 900;
 }
 
 .fenbi-list {
@@ -1379,6 +1586,7 @@ function formatShortDate(value?: string) {
 
 .note-card,
 .favorite-card {
+  position: relative;
   display: grid;
   gap: 14px;
   min-height: 238px;
@@ -1387,6 +1595,49 @@ function formatShortDate(value?: string) {
   border-radius: 6px;
   background: #ffffff;
   box-shadow: 0 8px 24px rgba(39, 52, 73, 0.04);
+}
+
+.note-card {
+  cursor: pointer;
+}
+
+.note-card:hover {
+  border-color: #d9e7fb;
+  box-shadow: 0 14px 30px rgba(39, 52, 73, 0.08);
+}
+
+.note-grid.managing .note-card {
+  padding-left: 54px;
+}
+
+.note-check {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  padding: 0;
+  border: 2px solid #cbd6e6;
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+.note-check.checked {
+  border-color: #397bf6;
+  background: #397bf6;
+}
+
+.note-check.checked::after {
+  position: absolute;
+  top: 2px;
+  left: 6px;
+  width: 6px;
+  height: 11px;
+  border: solid #ffffff;
+  border-width: 0 2px 2px 0;
+  content: "";
+  transform: rotate(45deg);
 }
 
 .note-card > span,
@@ -1425,6 +1676,7 @@ function formatShortDate(value?: string) {
 
 .note-card div,
 .meta-row {
+  display: flex;
   flex-wrap: wrap;
   gap: 8px;
 }
@@ -1451,6 +1703,25 @@ function formatShortDate(value?: string) {
   font-weight: 900;
 }
 
+.note-card .note-check {
+  position: absolute;
+  top: 18px;
+  left: 18px;
+  display: block;
+  width: 22px;
+  height: 22px;
+  min-height: 0;
+  padding: 0;
+  border: 2px solid #cbd6e6;
+  border-radius: 4px;
+  background: #ffffff;
+}
+
+.note-card .note-check.checked {
+  border-color: #397bf6;
+  background: #397bf6;
+}
+
 .favorite-card header {
   justify-content: space-between;
   gap: 12px;
@@ -1470,6 +1741,131 @@ function formatShortDate(value?: string) {
 .primary-action {
   background: linear-gradient(135deg, #126af7, #10b6d8);
   color: #ffffff;
+}
+
+.primary-action.small {
+  min-height: 36px;
+  padding: 0 16px;
+}
+
+.note-detail-head {
+  display: grid;
+  grid-template-columns: auto minmax(220px, 1fr) auto;
+  gap: 18px;
+  align-items: center;
+  margin-bottom: 22px;
+}
+
+.reading-modes {
+  display: inline-flex;
+  width: fit-content;
+  padding: 4px;
+  border-radius: 999px;
+  background: #eef3f8;
+}
+
+.reading-modes button {
+  min-height: 32px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #7b8798;
+  font-weight: 900;
+}
+
+.reading-modes button.active {
+  background: #ffffff;
+  color: #397bf6;
+  box-shadow: 0 6px 16px rgba(44, 72, 110, 0.08);
+}
+
+.note-reader {
+  display: grid;
+  gap: 18px;
+  min-height: 560px;
+  padding: 46px 56px;
+  border: 1px solid #e8edf4;
+  border-radius: 8px;
+  color: #29364a;
+  box-shadow: 0 20px 46px rgba(42, 52, 70, 0.08);
+}
+
+.note-reader.paper {
+  background:
+    linear-gradient(90deg, rgba(165, 128, 74, 0.05) 1px, transparent 1px),
+    #fff8e8;
+  background-size: 28px 28px;
+}
+
+.note-reader.green {
+  background: #eef8ef;
+}
+
+.note-reader.plain {
+  background: #ffffff;
+}
+
+.note-reader > span {
+  color: #8792a4;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.note-reader h1 {
+  margin: 0;
+  color: #1f2e44;
+  font-size: 30px;
+  line-height: 1.35;
+}
+
+.note-content {
+  color: #354258;
+  font-size: 18px;
+  line-height: 1.95;
+}
+
+.note-content :deep(p) {
+  margin: 0 0 16px;
+}
+
+.note-title-input {
+  min-height: 48px;
+  border: 0;
+  border-bottom: 1px solid rgba(38, 52, 74, 0.14);
+  background: transparent;
+  color: #1f2e44;
+  font-size: 28px;
+  font-weight: 900;
+  outline: none;
+}
+
+.note-formatbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.note-formatbar button {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid #dce5f1;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.72);
+  color: #52627a;
+  font-weight: 900;
+}
+
+.note-rich-editor {
+  min-height: 360px;
+  padding: 20px;
+  border: 1px solid rgba(38, 52, 74, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.54);
+  color: #354258;
+  font-size: 18px;
+  line-height: 1.9;
+  outline: none;
 }
 
 .empty-state {
@@ -1519,6 +1915,14 @@ function formatShortDate(value?: string) {
   .note-grid,
   .favorite-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .note-detail-head {
+    grid-template-columns: 1fr;
+  }
+
+  .note-reader {
+    padding: 34px 28px;
   }
 }
 
@@ -1570,6 +1974,7 @@ function formatShortDate(value?: string) {
   }
 
   .panel-toolbar,
+  .toolbar-actions,
   .trend-panel,
   .history-row {
     display: grid;

@@ -69,6 +69,14 @@ export const wrongbookApi = {
   toggleFavorite: (questionId: string | number) => api.post(`/wrongbook/favorites/${questionId}`),
 }
 
+export const notesApi = {
+  list: (params: any = {}) => api.get('/notes', { params }),
+  create: (data: any) => api.post('/notes', data),
+  update: (id: string | number, data: any) => api.put(`/notes/${id}`, data),
+  delete: (id: string | number) => api.delete(`/notes/${id}`),
+  batchDelete: (ids: Array<string | number>) => api.post('/notes/batch-delete', { ids }),
+}
+
 export const articlesApi = {
   list: (params: any) => api.get('/articles', { params }),
   detail: (id: number) => api.get(`/articles/${id}`),

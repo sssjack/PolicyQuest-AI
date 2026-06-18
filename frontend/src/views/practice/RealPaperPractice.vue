@@ -8,6 +8,7 @@ import {
   ArrowRight,
   ArrowUp,
   Back,
+  Close,
   CircleCheck,
   DocumentChecked,
   EditPen,
@@ -16,16 +17,18 @@ import {
   MagicStick,
   Promotion,
   Reading,
+  RefreshLeft,
   Star,
   Timer,
   Warning,
 } from '@element-plus/icons-vue'
-import { realPaperApi, scoringApi } from '../../api'
+import { notesApi, realPaperApi, scoringApi } from '../../api'
 import AbilityRadar from '../../components/AbilityRadar.vue'
 import {
   fallbackEvaluation,
   formatSeconds,
   mapBackendPaper,
+  normalizeScoreDimensionName,
   readPracticeDrafts,
   removePracticeDraft,
   savePracticeDraft,
@@ -136,6 +139,10 @@ const loading = ref(false)
 const favoriteVersion = ref(0)
 const answerTextarea = ref<HTMLTextAreaElement | null>(null)
 const questionCollapsed = ref(false)
+const noteCaptureMode = ref(false)
+const noteSelectedText = ref('')
+const noteSelectionHistory = ref<string[]>([])
+const savingNote = ref(false)
 const ANSWER_GRID_COLUMNS = 25
 let timerId: number | undefined
 let allowLeave = false
@@ -178,6 +185,7 @@ const wordLimitBase = computed(() => (currentQuestion.value.wordLimit > 0 ? curr
 const wordProgress = computed(() => Math.min(100, Math.round((wordCount.value / wordLimitBase.value) * 100)))
 const readerMaterialHtml = computed(() => buildReaderHtml(activeMaterial.value.content || activeMaterial.value.summary || ''))
 const questionPositionText = computed(() => `${currentIndex.value + 1} / ${paper.value.questions.length || 0}`)
+const noteSelectionText = computed(() => (noteSelectedText.value ? `已选择 ${noteSelectedText.value.length} 字` : '拖拽选择文字'))
 const submitPaperTip = computed(() => {
   if (reviewMode.value) return '查看报告'
   if (paper.value.type === 'interview') return allAnswered.value ? '提交本卷' : '请先填写全部题目'
@@ -481,6 +489,13 @@ function isGarbled(text: unknown) {
   return /�|锟|閿|乱码/.test(String(text || ''))
 }
 
+function normalizeScoreDimensions(dimensions: EvaluationResult['dimensions']) {
+  return dimensions.map(item => ({
+    ...item,
+    name: normalizeScoreDimensionName(item.name),
+  }))
+}
+
 function reportToEvaluation(report: any, answer: string, question: PaperQuestion): EvaluationResult | null {
   if (!report || typeof report !== 'object') return null
   const local = fallbackEvaluation(answer || '', question, paper.value)
@@ -488,7 +503,7 @@ function reportToEvaluation(report: any, answer: string, question: PaperQuestion
     score: Number(report.score) || local.score,
     level: String(report.level || local.level),
     summary: String(report.summary || local.summary),
-    dimensions: Array.isArray(report.dimensions) ? report.dimensions : local.dimensions,
+    dimensions: normalizeScoreDimensions(Array.isArray(report.dimensions) ? report.dimensions : local.dimensions),
     advantages: Array.isArray(report.advantages)
       ? report.advantages.map((item: any) => typeof item === 'string' ? item : `${item.title || '优点'}：${item.detail || ''}`)
       : local.advantages,
@@ -515,12 +530,12 @@ function normalizeEvaluation(value: any, answer = currentAnswer.value, question 
     level: String(value.level || local.level),
     summary: String(value.summary || local.summary),
     dimensions: value.dimensions.length
-      ? value.dimensions.map((item: any) => ({
+      ? normalizeScoreDimensions(value.dimensions.map((item: any) => ({
           name: String(item.name || ''),
           score: Number(item.score) || 0,
           comment: String(item.comment || ''),
-        }))
-      : local.dimensions,
+        })))
+      : normalizeScoreDimensions(local.dimensions),
     advantages: Array.isArray(value.advantages) ? value.advantages.map(String) : local.advantages,
     disadvantages: Array.isArray(value.disadvantages) ? value.disadvantages.map(String) : local.disadvantages,
     suggestions: Array.isArray(value.suggestions) ? value.suggestions.map(String) : local.suggestions,
@@ -720,10 +735,97 @@ function reportList(value: any) {
   return Array.isArray(value) ? value : []
 }
 
+function normalizeSelectedText(value: string) {
+  return value.replace(/\s+/g, ' ').trim()
+}
+
+function captureSelectedNoteText(event?: Event) {
+  if (!noteCaptureMode.value) return
+  window.setTimeout(() => {
+    let text = ''
+    const target = event?.target as HTMLTextAreaElement | HTMLInputElement | null
+    if (target && ['TEXTAREA', 'INPUT'].includes(target.tagName)) {
+      const start = target.selectionStart ?? 0
+      const end = target.selectionEnd ?? 0
+      text = start === end ? '' : target.value.slice(start, end)
+    } else {
+      text = window.getSelection()?.toString() || ''
+    }
+
+    const selected = normalizeSelectedText(text)
+    if (!selected || selected === noteSelectedText.value) return
+    if (noteSelectedText.value) noteSelectionHistory.value.push(noteSelectedText.value)
+    noteSelectedText.value = selected
+  }, 0)
+}
+
+function toggleNoteCapture() {
+  noteCaptureMode.value = !noteCaptureMode.value
+  noteSelectedText.value = ''
+  noteSelectionHistory.value = []
+  if (noteCaptureMode.value) {
+    ElMessage.info('已进入划词记笔记模式，拖拽选择文字后保存')
+  } else {
+    window.getSelection()?.removeAllRanges()
+  }
+}
+
+function cancelNoteCapture() {
+  noteCaptureMode.value = false
+  noteSelectedText.value = ''
+  noteSelectionHistory.value = []
+  window.getSelection()?.removeAllRanges()
+}
+
+function undoNoteSelection() {
+  noteSelectedText.value = noteSelectionHistory.value.pop() || ''
+  window.getSelection()?.removeAllRanges()
+}
+
+function numericId(value: unknown) {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined
+}
+
+async function saveSelectedNote() {
+  if (!noteSelectedText.value) {
+    ElMessage.warning('请先拖拽选择要保存的文字')
+    return
+  }
+  savingNote.value = true
+  try {
+    const title = noteSelectedText.value.slice(0, 28) || '划词笔记'
+    await notesApi.create({
+      title,
+      content: `<p>${escapeHtml(noteSelectedText.value).replace(/\n/g, '<br>')}</p>`,
+      plainText: noteSelectedText.value,
+      sourceType: reviewMode.value ? 'history' : 'practice',
+      sourceTitle: `${paper.value.shortTitle || paper.value.title} · ${currentQuestion.value.title}`,
+      sourcePath: route.fullPath,
+      paperId: numericId(paper.value.id),
+      questionId: numericId(currentQuestion.value.id),
+      attemptId: numericId(remoteAttempt.value?.id),
+      attemptAnswerId: numericId(currentAttemptAnswer.value?.id),
+      tags: [paper.value.type === 'essay' ? '申论' : '面试', currentQuestionLabel.value],
+    })
+    ElMessage.success('笔记已保存')
+    noteSelectionHistory.value = []
+    noteSelectedText.value = ''
+    window.getSelection()?.removeAllRanges()
+  } finally {
+    savingNote.value = false
+  }
+}
+
 </script>
 
 <template>
-  <main class="focus-practice" :class="paper.type">
+  <main
+    class="focus-practice"
+    :class="[paper.type, { 'note-capture-mode': noteCaptureMode }]"
+    @mouseup="captureSelectedNoteText"
+    @keyup="captureSelectedNoteText"
+  >
     <header class="focus-topbar">
       <button type="button" class="icon-button" aria-label="返回真题库" data-tooltip="返回" @click="exitPractice">
         <el-icon><Back /></el-icon>
@@ -765,6 +867,43 @@ function reportList(value: any) {
       </section>
 
       <section class="focus-actions" aria-label="作答操作">
+        <div v-if="noteCaptureMode" class="note-capture-toolbar" aria-label="划词笔记操作">
+          <span>{{ noteSelectionText }}</span>
+          <button
+            type="button"
+            class="icon-button"
+            aria-label="撤销本次选择"
+            data-tooltip="撤销"
+            :disabled="!noteSelectedText && !noteSelectionHistory.length"
+            @click="undoNoteSelection"
+          >
+            <el-icon><RefreshLeft /></el-icon>
+          </button>
+          <button
+            type="button"
+            class="icon-button primary"
+            aria-label="保存为笔记"
+            data-tooltip="保存笔记"
+            :disabled="savingNote || !noteSelectedText"
+            @click="saveSelectedNote"
+          >
+            <el-icon><CircleCheck /></el-icon>
+          </button>
+          <button type="button" class="icon-button" aria-label="取消划词" data-tooltip="取消" @click="cancelNoteCapture">
+            <el-icon><Close /></el-icon>
+          </button>
+        </div>
+        <button
+          v-else
+          type="button"
+          class="icon-button note-button"
+          :disabled="loading || !paper.questions.length"
+          aria-label="记笔记"
+          data-tooltip="记笔记"
+          @click="toggleNoteCapture"
+        >
+          <el-icon><EditPen /></el-icon>
+        </button>
         <button
           type="button"
           class="icon-button"
@@ -1262,6 +1401,43 @@ function reportList(value: any) {
   display: flex;
   justify-content: end;
   gap: 8px;
+}
+
+.note-capture-toolbar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 42px;
+  padding: 0 8px 0 14px;
+  border: 1px solid rgba(47, 99, 183, 0.14);
+  border-radius: 999px;
+  background: #f7fbff;
+  box-shadow: 0 10px 26px rgba(47, 99, 183, 0.08);
+}
+
+.note-capture-toolbar > span {
+  color: #2f63b7;
+  font-size: 13px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.note-button {
+  border-color: rgba(47, 99, 183, 0.18);
+  color: #2f63b7;
+}
+
+.note-capture-mode {
+  cursor: text;
+}
+
+.note-capture-mode :where(.paper-reader, .question-compose, .review-source-card, .review-card) {
+  cursor: text;
+}
+
+.note-capture-mode ::selection {
+  background: rgba(255, 196, 61, 0.38);
+  color: #172033;
 }
 
 .focus-stage {
@@ -1773,7 +1949,13 @@ function reportList(value: any) {
   gap: 18px;
   max-height: calc(100vh - 116px);
   overflow: auto;
+  overscroll-behavior: contain;
   padding: 26px;
+  scrollbar-width: none;
+}
+
+.review-source-card::-webkit-scrollbar {
+  display: none;
 }
 
 .review-source-head {

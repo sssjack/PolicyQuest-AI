@@ -19,7 +19,7 @@ const RUBRICS = {
     { name: '逻辑表达', weight: 20, comment: '是否层次清楚、表达流畅、过渡自然、重点突出。' },
     { name: '岗位匹配', weight: 15, comment: '是否体现公职人员意识、群众立场、规矩意识和担当精神。' },
     { name: '应变处置', weight: 15, comment: '是否能稳现场、抓重点、分步骤解决，并形成长效机制。' },
-    { name: '举止表达', weight: 15, comment: '是否具有现场交流感、语言亲和力和结尾收束力。' },
+    { name: '语言规范', weight: 15, comment: '是否语言准确、简洁、自然，少空话套话，适合面试现场口述。' },
   ],
 };
 
@@ -91,9 +91,9 @@ function buildLocalDimensions(answer = '', question = {}, type = 'essay') {
         comment: '重点看步骤是否可执行、能否兼顾眼前处置和长效机制。',
       },
       {
-        name: '举止表达',
-        score: scoreFromSignals(42, [lengthRatio * 12, hitCount(text, ['谢谢', '各位考官', '获得感', '满意度', '担当']) * 3, structureHits * 2, tooShortPenalty]),
-        comment: '重点看交流感、亲和力和结尾收束。',
+        name: '语言规范',
+        score: scoreFromSignals(42, [lengthRatio * 10, policyHits * 2, structureHits * 2, hitCount(text, ['空话', '套话', '差不多', '应该吧']) * -4, tooShortPenalty]),
+        comment: '重点看语言是否准确、简洁、自然，是否少空话套话并适合现场口述。',
       },
     ];
   }

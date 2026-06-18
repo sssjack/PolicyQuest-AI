@@ -14,7 +14,7 @@ const DEFAULT_MIN_YEAR = 2021;
 const CONCURRENCY = 4;
 
 const ESSAY_DIMENSIONS = ['综合分析', '提出对策', '申发论述', '文章写作', '贯彻执行'];
-const INTERVIEW_DIMENSIONS = ['审题准确', '逻辑层次', '岗位匹配', '应变处置', '表达感染'];
+const INTERVIEW_DIMENSIONS = ['审题准确', '逻辑层次', '岗位匹配', '应变处置', '语言规范'];
 
 const REGION_PATTERNS = [
   '北京', '上海', '天津', '重庆', '河北', '山西', '辽宁', '吉林', '黑龙江', '江苏', '浙江', '安徽',

@@ -234,6 +234,29 @@ const Favorite = sequelize.define('Favorite', {
   question_id: { type: DataTypes.INTEGER, allowNull: false },
 }, { tableName: 'favorites' });
 
+const UserNote = sequelize.define('UserNote', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id: { type: DataTypes.INTEGER, allowNull: false },
+  title: { type: DataTypes.STRING(200), defaultValue: '' },
+  content: { type: DataTypes.TEXT('long'), allowNull: false },
+  plain_text: { type: DataTypes.TEXT('long') },
+  source_type: { type: DataTypes.STRING(40), defaultValue: 'practice' },
+  source_title: { type: DataTypes.STRING(500), defaultValue: '' },
+  source_path: { type: DataTypes.STRING(500), defaultValue: '' },
+  paper_id: { type: DataTypes.INTEGER },
+  question_id: { type: DataTypes.INTEGER },
+  attempt_id: { type: DataTypes.INTEGER },
+  attempt_answer_id: { type: DataTypes.INTEGER },
+  tags: { type: DataTypes.JSON },
+  reading_mode: { type: DataTypes.STRING(20), defaultValue: 'paper' },
+}, {
+  tableName: 'user_notes',
+  indexes: [
+    { fields: ['user_id', 'updated_at'] },
+    { fields: ['paper_id'] },
+  ],
+});
+
 const AiTask = sequelize.define('AiTask', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   task_type: { type: DataTypes.ENUM('generate_question', 'score_interview', 'generate_report', 'process_article'), defaultValue: 'generate_question' },
@@ -291,8 +314,19 @@ User.hasMany(Favorite, { foreignKey: 'user_id' });
 Question.hasMany(Favorite, { foreignKey: 'question_id' });
 Favorite.belongsTo(Question, { foreignKey: 'question_id' });
 
+User.hasMany(UserNote, { foreignKey: 'user_id' });
+UserNote.belongsTo(User, { foreignKey: 'user_id' });
+RealPaper.hasMany(UserNote, { foreignKey: 'paper_id' });
+UserNote.belongsTo(RealPaper, { foreignKey: 'paper_id' });
+PaperQuestion.hasMany(UserNote, { foreignKey: 'question_id' });
+UserNote.belongsTo(PaperQuestion, { foreignKey: 'question_id' });
+RealPaperAttempt.hasMany(UserNote, { foreignKey: 'attempt_id' });
+UserNote.belongsTo(RealPaperAttempt, { foreignKey: 'attempt_id' });
+RealPaperAttemptAnswer.hasMany(UserNote, { foreignKey: 'attempt_answer_id' });
+UserNote.belongsTo(RealPaperAttemptAnswer, { foreignKey: 'attempt_answer_id' });
+
 module.exports = {
   sequelize, User, ArticleSource, Article, Question,
   RealPaper, PaperMaterial, PaperQuestion, RealPaperAttempt, RealPaperAttemptAnswer,
-  PracticeSession, UserAnswer, WrongQuestion, Favorite, AiTask
+  PracticeSession, UserAnswer, WrongQuestion, Favorite, UserNote, AiTask
 };

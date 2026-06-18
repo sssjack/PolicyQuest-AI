@@ -126,7 +126,13 @@ const DRAFT_KEY = 'policyquest_real_practice_drafts'
 const FAVORITE_KEY = 'policyquest_real_paper_favorites'
 
 export const essayDimensions = ['审题立意', '要点提炼', '材料运用', '结构逻辑', '对策可行', '文字表达']
-export const interviewDimensions = ['审题理解', '综合分析', '逻辑表达', '岗位匹配', '应变处置', '举止表达']
+export const interviewDimensions = ['审题理解', '综合分析', '逻辑表达', '岗位匹配', '应变处置', '语言规范']
+
+export function normalizeScoreDimensionName(value: unknown) {
+  const name = String(value || '')
+  if (name === '举止表达' || name === '表达感染') return '语言规范'
+  return name
+}
 
 const essayRubricWeights: Record<string, number> = {
   审题立意: 20,
@@ -143,7 +149,7 @@ const interviewRubricWeights: Record<string, number> = {
   逻辑表达: 20,
   岗位匹配: 15,
   应变处置: 15,
-  举止表达: 15,
+  语言规范: 15,
 }
 
 export function mapBackendPaper(item: any): RealPaper {
@@ -225,7 +231,7 @@ function weightedDimensionScore(dimensions: ScoreDimension[], type: PracticeType
   const weights = type === 'interview' ? interviewRubricWeights : essayRubricWeights
   const totalWeight = Object.values(weights).reduce((sum, value) => sum + value, 0)
   return clampScore(
-    dimensions.reduce((sum, item) => sum + item.score * (weights[item.name] || 0), 0) / totalWeight,
+    dimensions.reduce((sum, item) => sum + item.score * (weights[normalizeScoreDimensionName(item.name)] || 0), 0) / totalWeight,
     0,
     100,
   )
@@ -255,7 +261,7 @@ function buildLocalDimensionScores(answer: string, question: PaperQuestion, pape
       { name: '逻辑表达', score: scoreFromSignals(40, [lengthRatio * 12, structureHits * 4, hitCount(text, ['首先', '其次', '最后', '同时']) * 2, tooShortPenalty]), comment: '是否层次清楚、表达流畅、过渡自然、重点突出。' },
       { name: '岗位匹配', score: scoreFromSignals(37, [publicRoleHits * 3, policyHits * 3, hitCount(text, ['我会', '作为', '岗位', '职责']) * 3, tooShortPenalty]), comment: '是否体现公职人员意识、群众立场、规矩意识和担当精神。' },
       { name: '应变处置', score: scoreFromSignals(36, [actionHits * 3, hitCount(text, ['现场', '安抚', '核实', '汇报', '跟进', '复盘']) * 4, structureHits * 2, tooShortPenalty]), comment: '是否能稳现场、抓重点、分步骤解决，并形成长效机制。' },
-      { name: '举止表达', score: scoreFromSignals(42, [lengthRatio * 12, hitCount(text, ['谢谢', '各位考官', '获得感', '满意度', '担当']) * 3, structureHits * 2, tooShortPenalty]), comment: '是否具有现场交流感、语言亲和力和结尾收束力。' },
+      { name: '语言规范', score: scoreFromSignals(42, [lengthRatio * 10, policyHits * 2, structureHits * 2, hitCount(text, ['空话', '套话', '差不多', '应该吧']) * -4, tooShortPenalty]), comment: '是否语言准确、简洁、自然，少空话套话，适合面试现场口述。' },
     ]
   }
 
@@ -277,7 +283,7 @@ export function fallbackEvaluation(answer: string, question: PaperQuestion, pape
   return {
     score,
     level: scoreLevel(score),
-    summary: `本题围绕“${question.title}”作答，系统按${isInterview ? '结构化面试/事业编面试' : '申论'}真实阅卷维度综合评估为 ${score} 分。主要提分点在于${isInterview ? '身份定位、综合分析、处置步骤和现场表达' : '要点覆盖、材料转化、结构递进和对策落地'}。`,
+    summary: `本题围绕“${question.title}”作答，系统按${isInterview ? '结构化面试/事业编面试' : '申论'}真实阅卷维度综合评估为 ${score} 分。主要提分点在于${isInterview ? '身份定位、综合分析、处置步骤和语言规范' : '要点覆盖、材料转化、结构递进和对策落地'}。`,
     dimensions,
     advantages: [
       '能够直接回应题干，不容易跑题。',

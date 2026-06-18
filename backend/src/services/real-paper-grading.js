@@ -13,7 +13,7 @@ const INTERVIEW_RUBRICS = [
   { name: '逻辑表达', weight: 20, comment: '是否层次清楚、总分有序、过渡自然，口语表达可直接用于考场。' },
   { name: '岗位匹配', weight: 15, comment: '是否体现公职人员意识、群众立场、规矩意识、责任担当和服务意识。' },
   { name: '应变处置', weight: 15, comment: '是否能稳现场、明责任、抓步骤、可执行，并兼顾长效治理。' },
-  { name: '举止表达', weight: 15, comment: '是否具有交流感、亲和力、节奏感和自然收束能力。' },
+  { name: '语言规范', weight: 15, comment: '是否语言准确、简洁、自然，少空话套话，适合面试现场口述。' },
 ];
 
 function clampScore(value, min = 0, max = 100) {
@@ -88,9 +88,9 @@ function buildLocalDimensions(answer = '', question = {}) {
       comment: '重点看步骤是否可执行，能否兼顾现场处置和长效机制。',
     },
     {
-      name: '举止表达',
-      score: scoreFromSignals(42, [lengthRatio * 12, hitCount(text, ['谢谢', '各位考官', '获得感', '满意度', '担当']) * 3, structureHits * 2, tooShortPenalty]),
-      comment: '重点看交流感、亲和力、语言节奏和结尾收束。',
+      name: '语言规范',
+      score: scoreFromSignals(42, [lengthRatio * 10, policyHits * 2, structureHits * 2, hitCount(text, ['空话', '套话', '差不多', '应该吧']) * -4, tooShortPenalty]),
+      comment: '重点看语言是否准确、简洁、自然，是否少空话套话并适合现场口述。',
     },
   ];
 }
@@ -324,7 +324,7 @@ async function gradeInterviewAnswer(payload) {
         messages: [
           {
             role: 'system',
-            content: '你是 PolicyQuest AI Exam Coach 的资深公务员/事业编结构化面试考官。你熟悉真实面试评分标准，批改必须严格、具体、可改写。不要因为答案字数多、口号多就给高分；要依据审题、分析、逻辑、岗位匹配、应变处置、举止表达逐项评分。必须输出合法 JSON，不要 Markdown，不要额外解释。',
+            content: '你是 PolicyQuest AI Exam Coach 的资深公务员/事业编结构化面试考官。你熟悉真实面试评分标准，批改必须严格、具体、可改写。不要因为答案字数多、口号多就给高分；要依据审题、分析、逻辑、岗位匹配、应变处置、语言规范逐项评分。不要评价考生肢体动作、仪态举止、眼神表情，因为系统只能看到文字作答。必须输出合法 JSON，不要 Markdown，不要额外解释。',
           },
           {
             role: 'user',
@@ -351,7 +351,7 @@ ${rubricLines}
 
 严格要求：
 1. dimensions 必须完整输出 6 个指定维度，名称不能替换，分数必须 0-100。
-2. 总分必须依据维度权重综合；普通空泛答案不得超过 65 分，跑题不得超过 45 分，高分答案必须同时有分析深度、岗位意识、可执行步骤和自然表达。
+2. 总分必须依据维度权重综合；普通空泛答案不得超过 65 分，跑题不得超过 45 分，高分答案必须同时有分析深度、岗位意识、可执行步骤和语言规范。
 3. 批改报告要对应截图中的长报告结构：一、结论评分；二、优点；三、主要扣分原因；四、高分答题思路；五、金句积累；六、高分范文；七、${localName}案例和政策解读；八、你原答案可以直接升级的表达；九、这道题你下次要补的关键内容。
 4. “${localName}案例和政策解读”必须围绕题目对应地区/城市/省份或系统背景，不要固定写山东。
 5. 每一个扣分点都要写清楚：原答案哪里有问题、为什么丢分、怎么改。
