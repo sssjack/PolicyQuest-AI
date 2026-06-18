@@ -160,8 +160,42 @@ const noteEditMode = ref(false)
 const noteDraftTitle = ref('')
 const noteDraftContent = ref('')
 const noteDraftReadingMode = ref<'paper' | 'green' | 'plain'>('paper')
+const noteFormatBlock = ref('P')
+const noteFormatFont = ref('')
+const noteFormatSize = ref('3')
+const noteFormatColor = ref('#1f2e44')
+const noteHighlightColor = ref('#fff1a8')
 const noteEditorRef = ref<HTMLElement | null>(null)
+let savedNoteRange: Range | null = null
 let attemptPollTimer: number | undefined
+
+const noteBlockOptions = [
+  { label: '正文', value: 'P' },
+  { label: '一级标题', value: 'H1' },
+  { label: '二级标题', value: 'H2' },
+  { label: '三级标题', value: 'H3' },
+  { label: '四级标题', value: 'H4' },
+  { label: '五级标题', value: 'H5' },
+  { label: '六级标题', value: 'H6' },
+]
+
+const noteFontOptions = [
+  { label: '默认字体', value: '' },
+  { label: '宋体', value: 'SimSun' },
+  { label: '黑体', value: 'SimHei' },
+  { label: '微软雅黑', value: 'Microsoft YaHei' },
+  { label: '楷体', value: 'KaiTi' },
+  { label: 'Arial', value: 'Arial' },
+]
+
+const noteSizeOptions = [
+  { label: '12', value: '2' },
+  { label: '14', value: '3' },
+  { label: '16', value: '4' },
+  { label: '18', value: '5' },
+  { label: '24', value: '6' },
+  { label: '32', value: '7' },
+]
 
 const tabOptions: Array<{ key: ArchiveTab; label: string; icon: Component }> = [
   { key: 'history', label: '练习历史', icon: Timer },
@@ -545,6 +579,12 @@ function startNoteEdit(item: UserNote) {
   noteDraftTitle.value = item.title || ''
   noteDraftContent.value = item.content || ''
   noteDraftReadingMode.value = item.readingMode || 'paper'
+  noteFormatBlock.value = 'P'
+  noteFormatFont.value = ''
+  noteFormatSize.value = '3'
+  noteFormatColor.value = '#1f2e44'
+  noteHighlightColor.value = '#fff1a8'
+  savedNoteRange = null
   nextTick(() => {
     if (noteEditorRef.value) noteEditorRef.value.innerHTML = noteDraftContent.value
   })
@@ -552,12 +592,56 @@ function startNoteEdit(item: UserNote) {
 
 function cancelNoteEdit() {
   noteEditMode.value = false
+  savedNoteRange = null
   if (activeNote.value) noteDraftReadingMode.value = activeNote.value.readingMode || 'paper'
 }
 
-function applyNoteFormat(command: string, value?: string) {
+function saveNoteSelection() {
+  const selection = window.getSelection()
+  if (!selection?.rangeCount || !noteEditorRef.value) return
+  const anchor = selection.anchorNode
+  if (anchor && noteEditorRef.value.contains(anchor)) {
+    savedNoteRange = selection.getRangeAt(0).cloneRange()
+  }
+}
+
+function restoreNoteSelection() {
   noteEditorRef.value?.focus()
+  if (!savedNoteRange) return
+  const selection = window.getSelection()
+  selection?.removeAllRanges()
+  selection?.addRange(savedNoteRange)
+}
+
+function applyNoteFormat(command: string, value?: string) {
+  restoreNoteSelection()
   document.execCommand(command, false, value)
+  saveNoteSelection()
+}
+
+function applyNoteBlock() {
+  applyNoteFormat('formatBlock', noteFormatBlock.value)
+}
+
+function applyNoteFont() {
+  if (!noteFormatFont.value) return
+  applyNoteFormat('fontName', noteFormatFont.value)
+}
+
+function applyNoteSize() {
+  applyNoteFormat('fontSize', noteFormatSize.value)
+}
+
+function applyNoteTextColor() {
+  applyNoteFormat('foreColor', noteFormatColor.value)
+}
+
+function applyNoteHighlight() {
+  restoreNoteSelection()
+  if (!document.execCommand('hiliteColor', false, noteHighlightColor.value)) {
+    document.execCommand('backColor', false, noteHighlightColor.value)
+  }
+  saveNoteSelection()
 }
 
 async function saveNoteEdit() {
@@ -900,15 +984,51 @@ function formatShortDate(value?: string) {
             <template v-if="noteEditMode">
               <input v-model="noteDraftTitle" class="note-title-input" placeholder="给这篇笔记加一个总标题" />
               <div class="note-formatbar">
-                <button type="button" @click="applyNoteFormat('formatBlock', 'H2')">H2</button>
-                <button type="button" @click="applyNoteFormat('formatBlock', 'H3')">H3</button>
-                <button type="button" @click="applyNoteFormat('bold')">B</button>
-                <button type="button" @click="applyNoteFormat('underline')">U</button>
-                <button type="button" @click="applyNoteFormat('foreColor', '#2f63b7')">蓝</button>
-                <button type="button" @click="applyNoteFormat('foreColor', '#0f8b6f')">绿</button>
-                <button type="button" @click="applyNoteFormat('removeFormat')">清除</button>
+                <label>
+                  <select v-model="noteFormatBlock" @change="applyNoteBlock">
+                    <option v-for="item in noteBlockOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
+                  </select>
+                </label>
+                <label>
+                  <select v-model="noteFormatFont" @change="applyNoteFont">
+                    <option v-for="item in noteFontOptions" :key="item.label" :value="item.value">{{ item.label }}</option>
+                  </select>
+                </label>
+                <label class="size-select">
+                  <select v-model="noteFormatSize" @change="applyNoteSize">
+                    <option v-for="item in noteSizeOptions" :key="item.value" :value="item.value">{{ item.label }}</option>
+                  </select>
+                </label>
+                <span class="format-divider"></span>
+                <button type="button" class="format-icon strong" title="加粗" @click="applyNoteFormat('bold')">B</button>
+                <button type="button" class="format-icon italic" title="斜体" @click="applyNoteFormat('italic')">I</button>
+                <button type="button" class="format-icon underline" title="下划线" @click="applyNoteFormat('underline')">U</button>
+                <button type="button" class="format-icon strike" title="删除线" @click="applyNoteFormat('strikeThrough')">S</button>
+                <label class="color-tool" title="文字颜色" :style="{ '--tool-color': noteFormatColor }">
+                  <span>A</span>
+                  <input v-model="noteFormatColor" type="color" @input="applyNoteTextColor" />
+                </label>
+                <label class="color-tool highlight" title="文本高亮" :style="{ '--tool-color': noteHighlightColor }">
+                  <span>高</span>
+                  <input v-model="noteHighlightColor" type="color" @input="applyNoteHighlight" />
+                </label>
+                <span class="format-divider"></span>
+                <button type="button" class="format-icon" title="项目符号" @click="applyNoteFormat('insertUnorderedList')">•</button>
+                <button type="button" class="format-icon" title="编号列表" @click="applyNoteFormat('insertOrderedList')">1.</button>
+                <button type="button" class="format-icon" title="左对齐" @click="applyNoteFormat('justifyLeft')">左</button>
+                <button type="button" class="format-icon" title="居中" @click="applyNoteFormat('justifyCenter')">中</button>
+                <button type="button" class="format-icon" title="右对齐" @click="applyNoteFormat('justifyRight')">右</button>
+                <span class="format-divider"></span>
+                <button type="button" class="format-clear" @click="applyNoteFormat('removeFormat')">清除格式</button>
               </div>
-              <div ref="noteEditorRef" class="note-rich-editor" contenteditable="true"></div>
+              <div
+                ref="noteEditorRef"
+                class="note-rich-editor"
+                contenteditable="true"
+                @mouseup="saveNoteSelection"
+                @keyup="saveNoteSelection"
+                @input="saveNoteSelection"
+              ></div>
             </template>
             <template v-else>
               <span>{{ activeNote.sourceTitle || '划词笔记' }}</span>
@@ -1190,12 +1310,12 @@ function formatShortDate(value?: string) {
   font-weight: 800;
 }
 
-.panel-toolbar > div:first-child {
+.panel-toolbar > div:first-child:not(.sub-tabs) {
   display: grid;
   gap: 4px;
 }
 
-.panel-toolbar > div:first-child span {
+.panel-toolbar > div:first-child:not(.sub-tabs) span {
   color: #8d98aa;
   font-weight: 800;
 }
@@ -1205,6 +1325,9 @@ function formatShortDate(value?: string) {
 }
 
 .sub-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 36px;
 }
 
@@ -1843,17 +1966,126 @@ function formatShortDate(value?: string) {
 .note-formatbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 6px;
+  align-items: center;
+  padding: 8px 10px;
+  border: 1px solid #dce5f1;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
 }
 
-.note-formatbar button {
-  min-height: 34px;
-  padding: 0 12px;
-  border: 1px solid #dce5f1;
+.note-formatbar label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.note-formatbar select {
+  height: 34px;
+  min-width: 104px;
+  padding: 0 28px 0 10px;
+  border: 0;
   border-radius: 6px;
-  background: rgba(255, 255, 255, 0.72);
-  color: #52627a;
+  background: #f3f6fb;
+  color: #36435a;
+  font-size: 14px;
+  font-weight: 800;
+  outline: none;
+}
+
+.note-formatbar .size-select select {
+  min-width: 66px;
+}
+
+.format-divider {
+  width: 1px;
+  height: 26px;
+  margin: 0 4px;
+  background: #dce5f1;
+}
+
+.note-formatbar button,
+.color-tool {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #36435a;
   font-weight: 900;
+}
+
+.note-formatbar button:hover,
+.color-tool:hover {
+  background: #eef4ff;
+  color: #397bf6;
+}
+
+.format-icon {
+  min-width: 34px;
+}
+
+.format-icon.strong {
+  font-size: 18px;
+}
+
+.format-icon.italic {
+  font-size: 18px;
+  font-style: italic;
+}
+
+.format-icon.underline {
+  font-size: 18px;
+  text-decoration: underline;
+}
+
+.format-icon.strike {
+  font-size: 18px;
+  text-decoration: line-through;
+}
+
+.color-tool {
+  position: relative;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.color-tool span {
+  position: relative;
+  min-width: 18px;
+  text-align: center;
+}
+
+.color-tool span::after {
+  position: absolute;
+  right: -2px;
+  bottom: -3px;
+  left: -2px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--tool-color, #1f2e44);
+  content: "";
+}
+
+.color-tool.highlight span::after {
+  height: 8px;
+  opacity: 0.58;
+}
+
+.color-tool input {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.format-clear {
+  padding: 0 12px;
+  background: #f3f6fb;
 }
 
 .note-rich-editor {
@@ -1866,6 +2098,21 @@ function formatShortDate(value?: string) {
   font-size: 18px;
   line-height: 1.9;
   outline: none;
+}
+
+.note-rich-editor :deep(h1),
+.note-rich-editor :deep(h2),
+.note-rich-editor :deep(h3),
+.note-rich-editor :deep(h4),
+.note-rich-editor :deep(h5),
+.note-rich-editor :deep(h6) {
+  margin: 0.65em 0 0.35em;
+  color: #1f2e44;
+  line-height: 1.35;
+}
+
+.note-rich-editor :deep(p) {
+  margin: 0 0 12px;
 }
 
 .empty-state {

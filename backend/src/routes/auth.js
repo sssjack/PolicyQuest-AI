@@ -1,12 +1,57 @@
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
+const multer = require('multer');
 const { Op } = require('sequelize');
 const config = require('../config');
 const { User } = require('../models');
 const { auth } = require('../middleware/auth');
+const { IMAGE_EXTENSIONS, putObject } = require('../services/oss-storage');
 
 const router = express.Router();
+const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
+const avatarUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_AVATAR_SIZE },
+});
+
+function detectImageMime(buffer) {
+  if (!Buffer.isBuffer(buffer) || buffer.length < 12) return '';
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg';
+  if (
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47 &&
+    buffer[4] === 0x0d &&
+    buffer[5] === 0x0a &&
+    buffer[6] === 0x1a &&
+    buffer[7] === 0x0a
+  ) {
+    return 'image/png';
+  }
+  if (buffer.subarray(0, 4).toString('ascii') === 'RIFF' && buffer.subarray(8, 12).toString('ascii') === 'WEBP') {
+    return 'image/webp';
+  }
+  const gifHeader = buffer.subarray(0, 6).toString('ascii');
+  if (gifHeader === 'GIF87a' || gifHeader === 'GIF89a') return 'image/gif';
+  return '';
+}
+
+function normalizeMime(value) {
+  return String(value || '').split(';')[0].trim().toLowerCase();
+}
+
+function uploadAvatarFile(req, res, next) {
+  avatarUpload.single('avatar')(req, res, error => {
+    if (!error) return next();
+    if (error instanceof multer.MulterError && error.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ code: 413, message: '头像图片请控制在 2MB 以内' });
+    }
+    return res.status(400).json({ code: 400, message: '头像上传失败', error: error.message });
+  });
+}
 
 router.post('/register', async (req, res) => {
   try {
@@ -117,6 +162,45 @@ router.get('/profile', auth, async (req, res) => {
   });
 });
 
+router.post('/avatar', auth, uploadAvatarFile, async (req, res) => {
+  try {
+    const file = req.file;
+    if (!file || !file.buffer || file.buffer.length === 0) {
+      return res.status(400).json({ code: 400, message: '请选择头像图片' });
+    }
+
+    const detectedMime = detectImageMime(file.buffer);
+    const declaredMime = normalizeMime(file.mimetype);
+    if (!detectedMime || !IMAGE_EXTENSIONS[detectedMime]) {
+      return res.status(400).json({ code: 400, message: '头像仅支持 JPG、PNG、WebP 或 GIF 图片' });
+    }
+    if (declaredMime && declaredMime !== 'application/octet-stream' && declaredMime !== detectedMime) {
+      return res.status(400).json({ code: 400, message: '头像图片类型与文件内容不一致' });
+    }
+
+    const ext = IMAGE_EXTENSIONS[detectedMime];
+    const random = crypto.randomBytes(8).toString('hex');
+    const storageKey = `avatars/${req.user.id}/${Date.now()}-${random}.${ext}`;
+    const stored = await putObject({
+      storageKey,
+      buffer: file.buffer,
+      contentType: detectedMime,
+    });
+
+    await req.user.update({ avatar: stored.url });
+    return res.json({
+      code: 200,
+      message: '头像上传成功',
+      data: {
+        avatar: stored.url,
+        storageKey: stored.storageKey,
+      },
+    });
+  } catch (e) {
+    return res.status(500).json({ code: 500, message: '头像上传到 OSS 失败', error: e.message });
+  }
+});
+
 router.put('/profile', auth, async (req, res) => {
   try {
     const nickname = String(req.body.nickname || '').trim();
@@ -130,6 +214,9 @@ router.put('/profile', auth, async (req, res) => {
     }
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ code: 400, message: '请输入有效邮箱' });
+    }
+    if (avatar.startsWith('data:')) {
+      return res.status(400).json({ code: 400, message: '请先上传头像到 OSS 后再保存' });
     }
 
     const emailOwner = await User.findOne({

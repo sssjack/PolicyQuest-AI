@@ -140,8 +140,7 @@ const favoriteVersion = ref(0)
 const answerTextarea = ref<HTMLTextAreaElement | null>(null)
 const questionCollapsed = ref(false)
 const noteCaptureMode = ref(false)
-const noteSelectedText = ref('')
-const noteSelectionHistory = ref<string[]>([])
+const noteSelections = ref<string[]>([])
 const savingNote = ref(false)
 const ANSWER_GRID_COLUMNS = 25
 let timerId: number | undefined
@@ -185,7 +184,9 @@ const wordLimitBase = computed(() => (currentQuestion.value.wordLimit > 0 ? curr
 const wordProgress = computed(() => Math.min(100, Math.round((wordCount.value / wordLimitBase.value) * 100)))
 const readerMaterialHtml = computed(() => buildReaderHtml(activeMaterial.value.content || activeMaterial.value.summary || ''))
 const questionPositionText = computed(() => `${currentIndex.value + 1} / ${paper.value.questions.length || 0}`)
-const noteSelectionText = computed(() => (noteSelectedText.value ? `已选择 ${noteSelectedText.value.length} 字` : '拖拽选择文字'))
+const noteCombinedText = computed(() => noteSelections.value.join('\n\n'))
+const noteSelectionTotal = computed(() => noteSelections.value.reduce((sum, item) => sum + item.length, 0))
+const noteSelectionText = computed(() => (noteSelections.value.length ? `已选择 ${noteSelections.value.length} 段 / ${noteSelectionTotal.value} 字` : '拖拽选择文字'))
 const submitPaperTip = computed(() => {
   if (reviewMode.value) return '查看报告'
   if (paper.value.type === 'interview') return allAnswered.value ? '提交本卷' : '请先填写全部题目'
@@ -753,18 +754,17 @@ function captureSelectedNoteText(event?: Event) {
     }
 
     const selected = normalizeSelectedText(text)
-    if (!selected || selected === noteSelectedText.value) return
-    if (noteSelectedText.value) noteSelectionHistory.value.push(noteSelectedText.value)
-    noteSelectedText.value = selected
+    if (!selected || selected === noteSelections.value[noteSelections.value.length - 1]) return
+    noteSelections.value = [...noteSelections.value, selected]
+    window.getSelection()?.removeAllRanges()
   }, 0)
 }
 
 function toggleNoteCapture() {
   noteCaptureMode.value = !noteCaptureMode.value
-  noteSelectedText.value = ''
-  noteSelectionHistory.value = []
+  noteSelections.value = []
   if (noteCaptureMode.value) {
-    ElMessage.info('已进入划词记笔记模式，拖拽选择文字后保存')
+    ElMessage.info('已进入划词记笔记模式，可多次拖拽收集片段后保存')
   } else {
     window.getSelection()?.removeAllRanges()
   }
@@ -772,13 +772,12 @@ function toggleNoteCapture() {
 
 function cancelNoteCapture() {
   noteCaptureMode.value = false
-  noteSelectedText.value = ''
-  noteSelectionHistory.value = []
+  noteSelections.value = []
   window.getSelection()?.removeAllRanges()
 }
 
 function undoNoteSelection() {
-  noteSelectedText.value = noteSelectionHistory.value.pop() || ''
+  noteSelections.value = noteSelections.value.slice(0, -1)
   window.getSelection()?.removeAllRanges()
 }
 
@@ -788,17 +787,21 @@ function numericId(value: unknown) {
 }
 
 async function saveSelectedNote() {
-  if (!noteSelectedText.value) {
+  if (!noteSelections.value.length) {
     ElMessage.warning('请先拖拽选择要保存的文字')
     return
   }
   savingNote.value = true
   try {
-    const title = noteSelectedText.value.slice(0, 28) || '划词笔记'
+    const text = noteCombinedText.value
+    const title = noteSelections.value[0]?.slice(0, 28) || '划词笔记'
+    const content = noteSelections.value
+      .map(item => `<p>${escapeHtml(item).replace(/\n/g, '<br>')}</p>`)
+      .join('')
     await notesApi.create({
       title,
-      content: `<p>${escapeHtml(noteSelectedText.value).replace(/\n/g, '<br>')}</p>`,
-      plainText: noteSelectedText.value,
+      content,
+      plainText: text,
       sourceType: reviewMode.value ? 'history' : 'practice',
       sourceTitle: `${paper.value.shortTitle || paper.value.title} · ${currentQuestion.value.title}`,
       sourcePath: route.fullPath,
@@ -809,8 +812,7 @@ async function saveSelectedNote() {
       tags: [paper.value.type === 'essay' ? '申论' : '面试', currentQuestionLabel.value],
     })
     ElMessage.success('笔记已保存')
-    noteSelectionHistory.value = []
-    noteSelectedText.value = ''
+    noteSelections.value = []
     window.getSelection()?.removeAllRanges()
   } finally {
     savingNote.value = false
@@ -873,8 +875,8 @@ async function saveSelectedNote() {
             type="button"
             class="icon-button"
             aria-label="撤销本次选择"
-            data-tooltip="撤销"
-            :disabled="!noteSelectedText && !noteSelectionHistory.length"
+            data-tooltip="撤销上一段"
+            :disabled="!noteSelections.length"
             @click="undoNoteSelection"
           >
             <el-icon><RefreshLeft /></el-icon>
@@ -884,7 +886,7 @@ async function saveSelectedNote() {
             class="icon-button primary"
             aria-label="保存为笔记"
             data-tooltip="保存笔记"
-            :disabled="savingNote || !noteSelectedText"
+            :disabled="savingNote || !noteSelections.length"
             @click="saveSelectedNote"
           >
             <el-icon><CircleCheck /></el-icon>

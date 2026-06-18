@@ -10,6 +10,7 @@ const router = useRouter()
 const userStore = useUserStore()
 const avatarFileInput = ref<HTMLInputElement | null>(null)
 const saving = ref(false)
+const uploadingAvatar = ref(false)
 
 const form = ref({
   nickname: '',
@@ -58,7 +59,7 @@ function triggerAvatarPick() {
   avatarFileInput.value?.click()
 }
 
-function handleAvatarFile(event: Event) {
+async function handleAvatarFile(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (!file) return
@@ -68,18 +69,23 @@ function handleAvatarFile(event: Event) {
     input.value = ''
     return
   }
-  if (file.size > 900 * 1024) {
-    ElMessage.warning('头像图片请控制在 900KB 以内')
+  if (file.size > 2 * 1024 * 1024) {
+    ElMessage.warning('头像图片请控制在 2MB 以内')
     input.value = ''
     return
   }
 
-  const reader = new FileReader()
-  reader.onload = () => {
-    form.value.avatar = String(reader.result || '')
+  uploadingAvatar.value = true
+  try {
+    const res: any = await userStore.uploadAvatar(file)
+    form.value.avatar = res.data.avatar || ''
+    ElMessage.success('头像已上传到 OSS')
+  } catch (error: any) {
+    ElMessage.error(error.message || '头像上传失败，请稍后重试')
+  } finally {
+    uploadingAvatar.value = false
     input.value = ''
   }
-  reader.readAsDataURL(file)
 }
 
 function clearAvatar() {
@@ -96,6 +102,11 @@ async function saveProfile() {
   }
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     ElMessage.warning('请输入有效邮箱')
+    return
+  }
+
+  if (uploadingAvatar.value) {
+    ElMessage.warning('头像上传中，请稍后保存')
     return
   }
 
@@ -158,9 +169,9 @@ async function saveProfile() {
         <p>{{ form.exam_target || '尚未设置备考方向' }}</p>
 
         <div class="avatar-actions">
-          <button class="primary-action" type="button" @click="triggerAvatarPick">
+          <button class="primary-action" type="button" :disabled="uploadingAvatar" @click="triggerAvatarPick">
             <el-icon><Camera /></el-icon>
-            更换头像
+            {{ uploadingAvatar ? '上传中' : '更换头像' }}
           </button>
           <button class="plain-action" type="button" @click="clearAvatar">移除头像</button>
         </div>
@@ -179,7 +190,7 @@ async function saveProfile() {
             <p>ACCOUNT</p>
             <h2>账号资料</h2>
           </div>
-          <button class="save-button" type="button" :disabled="saving" @click="saveProfile">
+          <button class="save-button" type="button" :disabled="saving || uploadingAvatar" @click="saveProfile">
             <el-icon><Check /></el-icon>
             {{ saving ? '保存中' : '保存修改' }}
           </button>

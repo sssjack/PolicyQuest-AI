@@ -31,6 +31,11 @@ export const authApi = {
   login: (data: any) => api.post('/auth/login', data),
   register: (data: any) => api.post('/auth/register', data),
   profile: () => api.get('/auth/profile'),
+  uploadAvatar: (file: File) => {
+    const data = new FormData()
+    data.append('avatar', file)
+    return api.post('/auth/avatar', data)
+  },
   updateProfile: (data: any) => api.put('/auth/profile', data),
 }
 

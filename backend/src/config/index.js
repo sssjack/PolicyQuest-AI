@@ -29,6 +29,23 @@ module.exports = {
     password: process.env.DB_PASSWORD || '',
     pool: { max: 20, min: 5, acquire: 30000, idle: 10000 }
   },
+  oss: {
+    provider: (process.env.OSS_PROVIDER || process.env.ALIYUN_OSS_PROVIDER || 'aliyun').trim().toLowerCase(),
+    accessKey:
+      process.env.OSS_ACCESS_KEY ||
+      process.env.ALIYUN_OSS_ACCESS_KEY ||
+      process.env.ALIYUN_OSS_ACCESS_KEY_ID ||
+      '',
+    secretKey:
+      process.env.OSS_SECRET_KEY ||
+      process.env.ALIYUN_OSS_SECRET_KEY ||
+      process.env.ALIYUN_OSS_ACCESS_KEY_SECRET ||
+      '',
+    bucket: process.env.OSS_BUCKET || process.env.ALIYUN_OSS_BUCKET || '',
+    region: process.env.OSS_REGION || process.env.ALIYUN_OSS_REGION || '',
+    endpoint: process.env.OSS_ENDPOINT || process.env.ALIYUN_OSS_ENDPOINT || '',
+    cdnDomain: process.env.OSS_CDN_DOMAIN || process.env.ALIYUN_OSS_CDN_DOMAIN || '',
+  },
   llm,
   deepseek: llm,
   crawlerSchedulerEnabled: process.env.ENABLE_CRAWLER_SCHEDULER === 'true',

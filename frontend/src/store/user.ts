@@ -39,6 +39,13 @@ export const useUserStore = defineStore('user', () => {
     localStorage.setItem('pq_user', JSON.stringify(res.data))
   }
 
+  async function uploadAvatar(file: File) {
+    const res: any = await authApi.uploadAvatar(file)
+    user.value = { ...(user.value || {}), avatar: res.data.avatar }
+    localStorage.setItem('pq_user', JSON.stringify(user.value))
+    return res
+  }
+
   async function updateProfile(data: any) {
     const res: any = await authApi.updateProfile(data)
     user.value = res.data || { ...user.value, ...data }
@@ -46,5 +53,5 @@ export const useUserStore = defineStore('user', () => {
     return res
   }
 
-  return { token, user, isLoggedIn, isAdmin, login, register, logout, fetchProfile, updateProfile }
+  return { token, user, isLoggedIn, isAdmin, login, register, logout, fetchProfile, uploadAvatar, updateProfile }
 })
