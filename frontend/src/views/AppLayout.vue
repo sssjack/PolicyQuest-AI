@@ -520,8 +520,8 @@ function logout() {
 
   .app-main {
     margin-left: 0;
-    padding-top: 72px;
-    padding-bottom: 96px;
+    padding-top: 60px;
+    padding-bottom: 76px;
   }
 
   .app-main :deep(.page-container),
@@ -534,11 +534,11 @@ function logout() {
     inset: 0 0 auto;
     z-index: 50;
     display: grid;
-    grid-template-columns: 44px minmax(0, 1fr) 40px;
+    grid-template-columns: 38px minmax(0, 1fr) 36px;
     align-items: center;
-    gap: 12px;
-    height: 72px;
-    padding: 0 16px;
+    gap: 10px;
+    height: 60px;
+    padding: 0 14px;
     border-bottom: 1px solid rgba(198, 211, 232, 0.72);
     background: rgba(255, 255, 255, 0.9);
     backdrop-filter: blur(18px);
@@ -555,19 +555,20 @@ function logout() {
 
   .mobile-topbar strong {
     color: #07182f;
-    font-size: 16px;
+    font-size: 15px;
   }
 
   .mobile-topbar small {
-    margin-top: 2px;
+    margin-top: 1px;
     color: var(--text-muted);
     font-size: 11px;
     font-weight: 800;
   }
 
   .mobile-avatar {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
+    font-size: 13px;
   }
 
   .mobile-nav {
@@ -575,26 +576,31 @@ function logout() {
     inset: auto 10px 10px;
     z-index: 50;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(64px, 1fr));
-    gap: 4px;
-    padding: 8px;
+    grid-template-columns: repeat(auto-fit, minmax(56px, 1fr));
+    gap: 3px;
+    padding: 6px;
     border: 1px solid rgba(198, 211, 232, 0.78);
-    border-radius: 20px;
+    border-radius: 16px;
     background: rgba(255, 255, 255, 0.94);
-    box-shadow: 0 18px 42px rgba(19, 42, 74, 0.14);
+    box-shadow: 0 12px 28px rgba(19, 42, 74, 0.13);
     backdrop-filter: blur(18px);
   }
 
   .mobile-nav-item {
     display: grid;
     justify-items: center;
-    gap: 4px;
+    gap: 2px;
     min-width: 0;
-    padding: 8px 2px;
-    border-radius: 14px;
+    padding: 6px 2px;
+    border-radius: 12px;
     color: var(--text-muted);
     font-size: 11px;
     font-weight: 900;
+  }
+
+  .mobile-nav-item :deep(svg) {
+    width: 18px;
+    height: 18px;
   }
 
   .mobile-nav-item span {
@@ -612,8 +618,22 @@ function logout() {
 
 @media (max-width: 560px) {
   .mobile-nav {
-    grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(54px, 1fr));
     inset: auto 8px 8px;
+  }
+
+  .app-main {
+    padding-bottom: 70px;
+  }
+}
+
+@media (max-width: 380px) {
+  .mobile-topbar small {
+    display: none;
+  }
+
+  .mobile-nav-item span {
+    font-size: 10px;
   }
 }
 </style>

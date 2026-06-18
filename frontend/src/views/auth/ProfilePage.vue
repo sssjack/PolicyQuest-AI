@@ -176,11 +176,6 @@ async function saveProfile() {
           <button class="plain-action" type="button" @click="clearAvatar">移除头像</button>
         </div>
 
-        <label class="avatar-url">
-          <span>头像链接</span>
-          <input v-model="form.avatar" type="url" placeholder="也可以粘贴图片 URL" />
-        </label>
-
         <input ref="avatarFileInput" class="file-input" type="file" accept="image/*" @change="handleAvatarFile" />
       </article>
 
@@ -455,22 +450,12 @@ async function saveProfile() {
   margin-top: 10px;
 }
 
-.avatar-url {
-  display: grid;
-  gap: 8px;
-  width: 100%;
-  margin-top: 4px;
-  text-align: left;
-}
-
-.avatar-url span,
 .form-grid label > span {
   color: #64748b;
   font-size: 13px;
   font-weight: 900;
 }
 
-.avatar-url input,
 .form-grid input {
   width: 100%;
   min-height: 46px;
@@ -482,15 +467,10 @@ async function saveProfile() {
   transition: border-color 0.18s ease, box-shadow 0.18s ease, background 0.18s ease;
 }
 
-.avatar-url input {
-  padding: 0 12px;
-}
-
 .form-grid input {
   padding: 0 14px;
 }
 
-.avatar-url input:focus,
 .form-grid input:focus {
   border-color: rgba(13, 99, 255, 0.48);
   background: #ffffff;
@@ -572,7 +552,8 @@ async function saveProfile() {
 
 @media (max-width: 680px) {
   .profile-shell-page {
-    padding: 0 14px 34px;
+    padding: 0 12px 28px;
+    background-size: 34px 34px, auto;
   }
 
   .profile-nav,
@@ -582,23 +563,62 @@ async function saveProfile() {
   }
 
   .profile-nav {
-    align-items: stretch;
-    flex-direction: column;
-    padding: 16px 0;
+    align-items: center;
+    flex-direction: row;
+    gap: 10px;
+    min-height: 60px;
+    padding: 10px 0;
+  }
+
+  .brand-link span:last-child {
+    display: none;
   }
 
   .return-button {
+    min-height: 38px;
+    padding: 0 14px;
     justify-content: center;
+    margin-left: auto;
+    font-size: 13px;
   }
 
   .profile-hero,
   .avatar-panel,
   .profile-form {
-    padding: 24px;
+    padding: 18px;
   }
 
   .profile-hero h1 {
-    font-size: 30px;
+    font-size: 26px;
+  }
+
+  .profile-hero span {
+    font-size: 14px;
+    line-height: 1.65;
+  }
+
+  .hero-avatar {
+    width: 78px;
+    height: 78px;
+  }
+
+  .avatar-preview {
+    width: 92px;
+    height: 92px;
+  }
+
+  .avatar-panel h2,
+  .profile-form h2 {
+    font-size: 22px;
+  }
+
+  .profile-form header {
+    display: grid;
+    gap: 14px;
+  }
+
+  .save-button {
+    width: 100%;
   }
 
   .form-grid {

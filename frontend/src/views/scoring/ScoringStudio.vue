@@ -1244,17 +1244,21 @@ async function loadDashboardData() {
 
 @media (max-width: 820px) {
   .fenbi-nav {
-    height: auto;
+    height: 60px;
   }
 
   .fenbi-nav-inner {
     grid-template-columns: 1fr 42px;
-    gap: 12px;
-    min-height: 68px;
+    gap: 10px;
+    min-height: 60px;
+  }
+
+  .fenbi-brand strong {
+    font-size: 17px;
   }
 
   .fenbi-main {
-    padding-top: 22px;
+    padding-top: 18px;
   }
 
   .study-head,
@@ -1272,6 +1276,7 @@ async function loadDashboardData() {
 
   .search-box {
     width: 100%;
+    min-height: 40px;
   }
 
   .paper-list button {
@@ -1288,17 +1293,80 @@ async function loadDashboardData() {
 @media (max-width: 560px) {
   .fenbi-nav-inner,
   .fenbi-main {
-    width: min(100vw - 24px, 520px);
+    width: min(100vw - 20px, 520px);
   }
 
   .title-row h1 {
-    font-size: 25px;
+    font-size: 24px;
   }
 
   .type-tabs button {
     flex: 1;
-    min-width: 96px;
+    min-width: 0;
     font-size: 15px;
+    min-height: 36px;
+    padding: 0 10px;
+  }
+
+  .study-head {
+    gap: 14px;
+    margin-bottom: 14px;
+  }
+
+  .title-cluster {
+    gap: 14px;
+  }
+
+  .entry-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .entry-tile {
+    min-height: 84px;
+    padding: 14px 10px;
+    border-radius: 8px;
+  }
+
+  .entry-tile span {
+    font-size: 16px;
+  }
+
+  .entry-tile small {
+    overflow: hidden;
+    margin-top: 4px;
+    font-size: 11px;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .entry-tile .el-icon {
+    right: 8px;
+    bottom: 8px;
+    font-size: 30px;
+    opacity: 0.48;
+  }
+
+  .focus-card {
+    min-height: 0;
+    padding: 16px;
+  }
+
+  .focus-card h2 {
+    font-size: 19px;
+    white-space: normal;
+  }
+
+  .panel-title h2,
+  .side-title h2,
+  .advice-panel h2 {
+    font-size: 21px;
+  }
+
+  .panel-title,
+  .side-title {
+    align-items: center;
   }
 
   .practice-hub,
@@ -1313,16 +1381,37 @@ async function loadDashboardData() {
   .practice-hub,
   .paper-panel,
   .ability-panel {
-    padding: 16px;
+    padding: 14px;
   }
 
   .history-list button {
     grid-template-columns: minmax(0, 1fr);
-    padding: 16px 0;
+    padding: 14px 0;
   }
 
   .history-list em {
     justify-self: start;
+  }
+
+  .score-panel {
+    padding: 14px 18px;
+  }
+
+  .score-row {
+    min-height: 44px;
+  }
+
+  .paper-list button {
+    gap: 8px 10px;
+  }
+
+  .paper-list strong {
+    font-size: 15px;
+    white-space: normal;
+  }
+
+  .paper-type {
+    padding: 5px 8px;
   }
 }
 </style>

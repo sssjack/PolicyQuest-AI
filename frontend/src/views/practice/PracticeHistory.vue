@@ -497,15 +497,60 @@ function formatDate(value: string) {
 }
 
 @media (max-width: 640px) {
-  .history-metrics,
   .favorite-grid,
   .record-item {
     grid-template-columns: 1fr;
   }
 
+  .history-metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .history-metrics article {
+    min-height: 86px;
+    padding: 14px;
+  }
+
+  .history-metrics .el-icon {
+    font-size: 20px;
+  }
+
+  .history-metrics strong {
+    font-size: 26px;
+  }
+
+  .history-tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 8px;
+    padding: 10px;
+    scrollbar-width: none;
+  }
+
+  .history-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .history-tabs button {
+    flex: 0 0 auto;
+    min-height: 36px;
+    padding: 0 12px;
+    white-space: nowrap;
+  }
+
   .record-status,
   .record-item em {
     grid-row: auto;
+  }
+
+  .record-item {
+    min-height: 0;
+    padding: 16px;
+  }
+
+  .record-item strong {
+    white-space: normal;
   }
 }
 </style>

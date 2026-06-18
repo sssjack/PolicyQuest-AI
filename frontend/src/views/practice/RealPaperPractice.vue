@@ -2350,24 +2350,82 @@ async function saveSelectedNote() {
 
 @media (max-width: 820px) {
   .focus-practice {
-    padding: 0 12px 18px;
+    padding: 0 10px 18px;
   }
 
   .focus-topbar {
     position: static;
     grid-template-columns: 40px 1fr auto;
     min-height: auto;
-    padding: 10px 0;
+    gap: 8px;
+    padding: 8px 0;
   }
 
   .focus-clock {
-    min-width: 132px;
-    padding: 0 12px;
+    min-width: 112px;
+    min-height: 36px;
+    gap: 6px;
+    padding: 0 10px;
+  }
+
+  .focus-clock strong {
+    font-size: 17px;
+  }
+
+  .focus-position {
+    gap: 5px;
+    font-size: 14px;
   }
 
   .focus-progress,
   .focus-actions {
     grid-column: 1 / -1;
+  }
+
+  .focus-progress {
+    grid-template-columns: auto minmax(88px, 1fr) auto;
+    gap: 8px;
+  }
+
+  .focus-actions {
+    display: flex;
+    flex-wrap: nowrap;
+    justify-content: flex-end;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+  }
+
+  .focus-actions::-webkit-scrollbar {
+    display: none;
+  }
+
+  .icon-button,
+  .favorite-button,
+  .question-collapse-button {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+  }
+
+  .icon-button .el-icon,
+  .favorite-button .el-icon,
+  .question-collapse-button .el-icon {
+    font-size: 18px;
+  }
+
+  .note-capture-toolbar {
+    flex: 0 0 auto;
+    min-height: 38px;
+    max-width: 100%;
+    gap: 6px;
+    padding: 0 6px 0 10px;
+  }
+
+  .note-capture-toolbar > span {
+    max-width: 128px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .focus-stage {
@@ -2407,11 +2465,11 @@ async function saveSelectedNote() {
   }
 
   .question-compose {
-    padding: 22px;
+    padding: 18px;
   }
 
   .question-head h1 {
-    font-size: 21px;
+    font-size: 20px;
   }
 
   .question-compose textarea {
@@ -2428,6 +2486,67 @@ async function saveSelectedNote() {
   .favorite-button::after,
   .question-collapse-button::after {
     display: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .focus-topbar {
+    grid-template-columns: 38px minmax(0, 1fr) auto;
+  }
+
+  .focus-clock {
+    min-width: 98px;
+  }
+
+  .focus-clock .el-icon {
+    font-size: 17px;
+  }
+
+  .question-switcher {
+    gap: 5px;
+  }
+
+  .question-switcher button {
+    width: 28px;
+    height: 28px;
+  }
+
+  .question-switcher strong {
+    min-width: 46px;
+    font-size: 12px;
+  }
+
+  .focus-progress {
+    grid-template-columns: auto minmax(68px, 1fr) auto;
+  }
+
+  .material-rail button {
+    min-width: 76px;
+    min-height: 38px;
+  }
+
+  .paper-reader,
+  .question-compose,
+  .review-source-card,
+  .review-card,
+  .review-empty {
+    border-radius: 12px;
+  }
+
+  .reader-title,
+  .reader-sheet {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .question-compose textarea {
+    min-height: 300px;
+    padding: 16px;
+  }
+
+  .compose-footer {
+    gap: 8px;
+    font-size: 12px;
   }
 }
 </style>

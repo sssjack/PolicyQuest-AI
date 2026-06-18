@@ -2175,36 +2175,55 @@ function formatShortDate(value?: string) {
 
 @media (max-width: 760px) {
   .archive-nav {
-    height: auto;
+    height: 60px;
   }
 
   .archive-nav-inner {
     grid-template-columns: 1fr 42px;
-    gap: 12px;
-    min-height: 68px;
+    gap: 10px;
+    min-height: 60px;
+  }
+
+  .archive-brand strong {
+    font-size: 17px;
+  }
+
+  .avatar-button {
+    width: 34px;
+    height: 34px;
   }
 
   .archive-main {
-    width: min(100vw - 24px, 520px);
-    padding-top: 18px;
+    width: min(100vw - 20px, 520px);
+    padding-top: 14px;
   }
 
   .archive-tabs {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
-    padding: 12px;
-    overflow-x: visible;
+    min-height: 58px;
+    padding: 10px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .archive-tabs::-webkit-scrollbar {
+    display: none;
   }
 
   .archive-tabs button {
     justify-content: center;
-    width: 100%;
+    flex: 0 0 auto;
     min-width: 0;
-    padding: 0 8px;
+    min-height: 36px;
+    padding: 0 12px;
+    font-size: 14px;
+    white-space: nowrap;
   }
 
-  .summary-strip,
+  .archive-tabs button .el-icon {
+    font-size: 15px;
+  }
+
   .report-grid,
   .note-grid,
   .favorite-grid,
@@ -2212,12 +2231,37 @@ function formatShortDate(value?: string) {
     grid-template-columns: 1fr;
   }
 
+  .summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin: 12px 0;
+  }
+
+  .summary-strip article {
+    min-height: 74px;
+    padding: 14px;
+  }
+
+  .summary-strip .el-icon {
+    width: 30px;
+    height: 30px;
+    font-size: 16px;
+  }
+
+  .summary-strip strong {
+    font-size: 22px;
+  }
+
   .archive-panel,
   .score-card,
   .radar-card,
   .accuracy-card,
   .trend-panel {
-    padding: 20px;
+    padding: 18px;
+  }
+
+  .archive-panel {
+    min-height: 0;
   }
 
   .panel-toolbar,
@@ -2225,11 +2269,78 @@ function formatShortDate(value?: string) {
   .trend-panel,
   .history-row {
     display: grid;
+    gap: 12px;
+  }
+
+  .panel-toolbar {
+    align-items: start;
+    min-height: 0;
+    padding-bottom: 14px;
+  }
+
+  .sub-tabs {
+    flex-wrap: nowrap;
+    gap: 18px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+  }
+
+  .sub-tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .sub-tabs button {
+    flex: 0 0 auto;
+    font-size: 15px;
+    white-space: nowrap;
   }
 
   .history-row > span {
     min-width: 0;
     text-align: left;
+  }
+
+  .history-row {
+    min-height: 96px;
+    gap: 8px;
+    padding: 18px 0;
+  }
+
+  .history-row strong,
+  .question-row strong {
+    font-size: 17px;
+  }
+
+  .history-row small,
+  .question-row small {
+    margin-top: 8px;
+  }
+
+  .note-reader {
+    min-height: 420px;
+    padding: 24px 18px;
+  }
+
+  .note-reader h1,
+  .note-title-input {
+    font-size: 24px;
+  }
+
+  .note-formatbar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .note-formatbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .note-formatbar label,
+  .note-formatbar button,
+  .color-tool {
+    flex: 0 0 auto;
   }
 
   .accuracy-row {
