@@ -1234,8 +1234,30 @@ async function saveSelectedNote() {
               <small v-if="item.date || item.location || item.actors">
                 {{ [item.date, item.location, item.actors].filter(Boolean).join(' · ') }}
               </small>
-              <p>{{ reportText(item, ['content']) }}</p>
-              <small>{{ reportText(item, ['usage']) }}</small>
+              <p v-if="reportText(item, ['content'])">{{ reportText(item, ['content']) }}</p>
+              <dl v-if="item.background || item.problem || item.measures || item.impact || item.integration" class="policy-detail-grid">
+                <template v-if="item.background">
+                  <dt>出台背景</dt>
+                  <dd>{{ item.background }}</dd>
+                </template>
+                <template v-if="item.problem">
+                  <dt>解决问题</dt>
+                  <dd>{{ item.problem }}</dd>
+                </template>
+                <template v-if="item.measures">
+                  <dt>关键措施</dt>
+                  <dd>{{ item.measures }}</dd>
+                </template>
+                <template v-if="item.impact">
+                  <dt>实际影响</dt>
+                  <dd>{{ item.impact }}</dd>
+                </template>
+                <template v-if="item.integration">
+                  <dt>融合本题</dt>
+                  <dd>{{ item.integration }}</dd>
+                </template>
+              </dl>
+              <small v-if="reportText(item, ['usage'])">{{ reportText(item, ['usage']) }}</small>
               <a v-if="item.sourceUrl" :href="item.sourceUrl" target="_blank" rel="noreferrer">查看原文链接</a>
               <small v-if="item.verificationNote">{{ item.verificationNote }}</small>
             </article>
@@ -2372,6 +2394,34 @@ async function saveSelectedNote() {
 .report-section.local-policy article {
   border: 1px solid rgba(57, 123, 246, 0.12);
   background: #f4f8ff;
+}
+
+.report-section.local-policy article > p {
+  white-space: pre-line;
+}
+
+.policy-detail-grid {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr);
+  gap: 8px 12px;
+  margin: 10px 0 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.policy-detail-grid dt {
+  color: #245bb1;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1.7;
+}
+
+.policy-detail-grid dd {
+  margin: 0;
+  color: #32405a;
+  font-size: 14px;
+  line-height: 1.75;
 }
 
 .report-section.local-policy a {

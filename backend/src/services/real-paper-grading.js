@@ -223,6 +223,191 @@ function buildMaterialsContext(materials = []) {
     .join('\n\n');
 }
 
+function getQuestionRequirementText(question = {}) {
+  return [
+    question.title || '',
+    question.prompt || '',
+    Array.isArray(question.requirements) ? question.requirements.join('；') : '',
+  ].filter(Boolean).join('\n');
+}
+
+function inferWordLimit(question = {}) {
+  const explicit = Number(question.word_limit || question.wordLimit);
+  const source = getQuestionRequirementText(question);
+  const aroundMatch = source.match(/字数(?:在)?\s*(\d{2,4})\s*字?\s*左右/);
+  if (aroundMatch) {
+    const target = Number(aroundMatch[1]);
+    return {
+      target,
+      min: Math.round(target * 0.9),
+      max: Math.round(target * 1.1),
+      label: `${target}字左右`,
+    };
+  }
+  const maxMatch = source.match(/(?:不超过|以内|控制在)\s*(\d{2,4})\s*字/);
+  if (maxMatch) {
+    const max = Number(maxMatch[1]);
+    return {
+      target: Math.round(max * 0.9),
+      min: Math.round(max * 0.75),
+      max,
+      label: `不超过${max}字`,
+    };
+  }
+  const minMatch = source.match(/(?:不少于|至少)\s*(\d{2,4})\s*字/);
+  if (minMatch) {
+    const min = Number(minMatch[1]);
+    return {
+      target: Math.round(min * 1.08),
+      min,
+      max: Math.round(min * 1.25),
+      label: `不少于${min}字`,
+    };
+  }
+  if (Number.isFinite(explicit) && explicit > 0) {
+    return {
+      target: explicit,
+      min: Math.round(explicit * 0.85),
+      max: Math.round(explicit * 1.08),
+      label: `${explicit}字以内/左右`,
+    };
+  }
+  return {
+    target: 800,
+    min: 650,
+    max: 950,
+    label: '按题干合理控制字数',
+  };
+}
+
+function buildAnswerRequirementGuide(question = {}, questionType = '') {
+  const word = inferWordLimit(question);
+  const requirements = Array.isArray(question.requirements)
+    ? question.requirements.filter(Boolean).join('；')
+    : '';
+  const source = getQuestionRequirementText(question);
+  const mustUseMaterials = /参考[“"]?给定资料|根据[“"]?给定资料|结合给定资料|不拘泥于[“"]?给定资料/.test(source);
+  const clearView = /观点明确|观点鲜明/.test(source);
+  const fullStructure = /结构完整|层次清晰|条理清晰/.test(source);
+  const fluentLanguage = /语言流畅|语言通顺|书写清晰|表达准确/.test(source);
+
+  return [
+    `题型：${questionType || inferEssayQuestionType(question)}`,
+    `题干原始要求：${requirements || '无单独作答要求，按题干任务执行'}`,
+    `范文字数：必须严格匹配“${word.label}”，sampleAnswer 建议控制在 ${word.min}-${word.max} 个中文字符之间；如果题干写“1000字左右”，不得只写四五百字。`,
+    mustUseMaterials ? '材料要求：必须参考给定资料，先吸收材料中的事实、问题、做法和关键词；允许适度结合政策背景，但不能脱离材料空谈。' : '材料要求：优先回扣题干和给定资料，不要泛泛政策评论。',
+    clearView ? '观点要求：开头必须亮明中心观点，分论点要服务中心观点。' : '观点要求：中心句前置，避免只罗列材料。',
+    fullStructure ? '结构要求：必须有完整结构，文章写作题要有标题、开头、分论点和结尾；贯彻执行题要符合文种格式。' : '结构要求：按题型组织层次，分点清晰。',
+    fluentLanguage ? '表达要求：语言要规范、流畅、清晰，不要堆口号。' : '表达要求：语言要像正式申论答案，不要口语化。',
+  ].join('\n');
+}
+
+function buildPolicyReferenceHints({ paper = {}, question = {}, materialsText = '' }) {
+  const localName = detectLocalContext(paper, question);
+  const requirementsText = Array.isArray(question.requirements) ? question.requirements.join(' ') : String(question.requirements || '');
+  const source = `${localName} ${paper.title || ''} ${paper.region || ''} ${paper.system_label || ''} ${question.title || ''} ${question.prompt || ''} ${requirementsText} ${materialsText}`.slice(0, 12000);
+  const hints = [];
+
+  if (/天津/.test(source)) {
+    hints.push({
+      title: '2026年政府工作报告关于政务服务和数字政府建设的要求',
+      date: '2026-03-05',
+      issuer: '国务院',
+      sourceUrl: 'https://www.moj.gov.cn/pub/sfbgw/zwgkztzl/2026nianzhuanti/2026qglh0206/lhjj20260206/lhjjyw20260206/202603/t20260313_532786.html',
+      background: '国家层面要求持续优化政务服务、提升行政效能，并严格食品、药品、重点工业产品、特种设备等安全监管。',
+      measures: '以“高效办成一件事”为牵引推进政务服务，加快数字政府建设，强化重点领域安全监管。',
+      integration: '可作为“线”的政策依据：说明数字治理不是炫技，而是为跨部门协同、监管闭环、服务提效提供制度牵引。',
+    });
+  }
+
+  if (/天津/.test(source) && /食品|食安|市场监管|监管|执法|安全/.test(source)) {
+    hints.push({
+      title: '天津市2025年食品安全监督管理计划',
+      date: '2025-05-06',
+      issuer: '天津市人民政府办公厅',
+      sourceUrl: 'https://scjg.tj.gov.cn/tjsscjdglwyh_52651/zwgk/zfgznew/sjzc/202507/t20250721_6984442.html',
+      background: '天津围绕食品安全治理现代化和守护群众“舌尖上的安全”，制定年度监督管理计划。',
+      measures: '强调“四个最严”，完善“产运储销”全链条监管、抽检监测、行刑衔接，督促各环节责任落实。',
+      integration: '可作为“面”的制度支撑：把材料中的食品安全执法、监管协同、风险处置提升到全链条治理层面。',
+    });
+    hints.push({
+      title: '天津市2024年法治政府建设情况报告',
+      date: '2025-03-25',
+      issuer: '天津市人民政府',
+      sourceUrl: 'https://www.tj.gov.cn/zwgk/fzzfjs/szf/202503/t20250325_6892143.html',
+      background: '天津推进法治政府建设，强调综合行政执法更加严明规范。',
+      measures: '报告提到强化食品药品安全监管、校园食品安全排查整治、京津冀跨区域联合执法、行政执法“三项制度”、提升行政执法质量三年行动等。',
+      integration: '可作为“点线面”中的“线”和“面”：说明执法服务既要现场检查处罚帮扶结合，也要靠标准统一、区域协同、全过程留痕。',
+    });
+  }
+
+  if (/天津/.test(source) && /市场监管|质量|企业|服务|调研|执法|营商环境|可靠性/.test(source)) {
+    hints.push({
+      title: '天津市场监管系统“跟班式调研”与服务企业实践',
+      date: '2025-06-04',
+      issuer: '天津日报/天津市市场监管系统',
+      sourceUrl: 'https://epaper.tianjinwe.com/tjrb/html/2025-06/04/content_143092_2248958.htm',
+      background: '市场监管干部需要更懂产业、更懂企业真实需求，避免坐在办公室凭经验监管。',
+      measures: '市场监管系统组织干部参与“跟班式调研”，沉到企业一线识别质量提升、食品安全、公共服务等痛点，并把调研成果转化为支持高端医疗器械、可靠性公共服务平台等改革举措。',
+      integration: '可作为“点”的实践案例：把材料中的“深入一线、精准识别问题”写成执法服务从管理本位转向服务本位的具体证据。',
+    });
+  }
+
+  if (/天津/.test(source) && /政务服务|数字|一网通办|高效办成一件事|营商环境|企业注销|审批/.test(source)) {
+    hints.push({
+      title: '天津推进“高效办成一件事”提升行政效能',
+      date: '2024-05-28',
+      issuer: '天津市有关部门公开信息',
+      sourceUrl: 'https://jy.tj.gov.cn/ZWGK_52172/zfxxgk1_1/fdzdgknr1/qtfdgkxx/202405/t20240528_6635796.html',
+      background: '优化营商环境要求政务服务从单事项办理转向集成服务，减少企业群众多头跑、重复交材料。',
+      measures: '设置“高效办成一件事”服务专区，推进电子证照应用、经营范围标准化登记、企业注销“一件事”等改革。',
+      integration: '可作为“线”的数字治理案例：说明一窗通办、数据共享、流程再造能把分散事项串成服务闭环。',
+    });
+  }
+
+  if (!hints.length) {
+    hints.push({
+      title: '政府工作报告与本题主题的结合方式',
+      date: '',
+      issuer: '政府工作报告/政府官网公开文件',
+      sourceUrl: '',
+      background: '围绕本题所在地区和主题，优先查找年度政府工作报告、专项行动方案、部门工作报告和官方新闻发布。',
+      measures: '按“文件提出什么目标—针对什么问题—采取哪些措施—产生什么影响”的顺序整理。',
+      integration: '用于支撑高分范文中的分论点或对策，避免只写口号。',
+    });
+  }
+
+  return hints.slice(0, 5);
+}
+
+function formatPolicyReferenceHints(hints = []) {
+  return hints.map((item, index) => [
+    `${index + 1}. ${item.title}`,
+    `时间/主体：${[item.date, item.issuer].filter(Boolean).join(' · ') || '需核验'}`,
+    `来源：${item.sourceUrl || '无链接时不得编造，需以官方公开材料核验'}`,
+    `背景：${item.background}`,
+    `措施：${item.measures}`,
+    `怎么融入本题：${item.integration}`,
+  ].join('\n')).join('\n\n');
+}
+
+function policyHintsToCases(hints = []) {
+  return hints.map(item => ({
+    title: item.title,
+    date: item.date || '',
+    location: '',
+    actors: item.issuer || '',
+    content: `背景：${item.background}\n关键措施：${item.measures}\n影响/价值：${item.impact || item.integration}`,
+    sourceUrl: item.sourceUrl || '',
+    verificationNote: item.sourceUrl ? '来源为公开材料线索，作答引用时仍建议核对原文。' : '需以官方公开材料核验，不能编造链接。',
+    usage: item.integration || '可用于支撑本题分论点或对策。',
+    background: item.background,
+    measures: item.measures,
+    impact: item.impact || '',
+    integration: item.integration,
+  }));
+}
+
 function buildSampleAnswer(question = {}, localName = '当地') {
   const title = question.title || '这道面试题';
   return `各位考官，针对${title}，我会坚持问题导向和群众立场，先把情况稳住，再把责任查清，最后把机制建起来。第一，快速回应诉求，做好解释沟通，避免情绪扩大；对涉及群众切身利益的事项，要安排专人跟进，做到有记录、有反馈。第二，全面核实原因，区分是政策宣传不到位、流程衔接不顺，还是执行标准不统一，能立即整改的现场处理，不能立即解决的形成清单限时推进。第三，强化协同联动，推动相关部门、属地社区和服务窗口共同发力，完善公开公示、投诉反馈和复盘问效机制。第四，举一反三，把个案转化为提升治理能力的契机，在${localName}实际工作中持续提升服务效率和群众获得感。`;
@@ -234,6 +419,8 @@ function buildFallbackReport({ answer, paper, question }) {
   const level = scoreLevel(score);
   const localName = detectLocalContext(paper, question);
   const quote = answerQuote(answer);
+  const materialsText = buildMaterialsContext(paper?.materials || paper?.PaperMaterials || []);
+  const policyHints = buildPolicyReferenceHints({ paper, question, materialsText });
   const summary = `你的作答能围绕“${question.title || '题目'}”展开，具备基本分层意识，但分析深度、身份代入和可执行细节仍有提升空间。按公务员/事业编结构化面试真实评分维度综合评估为 ${score} 分，属于${level}档。`;
 
   return {
@@ -285,28 +472,7 @@ function buildFallbackReport({ answer, paper, question }) {
     localPolicyInsight: {
       title: `${localName}案例和政策解读`,
       region: localName,
-      cases: [
-        {
-          title: `${localName}基层治理中的诉求办理闭环`,
-          date: '',
-          location: localName,
-          actors: '属地政府、街道社区、公共服务部门',
-          content: '背景是群众诉求更加多元，基层事项跨部门、跨层级，单靠一个窗口难以解决。可从群众诉求收集、分类交办、限时办理、结果反馈、复盘问效五个环节切入，形成类似政策报道中的“背景—措施—成效”链条，体现治理能力。',
-          sourceUrl: '',
-          verificationNote: '需以当地政府工作报告、政府官网公开文件或主流媒体报道核验具体出处。',
-          usage: '适合放在对策部分，说明你不仅会处理眼前问题，还能推动制度完善。',
-        },
-        {
-          title: `${localName}政务服务优化`,
-          date: '',
-          location: localName,
-          actors: '政务服务管理部门、基层窗口单位',
-          content: '政策背景通常是优化营商环境和提升公共服务效能。可围绕一次性告知、帮办代办、线上线下协同、特殊群体服务兜底展开，说明改革解决了群众“多头跑、反复问、等待久”的问题，并以办理效率、群众满意度和服务可及性作为影响说明。',
-          sourceUrl: '',
-          verificationNote: '引用时优先查找当地年度政府工作报告、政务服务改革文件或官方新闻稿。',
-          usage: '适合窗口服务、基层矛盾、群众投诉类面试题。',
-        },
-      ],
+      cases: policyHintsToCases(policyHints),
       usage: `作答时不要机械说“${localName}经验”，要把本题矛盾和当地治理场景结合，体现因地制宜。`,
     },
     upgradedExpressions: [
@@ -395,6 +561,8 @@ function buildEssayFallbackReport({ answer, paper, question }) {
   const localName = detectLocalContext(paper, question);
   const questionType = inferEssayQuestionType(question);
   const quote = answerQuote(answer);
+  const materialsText = buildMaterialsContext(paper?.materials || paper?.PaperMaterials || []);
+  const policyHints = buildPolicyReferenceHints({ paper, question, materialsText });
 
   return {
     reportType: 'essay',
@@ -447,11 +615,8 @@ function buildEssayFallbackReport({ answer, paper, question }) {
     localPolicyInsight: {
       title: `${localName}材料与政策解读`,
       region: localName,
-      cases: [
-        { title: `${localName}基层治理与民生服务`, date: '', location: localName, actors: '属地政府、街道社区、公共服务部门', content: '可按政府工作报告或官方新闻稿的写法展开：背景是基层诉求多元、治理资源分散；措施是诉求收集、分类办理、限时反馈、结果公开、复盘问效；影响是推动个案办理转向制度闭环，提升群众获得感和治理效率。', usage: '适合放在对策部分，用来说明答案不止停留在原则层面。', sourceUrl: '', verificationNote: '本地兜底报告不编造具体新闻链接，AI 批改时会优先给出可核验来源。' },
-        { title: `${localName}政务服务优化`, date: '', location: localName, actors: '政务服务管理部门、基层窗口单位', content: '可按“政策背景—改革措施—实施效果”写：围绕一次性告知、帮办代办、线上线下协同和特殊群体兜底服务展开，解决群众办事多头跑、材料重复交、反馈不及时等问题。', usage: '适合公共服务、基层治理、营商环境和民生保障类题目。', sourceUrl: '', verificationNote: '如需引用真实案例，应以政府官网、主流媒体或题目材料为准。' },
-      ],
-      usage: '政策解读要服务本题材料，不要机械套用地区经验。',
+      cases: policyHintsToCases(policyHints),
+      usage: '政策解读要服务本题材料：先判断材料里的“点、线、面”，再选择政府工作报告、专项行动或部门实践作为支撑，不要机械套用地区经验。',
     },
     upgradedExpressions: [
       { original: quote || '加强管理', improved: '建立问题台账、责任清单和整改闭环，明确办理时限并跟踪问效。', reason: '从空泛口号升级为主体明确、路径清楚的可执行措施。' },
@@ -607,7 +772,7 @@ async function gradeInterviewAnswer(payload) {
       body: JSON.stringify({
         model: config.llm.model,
         temperature: 0.28,
-        max_tokens: 9000,
+        max_tokens: 12000,
         response_format: { type: 'json_object' },
         messages: [
           {
@@ -690,6 +855,12 @@ async function gradeEssayAnswer(payload) {
   const questionType = inferEssayQuestionType(question);
   const formatGuide = essayFormatInstruction(questionType);
   const materialsContext = buildMaterialsContext(paper.materials || paper.PaperMaterials || []);
+  const answerRequirementGuide = buildAnswerRequirementGuide(question, questionType);
+  const policyReferenceHints = formatPolicyReferenceHints(buildPolicyReferenceHints({
+    paper,
+    question,
+    materialsText: materialsContext,
+  }));
   const rubricLines = ESSAY_RUBRICS.map(item => `${item.name}${item.weight}分：${item.comment}`).join('\n');
 
   try {
@@ -702,7 +873,7 @@ async function gradeEssayAnswer(payload) {
       body: JSON.stringify({
         model: config.llm.model,
         temperature: 0.28,
-        max_tokens: 9000,
+        max_tokens: 12000,
         response_format: { type: 'json_object' },
         messages: [
           {
@@ -722,8 +893,8 @@ async function gradeEssayAnswer(payload) {
   "deductions": [{"title":"主要扣分原因标题","originalQuote":"引用用户原答案中的问题句","originalProblem":"指出原答案具体问题","whyWrong":"说明为什么丢分","policyBasis":"结合申论阅卷标准解释扣分依据","rewrite":"给出可直接替换的高分表达"}],
   "highScoreThinking": ["四、高分答题思路：逐条给出本题高分框架"],
   "goldenSentences": ["五、金句积累：适合本题的申论表达"],
-  "sampleAnswer": "六、高分范文：用 Markdown 标题和分段输出，完整、规范、贴合材料的示范答案",
-  "localPolicyInsight": {"title":"${localName}材料与政策解读","region":"${localName}","cases":[{"title":"案例/政策标题","date":"发生时间，无法确认则为空","location":"地点，无法确认则为空","actors":"相关主体，无法确认则为空","content":"经过与影响","sourceUrl":"政府官网或主流媒体原文链接，无法确认则为空","verificationNote":"说明是否可核验以及如何使用","usage":"怎么嵌入答案"}],"usage":"总用法"},
+  "sampleAnswer": "六、高分范文：用 Markdown 标题和分段输出，完整、规范、贴合材料和作答要求的示范答案",
+  "localPolicyInsight": {"title":"${localName}材料与政策解读","region":"${localName}","cases":[{"title":"政策/报告/行动名称","date":"发布时间或实施时间，无法确认则为空","location":"适用地区，无法确认则为空","actors":"发布主体或行动主体","content":"一句话概括这项政策/行动与本题的关系","background":"出台背景或现实问题","problem":"主要解决什么问题","measures":"关键措施，至少2-4个可吸收要点","impact":"实际影响或治理价值","integration":"如何嵌入本题答案，写成可直接套用的论证角度","sourceUrl":"政府官网或主流媒体原文链接，无法确认则为空","verificationNote":"说明是否可核验以及如何使用","usage":"怎么嵌入答案"}],"usage":"总用法"},
   "upgradedExpressions": [{"original":"用户原答案中的普通表达","improved":"可直接升级的表达","reason":"为什么这样更高分"}],
   "missingKeyContent": ["九、这道题下次要补的关键内容"],
   "pitfalls": ["回答这类题容易出问题的点，以及本题应如何避免"]
@@ -734,18 +905,24 @@ ${rubricLines}
 
 题型判断：${questionType}
 参考表达格式要求：${formatGuide}
+作答要求解析：
+${answerRequirementGuide}
+
+可用政策素材线索（必须择优吸收，不能照抄堆砌；如果线索与本题材料不匹配，可以说明不采用）：
+${policyReferenceHints}
 
 严格要求：
 1. dimensions 必须完整输出 6 个指定维度，名称不能替换，分数必须 0-100。
 2. 总分必须依据维度权重综合；普通空泛答案不得超过 65 分，跑题不得超过 45 分。
 3. 批改报告要对应长报告结构：一、结论评分；二、优点；三、主要扣分原因；四、高分答题思路；五、金句积累；六、高分范文；七、${localName}材料与政策解读；八、你原答案可以直接升级的表达；九、这道题下次要补的关键内容。
 4. 每个扣分点都要写清楚原答案哪里有问题、为什么丢分、怎么改。
-5. 范文必须贴合材料和题干，不要写成泛泛政策评论；如果是贯彻执行、公文、推荐材料、讲话稿、文章写作等题型，格式必须明显不同。
+5. 范文必须贴合材料、题干和“作答要求解析”，不要写成泛泛政策评论；如果题干要求“参考给定资料，但不拘泥于给定资料”，范文必须先吸收资料事实，再适度引入政策背景；如果题干要求“字数在1000字左右”，sampleAnswer 必须接近 1000 字，不能只写三四段短文。
 6. 优点和缺点必须引用用户原答案中的具体句子，说明“这句为什么好/为什么丢分/怎么改得更凝练”。
 7. upgradedExpressions 必须采用“原表达-升级后-为什么更好”的对比，至少 3 条；pitfalls 至少 3 条。
 8. 金句只在本题适合观点分析、文章写作、综合分析时给出；如果本题完全是抄材料的归纳概括题，可以少给或不给，避免硬凑。
 9. 案例链接不得编造；无法确认真实原文链接时 sourceUrl 留空，并在 verificationNote 写“需以官方公开材料核验”。
-10. localPolicyInsight.cases 要优先结合政府工作报告、政府官网政策文件、官方新闻发布或主流媒体报道来写，内容必须像新闻事件/政策报道：写清发布时间、发布主体、政策/事件名称、出台背景、解决的问题、关键措施、实际影响和可用于答案的位置。
+10. localPolicyInsight.cases 必须像“政策和案例可以这样结合”的学习清单：至少输出 3 条，每条要写清“政策/报告/行动名称、时间、发布主体、背景、解决的问题、关键措施、影响、怎么和本题融合”；禁止只写“提升治理现代化、优化服务效能”这类空话。
+11. sampleAnswer 必须遵守题目所有作答要求：观点明确、内容充实、结构完整、语言流畅；文章写作题要有标题，分论点要围绕题干主题，结尾要回扣中心。
 试卷：${paper.title || ''}
 地区/系统：${paper.region || ''} ${paper.system_label || ''}
 年份：${paper.year || ''}
