@@ -2,6 +2,7 @@ const fetch = require('node-fetch');
 const config = require('../config');
 const {
   RealPaper,
+  PaperMaterial,
   PaperQuestion,
   RealPaperAttempt,
   RealPaperAttemptAnswer,
@@ -136,6 +137,65 @@ function detectLocalContext(paper = {}, question = {}) {
   return paper.system_label || '当地';
 }
 
+function trimText(value, max = 80) {
+  const text = String(value || '').replace(/\s+/g, ' ').trim();
+  if (!text) return '';
+  return text.length > max ? `${text.slice(0, max)}...` : text;
+}
+
+function answerQuote(answer = '', max = 72) {
+  const paragraphs = String(answer || '')
+    .split(/\n+/)
+    .map(item => item.trim())
+    .filter(Boolean);
+  return trimText(paragraphs.find(item => item.length >= 8) || paragraphs[0] || '', max);
+}
+
+function inferEssayQuestionType(question = {}) {
+  const source = `${question.question_type || ''} ${question.title || ''} ${question.prompt || ''} ${(question.requirements || []).join(' ')}`;
+  if (/讲话稿|发言稿|倡议书|公开信|通知|简报|短评|评析|提纲|调研报告|工作建议|推荐材料|宣传稿|公文|应用文|贯彻执行/.test(source)) {
+    return '贯彻执行';
+  }
+  if (/文章|议论文|作文|自拟标题|策论文|写一篇|围绕.*主题/.test(source)) {
+    return '文章写作';
+  }
+  if (/提出.*(对策|建议|措施)|对策|建议|解决|治理路径|工作举措/.test(source)) {
+    return '提出对策';
+  }
+  if (/分析|理解|谈谈.*看法|谈谈.*认识|评价|启示|原因|影响|关系/.test(source)) {
+    return '综合分析';
+  }
+  if (/概括|归纳|梳理|总结|材料要点|主要内容|主要问题|表现|特点|经验|做法/.test(source)) {
+    return '归纳概括';
+  }
+  return '常规申论题';
+}
+
+function essayFormatInstruction(type) {
+  const map = {
+    归纳概括: '参考表达应采用“总括句 + 分条要点”格式，每一点先给凝练小标题，再接材料依据，避免大段抒情。',
+    综合分析: '参考表达应采用“亮明观点 + 分层分析 + 简短结论”格式，既解释是什么，也说明为什么和怎么办。',
+    提出对策: '参考表达应采用“问题导向 + 主体明确 + 措施可执行 + 保障闭环”格式，每条对策写清主体、动作、机制、效果。',
+    贯彻执行: '参考表达必须匹配具体文种：有标题、称谓/开头、主体分段和结尾；推荐材料、讲话稿、倡议书、通知等格式不得混用。',
+    文章写作: '参考表达应采用申论文章格式：标题鲜明，开头提出中心论点，中间设置分论点，结尾回扣主题并升华。',
+    常规申论题: '参考表达应先判断题型，再按题干任务组织格式；不得套用固定模板。',
+  };
+  return map[type] || map.常规申论题;
+}
+
+function buildMaterialsContext(materials = []) {
+  const list = Array.isArray(materials) ? materials : [];
+  return list
+    .sort((a, b) => Number(a.material_no || a.materialNo || 0) - Number(b.material_no || b.materialNo || 0))
+    .map((material, index) => {
+      const title = material.title || `材料${index + 1}`;
+      const summary = material.summary ? `摘要：${material.summary}` : '';
+      const content = String(material.content || '').slice(0, 2400);
+      return `【${title}】\n${summary}\n${content}`.trim();
+    })
+    .join('\n\n');
+}
+
 function buildSampleAnswer(question = {}, localName = '当地') {
   const title = question.title || '这道面试题';
   return `各位考官，针对${title}，我会坚持问题导向和群众立场，先把情况稳住，再把责任查清，最后把机制建起来。第一，快速回应诉求，做好解释沟通，避免情绪扩大；对涉及群众切身利益的事项，要安排专人跟进，做到有记录、有反馈。第二，全面核实原因，区分是政策宣传不到位、流程衔接不顺，还是执行标准不统一，能立即整改的现场处理，不能立即解决的形成清单限时推进。第三，强化协同联动，推动相关部门、属地社区和服务窗口共同发力，完善公开公示、投诉反馈和复盘问效机制。第四，举一反三，把个案转化为提升治理能力的契机，在${localName}实际工作中持续提升服务效率和群众获得感。`;
@@ -146,6 +206,7 @@ function buildFallbackReport({ answer, paper, question }) {
   const score = weightedTotal(dimensions);
   const level = scoreLevel(score);
   const localName = detectLocalContext(paper, question);
+  const quote = answerQuote(answer);
   const summary = `你的作答能围绕“${question.title || '题目'}”展开，具备基本分层意识，但分析深度、身份代入和可执行细节仍有提升空间。按公务员/事业编结构化面试真实评分维度综合评估为 ${score} 分，属于${level}档。`;
 
   return {
@@ -154,14 +215,14 @@ function buildFallbackReport({ answer, paper, question }) {
     summary,
     dimensions,
     advantages: [
-      { title: '能够回应题干任务', detail: '作答没有明显偏题，能围绕题目中的主要矛盾展开。' },
-      { title: '有基本层次意识', detail: '答案中出现分点表达，考官能够较快识别你的作答框架。' },
+      { title: '能够回应题干任务', detail: `作答没有明显偏题，能围绕题目中的主要矛盾展开。原文例子：${quote || '答案中已出现与题干相关的回应。'}` },
+      { title: '有基本层次意识', detail: '答案中出现分点表达，考官能够较快识别你的作答框架；如果把每一点开头再压缩成动宾短语，会更像考场高分表达。' },
       { title: '具备解决问题意识', detail: '已经提出沟通、核实、整改等方向，说明你不是只停留在表态。' },
     ],
     deductions: [
       {
         title: '分析深度不足，容易停留在表态',
-        originalProblem: '答案中有态度和方向，但对问题背后的原因、影响和治理本质展开不够。',
+        originalProblem: quote ? `例如“${quote}”能看到态度，但对问题背后的原因、影响和治理本质展开不够。` : '答案中有态度和方向，但对问题背后的原因、影响和治理本质展开不够。',
         whyWrong: '真实面试评分会看你是否能从群众利益、政府公信力、基层治理效能等角度解释问题。',
         policyBasis: '可结合“以人民为中心”“基层治理现代化”“法治政府建设”等政策表达。',
         rewrite: '建议先判断问题性质，再从群众体验、制度流程、干部作风和长效治理四个层面展开。',
@@ -213,7 +274,7 @@ function buildFallbackReport({ answer, paper, question }) {
     },
     upgradedExpressions: [
       {
-        original: '加强管理',
+        original: quote || '加强管理',
         improved: '建立问题清单、责任清单和整改台账，明确办理时限并跟踪问效。',
         reason: '从空泛口号升级为可执行措施。',
       },
@@ -234,7 +295,35 @@ function buildFallbackReport({ answer, paper, question }) {
       '对策要具体到主体、流程、时限、反馈和监督，避免只写原则。',
       `可结合${localName}的基层治理或政务服务场景，提高答案的真实感。`,
     ],
+    pitfalls: [
+      '容易只表态不分析，导致综合分析分偏低。',
+      '容易只说“加强管理、提高意识”，但缺主体、流程和反馈。',
+      '容易把面试答成申论文，缺少“我会怎么做”的岗位代入。',
+    ],
   };
+}
+
+function buildEssaySampleAnswer(question = {}, localName = '当地') {
+  const type = inferEssayQuestionType(question);
+  if (question.sample_answer || question.sampleAnswer) return question.sample_answer || question.sampleAnswer;
+
+  if (type === '贯彻执行') {
+    return `## 关于${question.title || '相关工作'}的材料要点\n\n**一、基本判断**\n围绕题干任务，应先概括材料中的核心做法和价值取向，把“为什么值得推荐、推荐什么、如何落地”说清楚。\n\n**二、主要内容**\n一是聚焦群众需求，建立常态化诉求收集机制，把分散问题转化为治理清单。二是强化多元协同，推动街道、社区、网格、社会组织和居民代表共同参与。三是完善闭环反馈，对办理结果及时公开、复盘和优化。\n\n**三、工作启示**\n推广过程中要坚持因地制宜，既学习其群众路线和协同机制，也结合${localName}实际完善责任分工、资源保障和评估反馈。`;
+  }
+
+  if (type === '文章写作') {
+    return `# 以实干之笔书写基层治理新答卷\n\n基层治理连着千家万户，是国家治理的末梢，也是服务群众的前沿。面对材料中的新情况新问题，必须坚持以人民为中心，把群众诉求转化为治理议题，把制度优势转化为治理效能。\n\n**第一，以需求导向找准治理坐标。**基层工作不能停留在“有什么供什么”，而要从群众急难愁盼出发，主动收集诉求、分类研判问题，让服务更加精准。\n\n**第二，以协同机制提升治理效能。**基层问题往往跨领域、跨部门，只有推动资源下沉、力量整合、责任闭环，才能避免多头管理和推诿扯皮。\n\n**第三，以长效制度巩固治理成果。**既要解决眼前一件事，也要复盘形成一类机制，通过清单管理、公开反馈、监督评估推动治理常态长效。\n\n民生无小事，枝叶总关情。把群众满意作为标尺，把制度建设作为保障，基层治理才能更有温度、更有力度。`;
+  }
+
+  if (type === '提出对策') {
+    return `**一、压实主体责任。**由牵头部门建立问题台账，明确责任单位、完成时限和反馈要求，避免责任悬空。\n\n**二、优化办理流程。**围绕材料中的堵点，推行分类办理、限时办结和结果公开，让群众知道谁来办、怎么办、办到哪一步。\n\n**三、强化协同保障。**整合部门、社区、平台和社会力量，形成信息共享、资源共用、问题共治的工作格局。\n\n**四、完善监督评估。**建立回访复盘机制，把群众评价、办理质量和整改成效纳入常态化考核，推动问题由个案处理转向长效治理。`;
+  }
+
+  if (type === '综合分析') {
+    return `**观点判断：**材料反映的问题表面上是具体事务处理，实质上考验基层治理能力、公共服务水平和群众工作方法。\n\n**原因分析：**一方面，群众需求更加多元，传统粗放式服务难以精准回应；另一方面，部门协同、流程衔接和反馈机制还不够完善，容易让小问题拖成大矛盾。\n\n**治理启示：**要坚持问题导向和结果导向，既把群众诉求办实，也把共性问题纳入制度完善，通过资源整合、流程再造、数字赋能和监督问效提升治理效能。\n\n**结论升华：**基层治理的关键，是把群众身边事办成暖心事，把一次性解决变成常态化机制。`;
+  }
+
+  return `**总括：**材料主要反映了相关主体在基层治理、公共服务或政策落实中的问题与做法。\n\n**一、问题表现。**围绕材料中的具体场景，提炼群众诉求、流程堵点、责任衔接和服务短板。\n\n**二、原因机制。**从思想认识、制度流程、协同联动、监督反馈等角度分析深层原因。\n\n**三、优化方向。**坚持人民立场，完善清单化办理、闭环式反馈和常态化评估，把材料中的经验转化为可复制、可推广的治理路径。`;
 }
 
 function buildEssayDimensions(answer = '', question = {}) {
@@ -267,22 +356,25 @@ function buildEssayFallbackReport({ answer, paper, question }) {
   const score = weightedRubricTotal(dimensions, ESSAY_RUBRICS);
   const level = scoreLevel(score);
   const localName = detectLocalContext(paper, question);
+  const questionType = inferEssayQuestionType(question);
+  const quote = answerQuote(answer);
 
   return {
     reportType: 'essay',
+    questionType,
     score,
     level,
-    summary: `本题得分 ${score} 分，属于${level}档。整体看，作答能够围绕“${question.title || '题目'}”展开，但仍需在材料要点覆盖、政策高度、结构递进和对策落地方面继续强化。`,
+    summary: `本题按${questionType}题型评分，得分 ${score} 分，属于${level}档。整体看，作答能够围绕“${question.title || '题目'}”展开，但仍需在材料要点覆盖、政策高度、结构递进和对策落地方面继续强化。`,
     dimensions,
     advantages: [
-      { title: '能够回应题干任务', detail: '作答方向基本贴合题目，没有明显偏离主题。' },
-      { title: '具备基本分层意识', detail: '答案中能看到分点表达，阅卷者可以较快识别作答框架。' },
+      { title: '能够回应题干任务', detail: `作答方向基本贴合题目，没有明显偏离主题。原文例子：${quote || '答案中已经出现对题干关键词的回应。'}` },
+      { title: '具备基本分层意识', detail: '答案中能看到分点表达，阅卷者可以较快识别作答框架；如果把每一层压缩成“问题/原因/对策”式小标题，会更凝练。' },
       { title: '已有解决问题意识', detail: '能提出若干对策方向，为进一步展开提供了基础。' },
     ],
     deductions: [
       {
         title: '材料要点覆盖还不够完整',
-        originalProblem: '部分关键材料信息没有被充分概括，个别表达停留在概念层面。',
+        originalProblem: quote ? `例如“${quote}”有观点，但材料中的主体、做法、成效或问题链条没有被充分压缩提炼。` : '部分关键材料信息没有被充分概括，个别表达停留在概念层面。',
         whyWrong: '申论阅卷重视从给定资料中提炼要点，遗漏核心信息会直接影响要点分。',
         policyBasis: '应围绕题干任务，把材料中的主体、问题、原因、影响、做法和成效分层提炼。',
         rewrite: '建议先列材料要点清单，再按“问题表现-原因机制-治理路径-成效目标”组织答案。',
@@ -314,24 +406,29 @@ function buildEssayFallbackReport({ answer, paper, question }) {
       '以数字赋能提升治理效率，以制度闭环守住公平底线。',
       '让政策温度转化为民生质感，让治理效能沉淀为群众获得感。',
     ],
-    sampleAnswer: question.sample_answer || question.sampleAnswer || '作答时可先概括材料核心问题，再结合政策背景分析原因，最后从完善机制、压实责任、优化服务、强化监督等方面提出可执行对策。',
+    sampleAnswer: buildEssaySampleAnswer(question, localName),
     localPolicyInsight: {
       title: `${localName}材料与政策解读`,
       region: localName,
       cases: [
-        { title: `${localName}基层治理与民生服务`, content: '可从诉求收集、分类办理、限时反馈、结果公开、复盘问效等环节切入，体现治理闭环。', usage: '适合放在对策部分，用来说明答案不止停留在原则层面。' },
-        { title: `${localName}政务服务优化`, content: '围绕一次性告知、帮办代办、线上线下协同和特殊群体兜底服务展开。', usage: '适合公共服务、基层治理、营商环境和民生保障类题目。' },
+        { title: `${localName}基层治理与民生服务`, content: '可从诉求收集、分类办理、限时反馈、结果公开、复盘问效等环节切入，体现治理闭环。', usage: '适合放在对策部分，用来说明答案不止停留在原则层面。', sourceUrl: '', verificationNote: '本地兜底报告不编造具体新闻链接，AI 批改时会优先给出可核验来源。' },
+        { title: `${localName}政务服务优化`, content: '围绕一次性告知、帮办代办、线上线下协同和特殊群体兜底服务展开。', usage: '适合公共服务、基层治理、营商环境和民生保障类题目。', sourceUrl: '', verificationNote: '如需引用真实案例，应以政府官网、主流媒体或题目材料为准。' },
       ],
       usage: '政策解读要服务本题材料，不要机械套用地区经验。',
     },
     upgradedExpressions: [
-      { original: '加强管理', improved: '建立问题台账、责任清单和整改闭环，明确办理时限并跟踪问效。', reason: '从空泛口号升级为可执行措施。' },
+      { original: quote || '加强管理', improved: '建立问题台账、责任清单和整改闭环，明确办理时限并跟踪问效。', reason: '从空泛口号升级为主体明确、路径清楚的可执行措施。' },
       { original: '提高服务意识', improved: '把群众满意度作为检验工作成效的重要标准，做到诉求有回应、办理有结果、反馈有闭环。', reason: '更贴近申论阅卷中的治理表达。' },
     ],
     missingKeyContent: [
       '补充材料关键词，避免只写观点不回扣资料。',
       '补充原因分析，至少写出制度、执行、协同或监督中的一个角度。',
       '对策要具体到主体、流程、时限、反馈和监督。',
+    ],
+    pitfalls: [
+      `${questionType}题容易把“材料复述”当成“要点提炼”，导致答案不够凝练。`,
+      '容易堆政策词但不回扣材料，阅卷时会被认为空泛。',
+      '容易没有格式意识，尤其贯彻执行题、文章写作题必须匹配文种或文章结构。',
     ],
   };
 }
@@ -367,6 +464,7 @@ function normalizeEssayReport(value, payload) {
 
   return {
     ...local,
+    questionType: String(value.questionType || local.questionType || inferEssayQuestionType(payload.question)),
     score,
     level: scoreLevel(score),
     summary: String(value.summary || local.summary),
@@ -379,6 +477,7 @@ function normalizeEssayReport(value, payload) {
     localPolicyInsight: value.localPolicyInsight && typeof value.localPolicyInsight === 'object' ? value.localPolicyInsight : local.localPolicyInsight,
     upgradedExpressions: ensureArray(value.upgradedExpressions, local.upgradedExpressions).slice(0, 8),
     missingKeyContent: ensureArray(value.missingKeyContent, local.missingKeyContent).slice(0, 8),
+    pitfalls: ensureArray(value.pitfalls || value.attentionPoints, local.pitfalls).slice(0, 8),
   };
 }
 
@@ -411,6 +510,7 @@ function normalizeReport(value, payload) {
     },
     upgradedExpressions: ensureArray(value.upgradedExpressions, local.upgradedExpressions).slice(0, 8),
     missingKeyContent: ensureArray(value.missingKeyContent, local.missingKeyContent).slice(0, 8),
+    pitfalls: ensureArray(value.pitfalls || value.attentionPoints, local.pitfalls).slice(0, 8),
   };
 }
 
@@ -485,14 +585,15 @@ async function gradeInterviewAnswer(payload) {
   "level": "优秀/良好/中等/待提升",
   "summary": "一、结论评分对应内容：包含总分、档次、整体评价、最大提分方向",
   "dimensions": [{"name":"审题理解","score":0-100,"comment":"具体点评"}],
-  "advantages": [{"title":"优点标题","detail":"结合用户原答案说明具体好在哪里"}],
-  "deductions": [{"title":"主要扣分原因标题","originalProblem":"指出原答案具体问题","whyWrong":"说明为什么丢分","policyBasis":"结合面试评分标准或政策背景解释","rewrite":"给出可直接替换的高分表达"}],
+  "advantages": [{"title":"优点标题","originalQuote":"引用用户原答案中的一句或一段","detail":"说明这句如何体现逻辑、岗位意识或处置能力","whyGood":"对应哪一项评分标准"}],
+  "deductions": [{"title":"主要扣分原因标题","originalQuote":"引用用户原答案中的问题句","originalProblem":"指出原答案具体问题","whyWrong":"说明为什么丢分","policyBasis":"结合面试评分标准或政策背景解释","rewrite":"给出可直接替换的高分表达"}],
   "highScoreThinking": ["四、高分答题思路：逐条给出本题高分框架"],
   "goldenSentences": ["五、金句积累：适合本题的面试表达"],
   "sampleAnswer": "六、高分范文：完整、自然、可直接口述的示范答案",
-  "localPolicyInsight": {"title":"${localName}案例和政策解读","region":"${localName}","cases":[{"title":"案例/政策标题","content":"与本题相关的案例或政策解读","usage":"怎么嵌入答案"}],"usage":"总用法"},
+  "localPolicyInsight": {"title":"${localName}案例和政策解读","region":"${localName}","cases":[{"title":"案例/政策标题","date":"发生时间，无法确认则为空","location":"地点，无法确认则为空","actors":"相关主体，无法确认则为空","content":"经过与影响","sourceUrl":"政府官网或主流媒体原文链接，无法确认则为空","verificationNote":"说明是否可核验以及如何使用","usage":"怎么嵌入答案"}],"usage":"总用法"},
   "upgradedExpressions": [{"original":"用户原答案中的普通表达","improved":"可直接升级的表达","reason":"为什么这样更高分"}],
-  "missingKeyContent": ["九、这道题下次要补的关键内容"]
+  "missingKeyContent": ["九、这道题下次要补的关键内容"],
+  "pitfalls": ["回答这类题容易出问题的点，以及本题应如何避免"]
 }
 
 评分维度和权重：
@@ -505,6 +606,9 @@ ${rubricLines}
 4. “${localName}案例和政策解读”必须围绕题目对应地区/城市/省份或系统背景，不要固定写山东。
 5. 每一个扣分点都要写清楚：原答案哪里有问题、为什么丢分、怎么改。
 6. 范文要像面试现场口述，不要写成申论文。
+7. 优点和缺点必须引用用户原答案中的具体句子，不允许只写泛泛评价。
+8. upgradedExpressions 必须采用“原表达-升级后-为什么更好”的对比，至少 3 条；pitfalls 至少 3 条。
+9. 案例链接不得编造；无法确认真实原文链接时 sourceUrl 留空，并在 verificationNote 写“需以官方公开材料核验”。
 
 试卷：${paper.title || ''}
 地区/系统：${paper.region || ''} ${paper.system_label || ''}
@@ -543,6 +647,9 @@ async function gradeEssayAnswer(payload) {
 
   const { answer, paper = {}, question = {} } = payload;
   const localName = detectLocalContext(paper, question);
+  const questionType = inferEssayQuestionType(question);
+  const formatGuide = essayFormatInstruction(questionType);
+  const materialsContext = buildMaterialsContext(paper.materials || paper.PaperMaterials || []);
   const rubricLines = ESSAY_RUBRICS.map(item => `${item.name}${item.weight}分：${item.comment}`).join('\n');
 
   try {
@@ -560,7 +667,7 @@ async function gradeEssayAnswer(payload) {
         messages: [
           {
             role: 'system',
-            content: '你是 PolicyQuest AI Exam Coach 的资深公务员/事业编申论阅卷老师。你熟悉国考、省考申论真实阅卷标准，批改必须严格、具体、可改写。不要因为字数多、政策词多就给高分，要依据审题立意、要点提炼、材料运用、结构逻辑、对策可行、文字表达逐项评分。必须输出合法 JSON，不要 Markdown，不要额外解释。',
+            content: '你是 PolicyQuest AI Exam Coach 的资深公务员/事业编申论阅卷老师。你熟悉国考、省考申论真实阅卷标准，批改必须严格、具体、可改写。不要因为字数多、政策词多就给高分，要依据审题立意、要点提炼、材料运用、结构逻辑、对策可行、文字表达逐项评分。输出必须是合法 JSON；除 sampleAnswer 字段允许 Markdown 标题和分段外，其他字段不要输出 Markdown。',
           },
           {
             role: 'user',
@@ -568,27 +675,36 @@ async function gradeEssayAnswer(payload) {
 {
   "score": 0-100,
   "level": "优秀/良好/中等/待提升",
+  "questionType": "${questionType}",
   "summary": "一、结论评分：包含总分、档次、整体评价、最大提分方向",
   "dimensions": [{"name":"审题立意","score":0-100,"comment":"具体点评"}],
-  "advantages": [{"title":"优点标题","detail":"结合用户原答案说明具体好在哪里"}],
-  "deductions": [{"title":"主要扣分原因标题","originalProblem":"指出原答案具体问题","whyWrong":"说明为什么丢分","policyBasis":"结合申论阅卷标准或政策背景解释","rewrite":"给出可直接替换的高分表达"}],
+  "advantages": [{"title":"优点标题","originalQuote":"引用用户原答案中的一句或一段","detail":"说明这句如何体现要点、结构、材料转化或表达优势","whyGood":"对应哪一项申论评分标准"}],
+  "deductions": [{"title":"主要扣分原因标题","originalQuote":"引用用户原答案中的问题句","originalProblem":"指出原答案具体问题","whyWrong":"说明为什么丢分","policyBasis":"结合申论阅卷标准解释扣分依据","rewrite":"给出可直接替换的高分表达"}],
   "highScoreThinking": ["四、高分答题思路：逐条给出本题高分框架"],
   "goldenSentences": ["五、金句积累：适合本题的申论表达"],
-  "sampleAnswer": "六、高分范文：完整、规范、贴合材料的示范答案",
-  "localPolicyInsight": {"title":"${localName}材料与政策解读","region":"${localName}","cases":[{"title":"案例/政策标题","content":"与本题相关的案例或政策解读","usage":"怎么嵌入答案"}],"usage":"总用法"},
+  "sampleAnswer": "六、高分范文：用 Markdown 标题和分段输出，完整、规范、贴合材料的示范答案",
+  "localPolicyInsight": {"title":"${localName}材料与政策解读","region":"${localName}","cases":[{"title":"案例/政策标题","date":"发生时间，无法确认则为空","location":"地点，无法确认则为空","actors":"相关主体，无法确认则为空","content":"经过与影响","sourceUrl":"政府官网或主流媒体原文链接，无法确认则为空","verificationNote":"说明是否可核验以及如何使用","usage":"怎么嵌入答案"}],"usage":"总用法"},
   "upgradedExpressions": [{"original":"用户原答案中的普通表达","improved":"可直接升级的表达","reason":"为什么这样更高分"}],
-  "missingKeyContent": ["九、这道题下次要补的关键内容"]
+  "missingKeyContent": ["九、这道题下次要补的关键内容"],
+  "pitfalls": ["回答这类题容易出问题的点，以及本题应如何避免"]
 }
 
 评分维度和权重：
 ${rubricLines}
+
+题型判断：${questionType}
+参考表达格式要求：${formatGuide}
 
 严格要求：
 1. dimensions 必须完整输出 6 个指定维度，名称不能替换，分数必须 0-100。
 2. 总分必须依据维度权重综合；普通空泛答案不得超过 65 分，跑题不得超过 45 分。
 3. 批改报告要对应长报告结构：一、结论评分；二、优点；三、主要扣分原因；四、高分答题思路；五、金句积累；六、高分范文；七、${localName}材料与政策解读；八、你原答案可以直接升级的表达；九、这道题下次要补的关键内容。
 4. 每个扣分点都要写清楚原答案哪里有问题、为什么丢分、怎么改。
-5. 范文必须贴合材料和题干，不要写成泛泛政策评论。
+5. 范文必须贴合材料和题干，不要写成泛泛政策评论；如果是贯彻执行、公文、推荐材料、讲话稿、文章写作等题型，格式必须明显不同。
+6. 优点和缺点必须引用用户原答案中的具体句子，说明“这句为什么好/为什么丢分/怎么改得更凝练”。
+7. upgradedExpressions 必须采用“原表达-升级后-为什么更好”的对比，至少 3 条；pitfalls 至少 3 条。
+8. 金句只在本题适合观点分析、文章写作、综合分析时给出；如果本题完全是抄材料的归纳概括题，可以少给或不给，避免硬凑。
+9. 案例链接不得编造；无法确认真实原文链接时 sourceUrl 留空，并在 verificationNote 写“需以官方公开材料核验”。
 试卷：${paper.title || ''}
 地区/系统：${paper.region || ''} ${paper.system_label || ''}
 年份：${paper.year || ''}
@@ -596,6 +712,8 @@ ${rubricLines}
 题目标题：${question.title || ''}
 题干：${question.prompt || ''}
 要求：${Array.isArray(question.requirements) ? question.requirements.join('；') : ''}
+给定材料：
+${materialsContext || '本题未提供可用材料正文，请严格依据题干和用户作答批改。'}
 用户作答：${answer}`,
           },
         ],
@@ -652,6 +770,15 @@ async function gradeAttempt(attemptId) {
     where: { attempt_id: attemptId },
     order: [['question_no', 'ASC']],
   });
+  const paperRow = attempt.RealPaper || {};
+  const materials = await PaperMaterial.findAll({
+    where: { paper_id: attempt.paper_id },
+    order: [['material_no', 'ASC']],
+  });
+  const paper = {
+    ...(paperRow.toJSON ? paperRow.toJSON() : paperRow),
+    materials: materials.map(material => material.toJSON()),
+  };
 
   for (const answerRow of answers) {
     if (answerRow.status === 'graded') continue;
@@ -659,7 +786,6 @@ async function gradeAttempt(attemptId) {
     try {
       await answerRow.update({ status: 'grading', error_message: null });
       const question = await PaperQuestion.findByPk(answerRow.question_id);
-      const paper = attempt.RealPaper || {};
       const gradeAnswer = attempt.practice_type === 'essay' ? gradeEssayAnswer : gradeInterviewAnswer;
       const report = await gradeAnswer({
         answer: answerRow.user_answer,

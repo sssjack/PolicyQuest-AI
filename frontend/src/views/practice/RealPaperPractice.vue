@@ -137,6 +137,7 @@ const loading = ref(false)
 const favoriteVersion = ref(0)
 const answerTextarea = ref<HTMLTextAreaElement | null>(null)
 const questionCollapsed = ref(false)
+const reviewSourceTab = ref<'question' | 'materials' | 'answer'>('answer')
 const noteCaptureMode = ref(false)
 const noteSelections = ref<string[]>([])
 const savingNote = ref(false)
@@ -179,6 +180,11 @@ const wordLimitText = computed(() => (currentQuestion.value.wordLimit > 0 ? `${c
 const wordLimitBase = computed(() => (currentQuestion.value.wordLimit > 0 ? currentQuestion.value.wordLimit : 500))
 const wordProgress = computed(() => Math.min(100, Math.round((wordCount.value / wordLimitBase.value) * 100)))
 const readerMaterialHtml = computed(() => buildReaderHtml(activeMaterial.value.content || activeMaterial.value.summary || ''))
+const reviewMaterials = computed(() => paper.value.materials.map(material => ({
+  ...material,
+  html: buildReaderHtml(material.content || material.summary || ''),
+})))
+const sampleAnswerBlocks = computed(() => richTextBlocks(String(currentInterviewReport.value?.sampleAnswer || currentEvaluation.value?.sampleEssay || '')))
 const questionPositionText = computed(() => `${currentIndex.value + 1} / ${paper.value.questions.length || 0}`)
 const noteCombinedText = computed(() => noteSelections.value.join('\n\n'))
 const noteSelectionTotal = computed(() => noteSelections.value.reduce((sum, item) => sum + item.length, 0))
@@ -214,6 +220,7 @@ watch(
 
 watch(currentIndex, () => {
   questionCollapsed.value = false
+  if (reviewMode.value) reviewSourceTab.value = 'answer'
   queueAnswerResize()
 })
 
@@ -694,6 +701,30 @@ function reportList(value: any) {
   return Array.isArray(value) ? value : []
 }
 
+function cleanMarkdownText(value: string) {
+  return String(value || '')
+    .replace(/\*\*(.*?)\*\*/g, '$1')
+    .replace(/^[-*]\s+/, '')
+    .replace(/^\d+[.、]\s*/, '')
+    .trim()
+}
+
+function richTextBlocks(value: string) {
+  return String(value || '')
+    .replace(/\r\n/g, '\n')
+    .split(/\n+/)
+    .map(line => line.trim())
+    .filter(Boolean)
+    .map(line => {
+      if (line.startsWith('### ')) return { type: 'h3', text: cleanMarkdownText(line.slice(4)) }
+      if (line.startsWith('## ')) return { type: 'h2', text: cleanMarkdownText(line.slice(3)) }
+      if (line.startsWith('# ')) return { type: 'h1', text: cleanMarkdownText(line.slice(2)) }
+      if (/^\*\*.+\*\*$/.test(line)) return { type: 'h3', text: cleanMarkdownText(line) }
+      if (/^[-*]\s+/.test(line) || /^\d+[.、]\s*/.test(line)) return { type: 'li', text: cleanMarkdownText(line) }
+      return { type: 'p', text: cleanMarkdownText(line) }
+    })
+}
+
 function normalizeSelectedText(value: string) {
   return value.replace(/\s+/g, ' ').trim()
 }
@@ -918,21 +949,42 @@ async function saveSelectedNote() {
       <section class="answer-sheet">
         <article v-if="hasReviewReport" class="review-source-card">
           <header class="review-source-head">
-            <span>{{ paper.type === 'essay' ? '申论' : '面试' }} · {{ currentQuestionLabel }}</span>
-            <h1>{{ currentQuestion.title }}</h1>
+            <div>
+              <span>{{ paper.type === 'essay' ? '申论' : '面试' }} · {{ currentQuestionLabel }}</span>
+              <h1>{{ currentQuestion.title }}</h1>
+            </div>
+            <nav class="review-source-tabs" aria-label="历史记录内容切换">
+              <button type="button" :class="{ active: reviewSourceTab === 'answer' }" @click="reviewSourceTab = 'answer'">我的回答</button>
+              <button type="button" :class="{ active: reviewSourceTab === 'question' }" @click="reviewSourceTab = 'question'">原题要求</button>
+              <button v-if="paper.type === 'essay'" type="button" :class="{ active: reviewSourceTab === 'materials' }" @click="reviewSourceTab = 'materials'">材料</button>
+            </nav>
           </header>
 
-          <section class="review-source-section">
+          <section v-if="reviewSourceTab === 'question'" class="review-source-section">
             <h2>原题</h2>
             <p>{{ currentQuestion.prompt }}</p>
+            <div v-if="currentQuestion.requirements.length" class="review-source-tags inline">
+              <span>作答要求</span>
+              <strong v-for="item in currentQuestion.requirements" :key="item">{{ item }}</strong>
+            </div>
           </section>
 
-          <section v-if="currentQuestion.requirements.length" class="review-source-tags">
-            <span>作答要求</span>
-            <strong v-for="item in currentQuestion.requirements" :key="item">{{ item }}</strong>
+          <section v-else-if="reviewSourceTab === 'materials'" class="review-source-section review-materials-panel">
+            <div class="review-material-switch">
+              <button
+                v-for="(material, index) in reviewMaterials"
+                :key="material.id"
+                type="button"
+                :class="{ active: activeMaterialId === material.id }"
+                @click="chooseMaterial(material.id)"
+              >
+                材料{{ index + 1 }}
+              </button>
+            </div>
+            <article class="reader-sheet compact" v-html="reviewMaterials.find(item => item.id === activeMaterialId)?.html || '<p>暂无材料内容</p>'"></article>
           </section>
 
-          <section class="review-source-section answer">
+          <section v-else class="review-source-section answer">
             <h2>用户回答</h2>
             <p>{{ currentAnswer || '本题未填写作答内容' }}</p>
           </section>
@@ -1023,7 +1075,9 @@ async function saveSelectedNote() {
             <h3>二、优点</h3>
             <article v-for="item in reportList(currentInterviewReport.advantages)" :key="reportTitle(item)">
               <strong>{{ reportTitle(item, '优点') }}</strong>
+              <p v-if="item.originalQuote" class="report-quote"><b>原文例子：</b>{{ item.originalQuote }}</p>
               <p>{{ reportText(item, ['detail', 'content']) }}</p>
+              <small v-if="item.whyGood"><b>对应标准：</b>{{ item.whyGood }}</small>
             </article>
           </section>
 
@@ -1031,6 +1085,7 @@ async function saveSelectedNote() {
             <h3>三、主要扣分原因</h3>
             <article v-for="item in reportList(currentInterviewReport.deductions)" :key="reportTitle(item)">
               <strong>{{ reportTitle(item, '扣分点') }}</strong>
+              <p v-if="item.originalQuote" class="report-quote"><b>原文例子：</b>{{ item.originalQuote }}</p>
               <p v-if="item.originalProblem"><b>原答案问题：</b>{{ item.originalProblem }}</p>
               <p v-if="item.whyWrong"><b>为什么丢分：</b>{{ item.whyWrong }}</p>
               <p v-if="item.policyBasis"><b>评分依据：</b>{{ item.policyBasis }}</p>
@@ -1046,28 +1101,45 @@ async function saveSelectedNote() {
             </ol>
           </section>
 
+          <section class="report-section pitfalls">
+            <h3>五、这类题的注意事项</h3>
+            <ul>
+              <li v-for="item in reportList(currentInterviewReport.pitfalls)" :key="item">{{ item }}</li>
+            </ul>
+          </section>
+
           <section class="report-section quote-list">
-            <h3>五、金句积累</h3>
+            <h3>六、金句积累</h3>
             <p v-for="item in reportList(currentInterviewReport.goldenSentences)" :key="item">{{ item }}</p>
           </section>
 
           <section class="report-section sample-answer">
-            <h3>六、高分范文</h3>
-            <p>{{ currentInterviewReport.sampleAnswer }}</p>
+            <h3>七、高分参考表达</h3>
+            <div class="sample-answer-body">
+              <template v-for="(block, index) in sampleAnswerBlocks" :key="`${block.type}-${index}`">
+                <h4 v-if="block.type === 'h1' || block.type === 'h2' || block.type === 'h3'" :class="`sample-${block.type}`">{{ block.text }}</h4>
+                <p v-else :class="{ 'sample-list': block.type === 'li' }">{{ block.text }}</p>
+              </template>
+            </div>
           </section>
 
           <section class="report-section local-policy">
-            <h3>七、{{ currentInterviewReport.localPolicyInsight?.title || '当地案例和政策解读' }}</h3>
+            <h3>八、{{ currentInterviewReport.localPolicyInsight?.title || '当地案例和政策解读' }}</h3>
             <article v-for="item in reportList(currentInterviewReport.localPolicyInsight?.cases)" :key="reportTitle(item)">
               <strong>{{ reportTitle(item, '案例政策') }}</strong>
+              <small v-if="item.date || item.location || item.actors">
+                {{ [item.date, item.location, item.actors].filter(Boolean).join(' · ') }}
+              </small>
               <p>{{ reportText(item, ['content']) }}</p>
               <small>{{ reportText(item, ['usage']) }}</small>
+              <a v-if="item.sourceUrl" :href="item.sourceUrl" target="_blank" rel="noreferrer">查看原文链接</a>
+              <small v-if="item.verificationNote">{{ item.verificationNote }}</small>
             </article>
             <p v-if="currentInterviewReport.localPolicyInsight?.usage">{{ currentInterviewReport.localPolicyInsight.usage }}</p>
           </section>
 
           <section class="report-section upgraded">
-            <h3>八、你原答案可以直接升级的表达</h3>
+            <h3>九、你原答案可以直接升级的表达</h3>
             <article v-for="item in reportList(currentInterviewReport.upgradedExpressions)" :key="reportText(item, ['improved'])">
               <p v-if="item.original"><b>原表达：</b>{{ item.original }}</p>
               <p v-if="item.improved"><b>升级后：</b>{{ item.improved }}</p>
@@ -1077,7 +1149,7 @@ async function saveSelectedNote() {
           </section>
 
           <section class="report-section missing">
-            <h3>九、这道题你下次要补的关键内容</h3>
+            <h3>十、这道题你下次要补的关键内容</h3>
             <ul>
               <li v-for="item in reportList(currentInterviewReport.missingKeyContent)" :key="item">{{ item }}</li>
             </ul>
@@ -1912,6 +1984,11 @@ async function saveSelectedNote() {
   gap: 10px;
 }
 
+.review-source-head > div {
+  display: grid;
+  gap: 10px;
+}
+
 .review-source-head span {
   display: inline-flex;
   align-items: center;
@@ -1932,6 +2009,32 @@ async function saveSelectedNote() {
   line-height: 1.45;
 }
 
+.review-source-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 4px;
+  border-radius: 999px;
+  background: #f1f5fa;
+}
+
+.review-source-tabs button {
+  min-height: 34px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #657287;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.review-source-tabs button.active {
+  background: #2f63b7;
+  color: #ffffff;
+  box-shadow: 0 8px 18px rgba(47, 99, 183, 0.18);
+}
+
 .review-source-section {
   display: grid;
   gap: 10px;
@@ -1944,6 +2047,44 @@ async function saveSelectedNote() {
 .review-source-section.answer {
   border-color: rgba(184, 68, 63, 0.14);
   background: #fffdf7;
+}
+
+.review-source-tags.inline {
+  margin-top: 6px;
+}
+
+.review-materials-panel {
+  background: #ffffff;
+}
+
+.review-material-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.review-material-switch button {
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid rgba(47, 99, 183, 0.14);
+  border-radius: 999px;
+  background: #ffffff;
+  color: #607087;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.review-material-switch button.active {
+  border-color: transparent;
+  background: #eaf2ff;
+  color: #245bb1;
+}
+
+.reader-sheet.compact {
+  max-height: none;
+  padding: 16px;
+  border-radius: 12px;
+  background: #fbfcff;
 }
 
 .review-source-section h2 {
@@ -2048,6 +2189,14 @@ async function saveSelectedNote() {
   color: #1f65d6;
 }
 
+.report-quote {
+  padding: 10px 12px;
+  border-left: 3px solid #f3b23c;
+  border-radius: 8px;
+  background: #fff8e8;
+  color: #334155;
+}
+
 .report-section ol,
 .report-section ul {
   display: grid;
@@ -2065,7 +2214,9 @@ async function saveSelectedNote() {
   font-weight: 800;
 }
 
-.report-section.sample-answer p {
+.sample-answer-body {
+  display: grid;
+  gap: 10px;
   padding: 16px 18px;
   border-radius: 12px;
   background: #fbfcff;
@@ -2073,9 +2224,54 @@ async function saveSelectedNote() {
   white-space: pre-wrap;
 }
 
+.sample-answer-body h4,
+.sample-answer-body p {
+  margin: 0;
+}
+
+.sample-answer-body h4 {
+  color: #172033;
+  font-weight: 900;
+  line-height: 1.45;
+}
+
+.sample-answer-body .sample-h1 {
+  font-size: 22px;
+  text-align: center;
+}
+
+.sample-answer-body .sample-h2 {
+  font-size: 18px;
+}
+
+.sample-answer-body .sample-h3 {
+  font-size: 16px;
+}
+
+.sample-answer-body p {
+  color: #243047;
+  font-size: 15px;
+  line-height: 1.92;
+}
+
+.sample-answer-body .sample-list {
+  padding-left: 14px;
+  border-left: 3px solid rgba(47, 99, 183, 0.22);
+}
+
 .report-section.local-policy article {
   border: 1px solid rgba(57, 123, 246, 0.12);
   background: #f4f8ff;
+}
+
+.report-section.local-policy a {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 8px;
+  color: #245bb1;
+  font-size: 13px;
+  font-weight: 900;
+  text-decoration: none;
 }
 
 .report-section.upgraded article {
