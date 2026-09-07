@@ -719,6 +719,15 @@ function normalizeReport(value, payload) {
 }
 
 function toEvaluation(report) {
+  if (report.reportVersion === 'essay-v2') return {
+    score: report.score, maxScore: report.maxScore, percentScore: report.percentScore, reportVersion: report.reportVersion,
+    level: report.level, summary: report.summary,
+    dimensions: report.dimensions.map(d => ({ name: d.name, score: d.percent, comment: d.reason })),
+    advantages: report.pointAnalysis.filter(p => p.status === 'covered').map(p => p.point),
+    disadvantages: report.diagnoses.map(d => `${d.problem}：${d.reason}`),
+    suggestions: report.training.map(t => t.exercise), qualityMaterials: [], governmentReportLinks: [], sampleEssay: report.sampleAnswer,
+  };
+
   const policyCases = (report.localPolicyInsight.cases || []).map((item, index) => {
     if (typeof item === 'string') {
       return {
@@ -771,8 +780,7 @@ async function gradeInterviewAnswer(payload) {
       },
       body: JSON.stringify({
         model: config.llm.model,
-        temperature: 0.28,
-        max_tokens: 12000,
+        max_completion_tokens: 12000,
         response_format: { type: 'json_object' },
         messages: [
           {
@@ -844,114 +852,7 @@ ${answer}`,
   }
 }
 
-async function gradeEssayAnswer(payload) {
-  const local = buildEssayFallbackReport(payload);
-  if (!config.llm.apiUrl || !config.llm.apiKey) {
-    return local;
-  }
-
-  const { answer, paper = {}, question = {} } = payload;
-  const localName = detectLocalContext(paper, question);
-  const questionType = inferEssayQuestionType(question);
-  const formatGuide = essayFormatInstruction(questionType);
-  const materialsContext = buildMaterialsContext(paper.materials || paper.PaperMaterials || []);
-  const answerRequirementGuide = buildAnswerRequirementGuide(question, questionType);
-  const policyReferenceHints = formatPolicyReferenceHints(buildPolicyReferenceHints({
-    paper,
-    question,
-    materialsText: materialsContext,
-  }));
-  const rubricLines = ESSAY_RUBRICS.map(item => `${item.name}${item.weight}分：${item.comment}`).join('\n');
-
-  try {
-    const response = await fetch(config.llm.apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.llm.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: config.llm.model,
-        temperature: 0.28,
-        max_tokens: 12000,
-        response_format: { type: 'json_object' },
-        messages: [
-          {
-            role: 'system',
-            content: '你是 PolicyQuest AI Exam Coach 的资深公务员/事业编申论阅卷老师。你熟悉国考、省考申论真实阅卷标准，批改必须严格、具体、可改写。不要因为字数多、政策词多就给高分，要依据审题立意、要点提炼、材料运用、结构逻辑、对策可行、文字表达逐项评分。输出必须是合法 JSON；除 sampleAnswer 字段允许 Markdown 标题和分段外，其他字段不要输出 Markdown。',
-          },
-          {
-            role: 'user',
-            content: `请按真实申论阅卷标准批改下列作答，并输出 JSON：
-{
-  "score": 0-100,
-  "level": "优秀/良好/中等/待提升",
-  "questionType": "${questionType}",
-  "summary": "一、结论评分：包含总分、档次、整体评价、最大提分方向",
-  "dimensions": [{"name":"审题立意","score":0-100,"comment":"具体点评"}],
-  "advantages": [{"title":"优点标题","originalQuote":"引用用户原答案中的一句或一段","detail":"说明这句如何体现要点、结构、材料转化或表达优势","whyGood":"对应哪一项申论评分标准"}],
-  "deductions": [{"title":"主要扣分原因标题","originalQuote":"引用用户原答案中的问题句","originalProblem":"指出原答案具体问题","whyWrong":"说明为什么丢分","policyBasis":"结合申论阅卷标准解释扣分依据","rewrite":"给出可直接替换的高分表达"}],
-  "highScoreThinking": ["四、高分答题思路：逐条给出本题高分框架"],
-  "goldenSentences": ["五、金句积累：适合本题的申论表达"],
-  "sampleAnswer": "六、高分范文：用 Markdown 标题和分段输出，完整、规范、贴合材料和作答要求的示范答案",
-  "localPolicyInsight": {"title":"${localName}材料与政策解读","region":"${localName}","cases":[{"title":"政策/报告/行动名称","date":"发布时间或实施时间，无法确认则为空","location":"适用地区，无法确认则为空","actors":"发布主体或行动主体","content":"一句话概括这项政策/行动与本题的关系","background":"出台背景或现实问题","problem":"主要解决什么问题","measures":"关键措施，至少2-4个可吸收要点","impact":"实际影响或治理价值","integration":"如何嵌入本题答案，写成可直接套用的论证角度","sourceUrl":"政府官网或主流媒体原文链接，无法确认则为空","verificationNote":"说明是否可核验以及如何使用","usage":"怎么嵌入答案"}],"usage":"总用法"},
-  "upgradedExpressions": [{"original":"用户原答案中的普通表达","improved":"可直接升级的表达","reason":"为什么这样更高分"}],
-  "missingKeyContent": ["九、这道题下次要补的关键内容"],
-  "pitfalls": ["回答这类题容易出问题的点，以及本题应如何避免"]
-}
-
-评分维度和权重：
-${rubricLines}
-
-题型判断：${questionType}
-参考表达格式要求：${formatGuide}
-作答要求解析：
-${answerRequirementGuide}
-
-可用政策素材线索（必须择优吸收，不能照抄堆砌；如果线索与本题材料不匹配，可以说明不采用）：
-${policyReferenceHints}
-
-严格要求：
-1. dimensions 必须完整输出 6 个指定维度，名称不能替换，分数必须 0-100。
-2. 总分必须依据维度权重综合；普通空泛答案不得超过 65 分，跑题不得超过 45 分。
-3. 批改报告要对应长报告结构：一、结论评分；二、优点；三、主要扣分原因；四、高分答题思路；五、金句积累；六、高分范文；七、${localName}材料与政策解读；八、你原答案可以直接升级的表达；九、这道题下次要补的关键内容。
-4. 每个扣分点都要写清楚原答案哪里有问题、为什么丢分、怎么改。
-5. 范文必须贴合材料、题干和“作答要求解析”，不要写成泛泛政策评论；如果题干要求“参考给定资料，但不拘泥于给定资料”，范文必须先吸收资料事实，再适度引入政策背景；如果题干要求“字数在1000字左右”，sampleAnswer 必须接近 1000 字，不能只写三四段短文。
-6. 优点和缺点必须引用用户原答案中的具体句子，说明“这句为什么好/为什么丢分/怎么改得更凝练”。
-7. upgradedExpressions 必须采用“原表达-升级后-为什么更好”的对比，至少 3 条；pitfalls 至少 3 条。
-8. 金句只在本题适合观点分析、文章写作、综合分析时给出；如果本题完全是抄材料的归纳概括题，可以少给或不给，避免硬凑。
-9. 案例链接不得编造；无法确认真实原文链接时 sourceUrl 留空，并在 verificationNote 写“需以官方公开材料核验”。
-10. localPolicyInsight.cases 必须像“政策和案例可以这样结合”的学习清单：至少输出 3 条，每条要写清“政策/报告/行动名称、时间、发布主体、背景、解决的问题、关键措施、影响、怎么和本题融合”；禁止只写“提升治理现代化、优化服务效能”这类空话。
-11. sampleAnswer 必须遵守题目所有作答要求：观点明确、内容充实、结构完整、语言流畅；文章写作题要有标题，分论点要围绕题干主题，结尾要回扣中心。
-试卷：${paper.title || ''}
-地区/系统：${paper.region || ''} ${paper.system_label || ''}
-年份：${paper.year || ''}
-题目序号：${question.question_no || ''}
-题目标题：${question.title || ''}
-题干：${question.prompt || ''}
-要求：${Array.isArray(question.requirements) ? question.requirements.join('；') : ''}
-给定材料：
-${materialsContext || '本题未提供可用材料正文，请严格依据题干和用户作答批改。'}
-用户作答：${answer}`,
-          },
-        ],
-      }),
-      timeout: 70000,
-    });
-
-    if (!response.ok) {
-      throw new Error(`AI 服务返回 HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
-    return normalizeEssayReport(extractJson(data.choices?.[0]?.message?.content), payload);
-  } catch (error) {
-    return {
-      ...local,
-      summary: `${local.summary}（AI 服务暂不可用，本次先按本地严格申论评分规则生成报告。）`,
-    };
-  }
-}
+const { gradeEssayAnswer } = require('./essay-grading');
 
 async function refreshAttemptStatus(attemptId) {
   const attempt = await RealPaperAttempt.findByPk(attemptId);
@@ -960,9 +861,10 @@ async function refreshAttemptStatus(attemptId) {
   const answers = await RealPaperAttemptAnswer.findAll({ where: { attempt_id: attemptId } });
   const gradedAnswers = answers.filter(item => item.status === 'graded');
   const failedAnswers = answers.filter(item => item.status === 'failed');
-  const averageScore = gradedAnswers.length
-    ? Math.round((gradedAnswers.reduce((sum, item) => sum + Number(item.score || 0), 0) / gradedAnswers.length) * 10) / 10
-    : 0;
+  const totalScore = gradedAnswers.reduce((sum, item) => sum + Number(item.score || 0), 0);
+  const gradedMax = gradedAnswers.reduce((sum, item) => sum + Number(item.max_score || 100), 0);
+  const maxScore = answers.reduce((sum, item) => sum + Number(item.max_score || 100), 0);
+  const averageScore = gradedMax ? Math.round(totalScore / gradedMax * 1000) / 10 : 0;
   const nextStatus = gradedAnswers.length === answers.length
     ? 'graded'
     : failedAnswers.length && failedAnswers.length + gradedAnswers.length === answers.length
@@ -973,71 +875,48 @@ async function refreshAttemptStatus(attemptId) {
     status: nextStatus,
     graded_count: gradedAnswers.length,
     average_score: averageScore,
+    total_score: Math.round(totalScore * 10) / 10,
+    max_score: maxScore,
     completed_at: nextStatus === 'graded' ? new Date() : attempt.completed_at,
     error_message: nextStatus === 'failed' ? '部分或全部题目批改失败' : null,
   });
 }
 
+const runningAttempts = new Set();
 async function gradeAttempt(attemptId) {
-  const attempt = await RealPaperAttempt.findByPk(attemptId, {
-    include: [{ model: RealPaper }],
-  });
-  if (!attempt) return;
-
-  const answers = await RealPaperAttemptAnswer.findAll({
-    where: { attempt_id: attemptId },
-    order: [['question_no', 'ASC']],
-  });
-  const paperRow = attempt.RealPaper || {};
-  const materials = await PaperMaterial.findAll({
-    where: { paper_id: attempt.paper_id },
-    order: [['material_no', 'ASC']],
-  });
-  const paper = {
-    ...(paperRow.toJSON ? paperRow.toJSON() : paperRow),
-    materials: materials.map(material => material.toJSON()),
-  };
-
-  for (const answerRow of answers) {
-    if (answerRow.status === 'graded') continue;
-
-    try {
-      await answerRow.update({ status: 'grading', error_message: null });
-      const question = await PaperQuestion.findByPk(answerRow.question_id);
-      const gradeAnswer = attempt.practice_type === 'essay' ? gradeEssayAnswer : gradeInterviewAnswer;
-      const report = await gradeAnswer({
-        answer: answerRow.user_answer,
-        paper,
-        question: {
-          ...(question ? question.toJSON() : {}),
-          question_no: answerRow.question_no,
-          title: answerRow.question_title,
-          prompt: answerRow.question_prompt,
-        },
-      });
-      const evaluation = toEvaluation(report);
-
-      await answerRow.update({
-        status: 'graded',
-        score: report.score,
-        level: report.level,
-        dimensions: report.dimensions,
-        evaluation,
-        report,
-        error_message: null,
-        graded_at: new Date(),
-      });
-    } catch (error) {
-      await answerRow.update({
-        status: 'failed',
-        error_message: error.message,
-      });
-    }
-
+  if (runningAttempts.has(attemptId)) return;
+  runningAttempts.add(attemptId);
+  try {
+    const attempt = await RealPaperAttempt.findByPk(attemptId, { include: [{ model: RealPaper }] });
+    if (!attempt) return;
+    const answers = await RealPaperAttemptAnswer.findAll({ where: { attempt_id: attemptId }, order: [['question_no', 'ASC']] });
+    const materials = await PaperMaterial.findAll({ where: { paper_id: attempt.paper_id }, order: [['material_no', 'ASC']] });
+    const questions = await PaperQuestion.findAll({ where: { paper_id: attempt.paper_id } });
+    const paper = { ...(attempt.RealPaper?.toJSON() || {}), materials: materials.map(m => m.toJSON()) };
+    const pending = answers.filter(a => a.status !== 'graded');
+    if (!pending.length) { await refreshAttemptStatus(attemptId); return; }
+    await RealPaperAttemptAnswer.update({ status: 'grading', error_message: null }, { where: { id: pending.map(a => a.id) } });
+    let cursor = 0;
+    while (cursor < pending.length) {
+      const batch = pending.slice(cursor, cursor + 2);
+      cursor += batch.length;
+      const results = await Promise.all(batch.map(async row => {
+        const data = row.toJSON();
+        const current = questions.find(q => q.id === row.question_id)?.toJSON() || {};
+        const question = { ...current, ...(row.question_snapshot || {}), title: row.question_title, prompt: row.question_prompt };
+        try {
+          const report = await (attempt.practice_type === 'essay' ? gradeEssayAnswer : gradeInterviewAnswer)({ answer: row.user_answer, paper, question });
+          return { ...data, status: 'graded', score: report.score, max_score: report.maxScore || 100,
+            level: report.level, dimensions: report.dimensions, evaluation: toEvaluation(report), report,
+            error_message: null, graded_at: new Date() };
+        } catch (error) {
+          return { ...data, status: 'failed', error_message: error.message };
+        }
+      }));
+    await RealPaperAttemptAnswer.bulkCreate(results, { updateOnDuplicate: ['status', 'score', 'max_score', 'level', 'dimensions', 'evaluation', 'report', 'error_message', 'graded_at', 'updated_at'] });
     await refreshAttemptStatus(attemptId);
-  }
-
-  await refreshAttemptStatus(attemptId);
+    }
+  } finally { runningAttempts.delete(attemptId); }
 }
 
 module.exports = {

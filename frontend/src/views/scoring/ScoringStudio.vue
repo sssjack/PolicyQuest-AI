@@ -120,7 +120,10 @@ const typeTabs = [
 
 const localAverage = computed(() => averageScore(records.value))
 const backendAverage = computed(() => Math.round(Number(overview.value?.accuracy || 0)))
-const average = computed(() => localAverage.value || backendAverage.value || 0)
+const average = computed(() => {
+  const graded = realPaperHistory.value.filter(item => item.status === 'graded')
+  return graded.length ? Math.round(graded.reduce((sum, item) => sum + Number(item.averageScore), 0) / graded.length) : records.value.length ? localAverage.value : backendAverage.value || 0
+})
 const totalPracticeSeconds = computed(() => {
   const backendSeconds = overview.value?.recent_sessions?.reduce((sum, item) => sum + Number(item.total_duration || 0), 0) || 0
   const localSeconds = records.value.reduce((sum, record) => sum + record.durationSeconds, 0)
@@ -176,7 +179,7 @@ const entryCards = computed<EntryCard[]>(() => [
 const quickStats = computed(() => [
   { label: '本周训练', value: formatHours(totalPracticeSeconds.value), icon: Timer, tone: 'blue' },
   { label: '已完成', value: `${practicedCount.value || 0} 次`, icon: Reading, tone: 'green' },
-  { label: '平均得分', value: average.value ? `${average.value} 分` : '--', icon: TrendCharts, tone: 'cyan' },
+  { label: '平均得分率', value: average.value ? `${average.value}%` : '--', icon: TrendCharts, tone: 'cyan' },
   { label: '收藏真题', value: `${favoriteCount.value}`, icon: StarFilled, tone: 'yellow' },
 ])
 
@@ -277,7 +280,7 @@ function mapRealPaperHistory(item: BackendRealPaperAttempt): HistoryRow {
   const updatedAt = item.completedAt || item.submittedAt
   const isGraded = item.status === 'graded'
   const isFailed = item.status === 'failed'
-  const score = isGraded && Number(item.averageScore) > 0 ? ` · ${Math.round(Number(item.averageScore))} 分` : ''
+  const score = isGraded && Number(item.averageScore) > 0 ? ` · ${Math.round(Number(item.averageScore))}%` : ''
   const progressMeta = item.status === 'grading'
     ? `AI 批改中 ${item.gradedCount || 0}/${item.totalQuestions || 0} 题`
     : `已答 ${item.answeredCount || 0}/${item.totalQuestions || 0} 题${score}`
@@ -301,7 +304,7 @@ function mapLocalHistory(item: PracticeHistoryItem) {
   return {
     id: item.id,
     title: item.paperTitle,
-    meta: `${item.type === 'essay' ? '申论' : '面试'} · ${item.answeredCount}/${item.questionCount || item.answeredCount} 题 · ${item.averageScore || '--'} 分`,
+    meta: `${item.type === 'essay' ? '申论' : '面试'} · ${item.answeredCount}/${item.questionCount || item.answeredCount} 题 · ${item.averageScore ?? '--'}%`,
     date: formatDate(item.updatedAt),
     status: item.status === 'completed' ? '已完成' : '继续',
     sortTime: timestamp(item.updatedAt),

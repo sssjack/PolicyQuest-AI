@@ -54,6 +54,9 @@ export interface ScoreDimension {
 }
 
 export interface EvaluationResult {
+  maxScore?: number
+  percentScore?: number
+  reportVersion?: string
   score: number
   level: string
   summary: string
@@ -190,7 +193,7 @@ export function mapBackendPaper(item: any): RealPaper {
           title: String(question.title || ''),
           prompt: String(question.prompt || ''),
           score: Number(question.score) || 100,
-          wordLimit: Number(question.wordLimit) || 500,
+          wordLimit: Number(question.wordLimit ?? 0),
           suggestedMinutes: Number(question.suggestedMinutes) || 7,
           requirements: Array.isArray(question.requirements) ? question.requirements.map(String) : [],
           dimensions: Array.isArray(question.dimensions) ? question.dimensions.map(String) : [],
@@ -454,7 +457,7 @@ export function buildPracticeHistory(records = readPracticeRecords(), drafts = r
 
 function averageScoreFromEvaluations(evaluations: EvaluationResult[]) {
   if (!evaluations.length) return 0
-  return Math.round(evaluations.reduce((sum, item) => sum + item.score, 0) / evaluations.length)
+  return Math.round(evaluations.reduce((sum, item) => sum + (item.percentScore ?? item.score / (item.maxScore || 100) * 100), 0) / evaluations.length)
 }
 
 export function aggregateDimensions(records: PracticeRecord[]) {
@@ -476,6 +479,6 @@ export function aggregateDimensions(records: PracticeRecord[]) {
 
 export function averageScore(records: PracticeRecord[]) {
   if (!records.length) return 0
-  return Math.round(records.reduce((sum, record) => sum + record.score, 0) / records.length)
+  return Math.round(records.reduce((sum, record) => sum + (record.evaluation.percentScore ?? record.score / (record.evaluation.maxScore || 100) * 100), 0) / records.length)
 }
 

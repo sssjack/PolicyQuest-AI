@@ -34,6 +34,12 @@ const records = ref<PracticeRecord[]>([])
 const favoriteIds = ref(new Set<string>())
 const papers = ref<RealPaper[]>([])
 const loading = ref(false)
+const selectedYear = ref('all')
+const selectedCategory = ref('all')
+const selectedQuestionType = ref(String(route.query.questionType || 'all'))
+const coverage = ref<any>(null)
+let loadVersion = 0
+const categories = computed(() => [...new Set(papers.value.map(p => p.category))].sort())
 
 const currentUserName = computed(() => userStore.user?.nickname || userStore.user?.username || '同学')
 const currentUserInitial = computed(() => currentUserName.value.slice(0, 1).toUpperCase())
@@ -132,12 +138,13 @@ const filteredPapers = computed(() => {
         .join(' ')
         .toLowerCase()
         .includes(query)
-    return filterMatch && queryMatch
+    return filterMatch && queryMatch && (selectedYear.value === 'all' || String(paper.year) === selectedYear.value) && (selectedCategory.value === 'all' || paper.category === selectedCategory.value)
   })
 })
 
 onMounted(() => {
   refreshLocalState()
+  realPaperApi.coverage().then((res: any) => { coverage.value = res.data }).catch(() => {})
 })
 
 watch(
@@ -150,15 +157,28 @@ watch(
 )
 
 watch(
-  selectedType,
-  async type => {
+  [selectedType, selectedQuestionType],
+  async ([type, questionType], previous) => {
+    const version = ++loadVersion
+    if (type !== previous?.[0]) { selectedYear.value = 'all'; selectedCategory.value = 'all' }
     activeFilterKey.value = 'recommend'
     loading.value = true
     try {
-      const res: any = await realPaperApi.list({ type, pageSize: 300 })
-      papers.value = (res.data?.list || []).map(mapBackendPaper)
+      const all: any[] = []
+      let page = 1
+      let total = 1
+      while (all.length < total) {
+        const res: any = await realPaperApi.list({ type, questionType: type === 'essay' ? questionType : 'all', page, pageSize: 300 })
+        const batch = res.data?.list || []
+        total = Number(res.data?.total) || 0
+        all.push(...batch)
+        if (!batch.length) break
+        page += 1
+      }
+      if (version === loadVersion) papers.value = all.map(mapBackendPaper)
+    } catch { ElMessage.error('题库加载失败，请重试')
     } finally {
-      loading.value = false
+      if (version === loadVersion) loading.value = false
     }
   },
   { immediate: true },
@@ -269,6 +289,12 @@ function paperMeta(paper: RealPaper) {
       </section>
 
       <section class="paper-list-panel">
+        <div class="extra-filters">
+          <label>年份 <select v-model="selectedYear"><option value="all">全部年份</option><option v-for="year in [...new Set(papers.map(p => p.year))].sort((a,b) => b-a)" :key="year" :value="String(year)">{{ year }}年</option></select></label>
+          <label>卷别 <select v-model="selectedCategory"><option value="all">全部卷别</option><option v-for="category in categories" :key="category">{{ category }}</option></select></label>
+          <label v-if="selectedType === 'essay'">题型 <select v-model="selectedQuestionType"><option value="all">全部题型</option><option value="summary">归纳概括</option><option value="analysis">综合分析</option><option value="solution">提出对策</option><option value="implementation">贯彻执行</option><option value="article">大作文</option></select></label>
+        </div>
+        <details v-if="coverage && selectedType === 'essay'" class="coverage"><summary>近五年收录覆盖情况（2022—2026）</summary><p>{{ coverage.note }}</p><div class="coverage-scroll"><table><thead><tr><th>地区</th><th v-for="year in coverage.years" :key="year">{{ year }}</th></tr></thead><tbody><tr v-for="row in coverage.rows" :key="row.region"><th>{{ row.region }}</th><td v-for="cell in row.years" :key="cell.year" :title="cell.papers.map((p: any) => p.category).join('、')">{{ cell.papers.length ? `${cell.papers.length}套` : '待补充' }}</td></tr></tbody></table></div></details>
         <div class="count-row">
           <span>{{ loading ? '加载中' : `共${filteredPapers.length}套` }}</span>
         </div>
@@ -316,6 +342,7 @@ function paperMeta(paper: RealPaper) {
 </template>
 
 <style scoped>
+.extra-filters{display:flex;gap:16px;flex-wrap:wrap;padding:18px 0}.extra-filters label{display:flex;gap:8px;align-items:center}.extra-filters select{padding:8px;border:1px solid #cbd5e1;border-radius:6px;max-width:180px;background:white}.coverage{padding:16px;background:#f6f8fc;border-radius:10px;margin-bottom:18px}.coverage summary{cursor:pointer}.coverage p{font-size:13px;line-height:1.8}.coverage-scroll{overflow:auto;max-height:400px}.coverage table{width:100%;border-collapse:collapse;white-space:nowrap}.coverage th,.coverage td{padding:9px;border-bottom:1px solid #dde4ed;text-align:left}
 .paper-shell {
   min-height: 100vh;
   background: #f3f6fb;

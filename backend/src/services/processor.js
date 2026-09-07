@@ -8,7 +8,7 @@ async function callDeepSeek(messages, maxTokens = 4000) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.deepseek.apiKey}` },
     body: JSON.stringify({
-      model: config.deepseek.model, messages, temperature: 0.7, max_tokens: maxTokens,
+      model: config.deepseek.model, messages, max_completion_tokens: maxTokens,
     }),
     timeout: 60000,
   });

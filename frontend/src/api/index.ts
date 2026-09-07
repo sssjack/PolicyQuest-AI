@@ -47,6 +47,9 @@ export const questionApi = {
 }
 
 export const realPaperApi = {
+  essayProfile: () => api.get('/real-papers/essay-profile'),
+  coverage: () => api.get('/real-papers/coverage'),
+  regrade: (id: string | number) => api.post(`/real-papers/attempts/${id}/regrade`),
   list: (params: any) => api.get('/real-papers', { params }),
   detail: (id: string | number) => api.get(`/real-papers/${id}`),
   stats: () => api.get('/real-papers/stats'),

@@ -14,3 +14,8 @@ deploy2.py
 outputs/
 tmp/
 product-design-audit/
+tests/
+src/test/
+**/src/test/
+**/*Test.java
+**/*Tests.java

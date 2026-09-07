@@ -1,0 +1,4903 @@
+{
+  "version": 1,
+  "checkedAt": "2026-09-07",
+  "yearRange": [
+    2022,
+    2026
+  ],
+  "sourceNote": "公开考试试题整理版；仅导入题干和给定材料，培训机构答案不作为官方评分细则。未核验来源不导入。",
+  "papers": [
+    {
+      "url": "https://www.aipta.com/article/10639.html",
+      "file": "10639.html",
+      "sha256": "919be8f9e07e83d06bd29c2e15c02eb0d4175a3f0286c4d63743455ec601c833",
+      "title": "2026上海公务员申论真题及答案解析",
+      "region": "上海",
+      "year": 2026,
+      "category": "申论",
+      "questionCount": 4,
+      "materialCount": 14,
+      "scores": [
+        15,
+        15,
+        20,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10638.html",
+      "file": "10638.html",
+      "sha256": "97eb6cc28aa98a547e77460c05133d66814e0c58b6e229e921f48e98120f7153",
+      "title": "2026浙江省考申论真题及答案解析（C类）",
+      "region": "浙江",
+      "year": 2026,
+      "category": "C类",
+      "questionCount": 3,
+      "materialCount": 7,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10637.html",
+      "file": "10637.html",
+      "sha256": "18c04508ebd6f660e6891dfda1d32d7ba0ebde8623829af22a02da7a67406625",
+      "title": "2026河南省考申论真题及答案解析（县级卷）",
+      "region": "河南",
+      "year": 2026,
+      "category": "县级卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        25,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10631.html",
+      "file": "10631.html",
+      "sha256": "184a91760942113298bacbf6fd91cce3d2cb4d119624fb45312ba1101a7be642",
+      "title": "2025湖南省考申论真题及答案解析（省市卷）",
+      "region": "湖南",
+      "year": 2025,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10630.html",
+      "file": "10630.html",
+      "sha256": "a7e00a130f123ad96b513da85570832b64237ad62fa480cd79a02c28a01b8e3f",
+      "title": "2025湖南省考申论真题及答案解析（县乡卷）",
+      "region": "湖南",
+      "year": 2025,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10487.html",
+      "file": "10487.html",
+      "sha256": "d7cf79a72b80b31ff9f52fa3e1fdaac8d0f67cf71ded1d778170b0a59422722c",
+      "title": "2025江西省考申论真题及答案解析（县乡卷）",
+      "region": "江西",
+      "year": 2025,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10629.html",
+      "file": "10629.html",
+      "sha256": "15f6bc9968f1ba344b9cb6b8535f3a471eb36a55813dc1780aeda7aabd432b8a",
+      "title": "2025江西省考申论真题及答案解析（行政执法卷）",
+      "region": "江西",
+      "year": 2025,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10613.html",
+      "file": "10613.html",
+      "sha256": "c4b8871ff47e817f6e5103685da1a28cd0d17f4e73ad2ed024eece74899c1a95",
+      "title": "2026广东省考申论真题及答案解析（省市卷）",
+      "region": "广东",
+      "year": 2026,
+      "category": "省市卷",
+      "questionCount": 3,
+      "materialCount": 8,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10621.html",
+      "file": "10621.html",
+      "sha256": "b92393fb58cba0a4a2c2db5bcb18a5d68086b7e4a11c7ed9c22db148cefc94fa",
+      "title": "2026浙江省考申论真题及答案解析（A类）",
+      "region": "浙江",
+      "year": 2026,
+      "category": "A类",
+      "questionCount": 3,
+      "materialCount": 9,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10622.html",
+      "file": "10622.html",
+      "sha256": "2798c0a644d5ff321799dd6afba247a4b99caffa4ca1ad890bdb2deb1aa3c6e8",
+      "title": "2026浙江省考申论真题及答案解析（B类）",
+      "region": "浙江",
+      "year": 2026,
+      "category": "B类",
+      "questionCount": 3,
+      "materialCount": 6,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10623.html",
+      "file": "10623.html",
+      "sha256": "0db47142f481f33efc497f338dcc8136c6a31042b88c8c04d34351b9f4ce19df",
+      "title": "2026天津公务员申论真题及答案解析（行政执法卷）",
+      "region": "天津",
+      "year": 2026,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10626.html",
+      "file": "10626.html",
+      "sha256": "bdea7bfdd739f36c4229501d54a732957ddc7d3c92c98affa6963a84a8548f1b",
+      "title": "2025重庆公务员申论真题及答案解析（三卷）",
+      "region": "重庆",
+      "year": 2025,
+      "category": "三卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10627.html",
+      "file": "10627.html",
+      "sha256": "03eb62c55a4be2bbbcce7c240f246e73553bb719136c6fe332c9f1e46fb8ad3d",
+      "title": "2025新疆公务员申论真题及答案解析（县乡卷）",
+      "region": "新疆",
+      "year": 2025,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10628.html",
+      "file": "10628.html",
+      "sha256": "f5170bbeefc9c28c6bd737f75651cd98a1c12377eac7bef8cce98cac76230da9",
+      "title": "2025青海省考申论真题及答案解析（县乡卷）",
+      "region": "青海",
+      "year": 2025,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        30,
+        30,
+        40
+      ],
+      "totalScore": 120,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10614.html",
+      "file": "10614.html",
+      "sha256": "2eabfd5278e353fbe450e98e4d007494bf869e9a2fafab41495b172e221f05d9",
+      "title": "2026广东省考申论真题及答案解析（公安卷）",
+      "region": "广东",
+      "year": 2026,
+      "category": "公安卷",
+      "questionCount": 3,
+      "materialCount": 3,
+      "scores": [
+        20,
+        20,
+        20
+      ],
+      "totalScore": 60,
+      "subjectiveOnly": true
+    },
+    {
+      "url": "https://www.aipta.com/article/10620.html",
+      "file": "10620.html",
+      "sha256": "4a49b1e186f42538d3ce4f9cdef92c0952b491e82d35ac8da8461eac9a8c4ec1",
+      "title": "2025湖北省考申论真题及答案解析（县乡卷）",
+      "region": "湖北",
+      "year": 2025,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10619.html",
+      "file": "10619.html",
+      "sha256": "65fb7b1c6178605eba6af94b256ebfcfc78c330d713f540b548f778673c33d3f",
+      "title": "2025河南省考申论真题及答案解析（县级卷）",
+      "region": "河南",
+      "year": 2025,
+      "category": "县级卷",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        15,
+        25,
+        20,
+        20,
+        20
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10618.html",
+      "file": "10618.html",
+      "sha256": "ebcff40a4a463712169b324d45af50694b7e50050127ff1674cee7c6ea2c6c53",
+      "title": "2025河北省考申论真题及答案解析（C卷）",
+      "region": "河北",
+      "year": 2025,
+      "category": "C卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10617.html",
+      "file": "10617.html",
+      "sha256": "fb01b5b5fa297e4983e81cda1136bcbb63c4c47e29f1561f53be291cc3ec4793",
+      "title": "2025河北省考申论真题及答案解析（B卷）",
+      "region": "河北",
+      "year": 2025,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10616.html",
+      "file": "10616.html",
+      "sha256": "3418deb27244a5db8e756aa54e13b0203297b4dd26bd7cffa917a2522b129398",
+      "title": "2025上海公务员申论真题及答案解析（A卷）",
+      "region": "上海",
+      "year": 2025,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 15,
+      "scores": [
+        20,
+        15,
+        15,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10615.html",
+      "file": "10615.html",
+      "sha256": "1396edfd74113e856d705588ea4505e36e5dfdf167a7427f77575742ebc8decb",
+      "title": "2023山东省考申论真题及答案解析（B类）",
+      "region": "山东",
+      "year": 2023,
+      "category": "B类",
+      "questionCount": 3,
+      "materialCount": 5,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10612.html",
+      "file": "10612.html",
+      "sha256": "256e902ca3760d03c5776e10642a9944797b6b8395a3f796651d5505872c3f36",
+      "title": "2026广东省考申论真题及答案解析（行政执法卷）",
+      "region": "广东",
+      "year": 2026,
+      "category": "行政执法卷",
+      "questionCount": 3,
+      "materialCount": 3,
+      "scores": [
+        15,
+        20,
+        30
+      ],
+      "totalScore": 65,
+      "subjectiveOnly": true
+    },
+    {
+      "url": "https://www.aipta.com/article/10611.html",
+      "file": "10611.html",
+      "sha256": "18007b8b531581f0c0b7e8dd11828e252366429e50a7426bd832240d1bdb5e8f",
+      "title": "2026广东省考申论真题及答案解析（县镇卷）",
+      "region": "广东",
+      "year": 2026,
+      "category": "县镇卷",
+      "questionCount": 3,
+      "materialCount": 8,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10283.html",
+      "file": "10283.html",
+      "sha256": "cdc98720e3b9b67df2f5467394cfd2e01511fe5dd39b27863cd4c50e54413a72",
+      "title": "2025江西省考申论真题及答案解析（省市卷）",
+      "region": "江西",
+      "year": 2025,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9940.html",
+      "file": "9940.html",
+      "sha256": "1392969d86283045d1a716eb11b3cd10054cc8098fe6e3494148c70707c3555f",
+      "title": "2024江西省考申论真题及答案解析（省市卷）",
+      "region": "江西",
+      "year": 2024,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9939.html",
+      "file": "9939.html",
+      "sha256": "69c3fddb57545086cdaf3166e8223235d2fdd7d2e2383ae06b0e7321632b52db",
+      "title": "2024江西省考申论真题及答案解析（县乡卷）",
+      "region": "江西",
+      "year": 2024,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        25,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9595.html",
+      "file": "9595.html",
+      "sha256": "8a41acdf35a110fe30d3646a2157522ac8d2cb0f49243a9a7cf4023f28dbdf26",
+      "title": "2024江西省考申论真题及答案解析（行政执法卷）",
+      "region": "江西",
+      "year": 2024,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9112.html",
+      "file": "9112.html",
+      "sha256": "b054ff6581c5166bb7a2fb77184fb1fa715dccba421d2ccca4b417a9bf1dfe6a",
+      "title": "2023江西省考申论真题及答案解析（省市卷）",
+      "region": "江西",
+      "year": 2023,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/5391.html",
+      "file": "5391.html",
+      "sha256": "a9615990ac4fe77d50b3d09b7c6b7f7f5e0da95a2926daf431ccea28778d5d2b",
+      "title": "2022江西省考申论真题及答案解析（县乡卷）",
+      "region": "江西",
+      "year": 2022,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        25,
+        15,
+        25,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/5390.html",
+      "file": "5390.html",
+      "sha256": "37eb1bff07c307b2482e2da5da4bcbf3d1d773238522a4d9e8e1b249ee71640e",
+      "title": "2022江西省考申论真题及答案解析（行政执法卷）",
+      "region": "江西",
+      "year": 2022,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10456.html",
+      "file": "10456.html",
+      "sha256": "5134ac690371933a63c6c00d0a4079a9aa819469273f4035dfec12a14c1e49f0",
+      "title": "2025安徽省考申论真题及答案解析（B卷）",
+      "region": "安徽",
+      "year": 2025,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10190.html",
+      "file": "10190.html",
+      "sha256": "cb85fa59d244ebd27908ac9bb4819e02fffdd02444e08700d0e6da3d633dfe88",
+      "title": "2025安徽省考申论真题及答案解析（C卷）",
+      "region": "安徽",
+      "year": 2025,
+      "category": "C卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10189.html",
+      "file": "10189.html",
+      "sha256": "665eab994a94b33dde456f759db07db35c3d688898a3dba258f2a0a6466d8250",
+      "title": "2025安徽省考申论真题及答案解析（A卷）",
+      "region": "安徽",
+      "year": 2025,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9580.html",
+      "file": "9580.html",
+      "sha256": "2a02798cc17efdcbecd328c12bb7c0bf07036b1d27a5aa39be52415dfe4c9bb1",
+      "title": "2024安徽省考申论真题及答案解析（A卷）",
+      "region": "安徽",
+      "year": 2024,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9579.html",
+      "file": "9579.html",
+      "sha256": "b14d99013d9b8ccaae88bb5b9687c428a09fd77d6ceeb08901284987f8cf3b37",
+      "title": "2024安徽省考申论真题及答案解析（B卷）",
+      "region": "安徽",
+      "year": 2024,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9578.html",
+      "file": "9578.html",
+      "sha256": "79802b69f207385e3f2e59c269542281d1aa2695d4af6d604e23dfb08028fff0",
+      "title": "2024安徽省考申论真题及答案解析（C卷）",
+      "region": "安徽",
+      "year": 2024,
+      "category": "C卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9000.html",
+      "file": "9000.html",
+      "sha256": "80c2659f57735a9c0e81e0b11290297af629d7c776e5d8359992a413349ab0bc",
+      "title": "2023安徽省考申论真题及答案解析（乡镇机关）",
+      "region": "安徽",
+      "year": 2023,
+      "category": "乡镇机关",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        30,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/7462.html",
+      "file": "7462.html",
+      "sha256": "a7e14ebe38f403ff2a18f153c85af3c7d65997c90d94bc283f26f4a80896c916",
+      "title": "2023安徽省考申论真题及答案解析（B卷）",
+      "region": "安徽",
+      "year": 2023,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        25,
+        25,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6695.html",
+      "file": "6695.html",
+      "sha256": "2bee0b76d759aa8f98a2cabffa412180c36629bd25c318dc30ec398174fa9160",
+      "title": "2023安徽省考申论真题及答案解析（C卷）",
+      "region": "安徽",
+      "year": 2023,
+      "category": "C卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        25,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6694.html",
+      "file": "6694.html",
+      "sha256": "a5725f37674d09f3d93311c1b3aad6f6e6ecfce6c73ba928c13b0df708d8f265",
+      "title": "2023安徽省考申论真题及答案解析（A卷）",
+      "region": "安徽",
+      "year": 2023,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10457.html",
+      "file": "10457.html",
+      "sha256": "a6525b5900262d8c838e41b690db8c34e6f6aa38ea1694a32a74f0bc4e56ce4c",
+      "title": "2025北京公务员申论真题及答案解析",
+      "region": "北京",
+      "year": 2025,
+      "category": "申论",
+      "questionCount": 4,
+      "materialCount": 8,
+      "scores": [
+        20,
+        15,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10282.html",
+      "file": "10282.html",
+      "sha256": "e7f6c68ca6a656dc124ebfde0b3da86afb42da3a6a45cab9b62845349ff0fc78",
+      "title": "2025重庆公务员申论真题及答案解析（一卷）",
+      "region": "重庆",
+      "year": 2025,
+      "category": "一卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10243.html",
+      "file": "10243.html",
+      "sha256": "9777e6c94d1f0a3719086b96e9cdeb36255134995c881bb5f219a25b8afeec41",
+      "title": "2025重庆公务员申论真题及答案解析（二卷）",
+      "region": "重庆",
+      "year": 2025,
+      "category": "二卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10242.html",
+      "file": "10242.html",
+      "sha256": "9152f3ceaea86904191cb4f96169fd57783dc9875985d9bb8635cbb00491825d",
+      "title": "2024重庆公务员申论真题及答案解析（三卷）",
+      "region": "重庆",
+      "year": 2024,
+      "category": "三卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9942.html",
+      "file": "9942.html",
+      "sha256": "8594bb65f2918bd452bcaa16cdc48c8f43affd4e6ccae252f2fcaad4cffef047",
+      "title": "2024重庆公务员申论真题及答案解析（二卷）",
+      "region": "重庆",
+      "year": 2024,
+      "category": "二卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9941.html",
+      "file": "9941.html",
+      "sha256": "458c975af1269a0399f90c44339eff0a1302408e2ae3f069f52c1135795cfcf0",
+      "title": "2024重庆公务员申论真题及答案解析（一卷）",
+      "region": "重庆",
+      "year": 2024,
+      "category": "一卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/8910.html",
+      "file": "8910.html",
+      "sha256": "acc3a0745044ead02f72072cde03ca5a6e7ce40337d047eb0851ca4605bbebc5",
+      "title": "2023重庆公务员申论真题及答案解析（三卷）",
+      "region": "重庆",
+      "year": 2023,
+      "category": "三卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/8039.html",
+      "file": "8039.html",
+      "sha256": "91e683c5adf647e93005cc59a2bc5ace471f216bc8d777c08f3d4a70d888625f",
+      "title": "2023重庆公务员申论真题及答案解析（二卷）",
+      "region": "重庆",
+      "year": 2023,
+      "category": "二卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/5394.html",
+      "file": "5394.html",
+      "sha256": "26348d2acdde3547823b9cbe8b9933c0cb04887fff582c0ea733fff447ca1e6d",
+      "title": "2022重庆公务员申论真题及答案解析（二卷）",
+      "region": "重庆",
+      "year": 2022,
+      "category": "二卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        25,
+        25,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10288.html",
+      "file": "10288.html",
+      "sha256": "607aa23785956fe11a021ca140ee2cb5e225ecf8814d36eace941e8102b260c7",
+      "title": "2025福建省考申论真题及答案解析（省市卷）",
+      "region": "福建",
+      "year": 2025,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10187.html",
+      "file": "10187.html",
+      "sha256": "ad155217a7b4367ba67416a2e5928ee87313e53318aad5d293923a72dac8a07f",
+      "title": "2025福建省考申论真题及答案解析（通用卷）",
+      "region": "福建",
+      "year": 2025,
+      "category": "通用卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9936.html",
+      "file": "9936.html",
+      "sha256": "0ad21e605cee655bf445afa81ef4b96f0f9a39bf12494ce0f4d2eee4bdc87f3a",
+      "title": "2024福建省考申论真题及答案解析（省市卷）",
+      "region": "福建",
+      "year": 2024,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        10,
+        20,
+        30,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9867.html",
+      "file": "9867.html",
+      "sha256": "e5be33b3be93df4b748227efdcf5dfa72e22f27afc5081d961023b82812c5130",
+      "title": "2024福建省考申论真题及答案解析（行政执法卷）",
+      "region": "福建",
+      "year": 2024,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        15,
+        25,
+        45
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9575.html",
+      "file": "9575.html",
+      "sha256": "f3c9b4ddfb4984ac9fbedcc96357b320fcbc6ae75664450e8d90aaaf524be80a",
+      "title": "2024福建省考申论真题及答案解析（县乡卷）",
+      "region": "福建",
+      "year": 2024,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/7465.html",
+      "file": "7465.html",
+      "sha256": "7969d974124d4eb5c701e6427c9a5197037e2c93df50813152fbb2972a71ccad",
+      "title": "2023福建省考申论真题及答案解析（省市卷）",
+      "region": "福建",
+      "year": 2023,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        15,
+        15,
+        25,
+        45
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/7464.html",
+      "file": "7464.html",
+      "sha256": "b0d6abde537837dec61d62dbad8a61e563b10d22e893b37c94af422e69ad093d",
+      "title": "2023福建省考申论真题及答案解析（县乡卷）",
+      "region": "福建",
+      "year": 2023,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/7463.html",
+      "file": "7463.html",
+      "sha256": "055af6d7886042d4915c342bc89828b4bf0eca9c8555a11757c7a29fb042f6e8",
+      "title": "2023福建省考申论真题及答案解析（行政执法卷）",
+      "region": "福建",
+      "year": 2023,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        15,
+        30,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10287.html",
+      "file": "10287.html",
+      "sha256": "80e73c63f9b0d9ef066c7afcc14cfdd7171b6cd58aa130ed5736d37df159a3ae",
+      "title": "2025广东省考申论真题及答案解析（行政执法卷）",
+      "region": "广东",
+      "year": 2025,
+      "category": "行政执法卷",
+      "questionCount": 3,
+      "materialCount": 3,
+      "scores": [
+        15,
+        20,
+        30
+      ],
+      "totalScore": 65,
+      "subjectiveOnly": true
+    },
+    {
+      "url": "https://www.aipta.com/article/10281.html",
+      "file": "10281.html",
+      "sha256": "3e01d3a7ca5b110bf2623b5d393b4a45dc2a781ec11a9132141553718621103a",
+      "title": "2025深圳市公务员申论真题及答案解析（一卷）",
+      "region": "广东",
+      "year": 2025,
+      "category": "一卷",
+      "questionCount": 3,
+      "materialCount": 15,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10280.html",
+      "file": "10280.html",
+      "sha256": "ec9e0ff68221d460aa16c00313289cb7ea7ae2fd83924bb8cff671c07814bf58",
+      "title": "2025深圳市公务员申论真题及答案解析（二卷）",
+      "region": "广东",
+      "year": 2025,
+      "category": "二卷",
+      "questionCount": 3,
+      "materialCount": 15,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10172.html",
+      "file": "10172.html",
+      "sha256": "2950b06aea388e02d61220c16e8c01dd98766bd6b2336d113afff3a4df25904d",
+      "title": "2025广东省考申论真题及答案解析（县镇）",
+      "region": "广东",
+      "year": 2025,
+      "category": "县镇",
+      "questionCount": 3,
+      "materialCount": 8,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10171.html",
+      "file": "10171.html",
+      "sha256": "1e7968d51e675200ba867430ff7504cacb86820b215548a784734506c9f6318e",
+      "title": "2025广东省考申论真题及答案解析（公安）",
+      "region": "广东",
+      "year": 2025,
+      "category": "公安",
+      "questionCount": 3,
+      "materialCount": 3,
+      "scores": [
+        20,
+        20,
+        20
+      ],
+      "totalScore": 60,
+      "subjectiveOnly": true
+    },
+    {
+      "url": "https://www.aipta.com/article/10170.html",
+      "file": "10170.html",
+      "sha256": "e447e1417556bbb088f9200b6b7efe455e9c11657f957a4ee73cb9c3cfd247c3",
+      "title": "2025广东省考申论真题及答案解析（省市）",
+      "region": "广东",
+      "year": 2025,
+      "category": "省市",
+      "questionCount": 3,
+      "materialCount": 8,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9610.html",
+      "file": "9610.html",
+      "sha256": "4eaa237250b57d62b9772151d53ffc341c98c035e0a97e9847573d75bde56e67",
+      "title": "2024深圳市公务员申论真题及答案解析（二卷）",
+      "region": "广东",
+      "year": 2024,
+      "category": "二卷",
+      "questionCount": 3,
+      "materialCount": 17,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9573.html",
+      "file": "9573.html",
+      "sha256": "932b2b99970d64ae163972069c9a6e1cb63e33a843a22bd530086a3fd0e6b976",
+      "title": "2024广东省考申论真题及答案解析（行政执法卷）",
+      "region": "广东",
+      "year": 2024,
+      "category": "行政执法卷",
+      "questionCount": 3,
+      "materialCount": 3,
+      "scores": [
+        15,
+        25,
+        25
+      ],
+      "totalScore": 65,
+      "subjectiveOnly": true
+    },
+    {
+      "url": "https://www.aipta.com/article/9572.html",
+      "file": "9572.html",
+      "sha256": "4451cc952d178d7e53f02edd3a255c01a27c26fbe35bca97f73469f1a236374a",
+      "title": "2024广东省考申论真题及答案解析（公安岗）",
+      "region": "广东",
+      "year": 2024,
+      "category": "公安岗",
+      "questionCount": 3,
+      "materialCount": 3,
+      "scores": [
+        15,
+        20,
+        25
+      ],
+      "totalScore": 60,
+      "subjectiveOnly": true
+    },
+    {
+      "url": "https://www.aipta.com/article/9571.html",
+      "file": "9571.html",
+      "sha256": "307804359f302613ac3a06ccbcb1a0f8b28b7b03aa1e9763be788e4c148a90a0",
+      "title": "2024广东省考申论真题及答案解析（县镇卷）",
+      "region": "广东",
+      "year": 2024,
+      "category": "县镇卷",
+      "questionCount": 3,
+      "materialCount": 8,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9570.html",
+      "file": "9570.html",
+      "sha256": "ac0133cae0ad035d0b62c5e81fe0b9b53bb15808c204a361529fe97699eee1a6",
+      "title": "2024广东省考申论真题及答案解析（省市卷）",
+      "region": "广东",
+      "year": 2024,
+      "category": "省市卷",
+      "questionCount": 3,
+      "materialCount": 8,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6709.html",
+      "file": "6709.html",
+      "sha256": "70b785d22279cbc1a7d7c46abb90ab445e245415ae0c0175d0edae0d8365941f",
+      "title": "2023深圳市公务员申论真题及答案解析（二卷）",
+      "region": "广东",
+      "year": 2023,
+      "category": "二卷",
+      "questionCount": 3,
+      "materialCount": 18,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6708.html",
+      "file": "6708.html",
+      "sha256": "8233b7a407886b5eb96668b3c183629640db415a2965a15589540393e07d6736",
+      "title": "2023深圳市公务员申论真题及答案解析（一卷）",
+      "region": "广东",
+      "year": 2023,
+      "category": "一卷",
+      "questionCount": 3,
+      "materialCount": 18,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6696.html",
+      "file": "6696.html",
+      "sha256": "1cff82bcfd46749cf27a593878a8caf3782f5b7221c3f3bc558a4776360bbee8",
+      "title": "2023广东省考申论真题及答案解析（乡镇卷）",
+      "region": "广东",
+      "year": 2023,
+      "category": "乡镇卷",
+      "questionCount": 5,
+      "materialCount": 6,
+      "scores": [
+        15,
+        15,
+        20,
+        20,
+        30
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10188.html",
+      "file": "10188.html",
+      "sha256": "1c0efe7c95b3a27b8aba471be0af4e3677d95e27f7816d7e4cbc71407d34cf5d",
+      "title": "2025广西公务员申论真题及答案解析（B卷）",
+      "region": "广西",
+      "year": 2025,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        15,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9868.html",
+      "file": "9868.html",
+      "sha256": "365c27f3167ddc0e5cba5f141f0afbdbc812808c9875791b91083a84b130ac7b",
+      "title": "2024广西公务员申论真题及答案解析（A卷）",
+      "region": "广西",
+      "year": 2024,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9576.html",
+      "file": "9576.html",
+      "sha256": "636ca463f4d88b237f6609b6cad8675b39284a2d38f36d045d0823d4b88533b5",
+      "title": "2024广西公务员申论真题及答案解析（C卷）",
+      "region": "广西",
+      "year": 2024,
+      "category": "C卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        30,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/8038.html",
+      "file": "8038.html",
+      "sha256": "9cd6603833aba7fdfcf48ec0f9cc3814997de4207b8a42a31b4897bd64e9b4d9",
+      "title": "2023广西公务员申论真题及答案解析（B卷）",
+      "region": "广西",
+      "year": 2023,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/7478.html",
+      "file": "7478.html",
+      "sha256": "6de664af041fa7ee75bcfb82a8ab82e7d6e38df7d72229d1bbab655074bf9262",
+      "title": "2023广西公务员申论真题及答案解析（C卷）",
+      "region": "广西",
+      "year": 2023,
+      "category": "C卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/7467.html",
+      "file": "7467.html",
+      "sha256": "46faf566d4cd5ed49a8203501cedbb4bdfccb5a8285f2d2a00c8c330efab5755",
+      "title": "2023广西公务员申论真题及答案解析（A卷）",
+      "region": "广西",
+      "year": 2023,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10140.html",
+      "file": "10140.html",
+      "sha256": "807a4b238871cb26168623ee4f062793cc89491a6069b0dfaec2204e1ae40bfb",
+      "title": "2025贵州省考申论真题及答案解析（B卷）",
+      "region": "贵州",
+      "year": 2025,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        30,
+        40,
+        60
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9937.html",
+      "file": "9937.html",
+      "sha256": "4ab38e7f9f00be5ed8328e2f131a1f91405b9c529712663ca3b159bdc78f873d",
+      "title": "2024贵州省考申论真题及答案解析（A卷）",
+      "region": "贵州",
+      "year": 2024,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        30,
+        40,
+        60
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9607.html",
+      "file": "9607.html",
+      "sha256": "b829c3f7750fd4a430edc86a96850e85c85e7bf0db31cfefdd7e07c117fbdded",
+      "title": "2024贵州省考申论真题及答案解析（B卷）",
+      "region": "贵州",
+      "year": 2024,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        30,
+        40,
+        60
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/5683.html",
+      "file": "5683.html",
+      "sha256": "dea5bc3cd4ce28dbafe31617ee9291260c00a7721dcb41c036989fbd8c8c50fa",
+      "title": "2023贵州省考申论真题及答案解析（B卷）",
+      "region": "贵州",
+      "year": 2023,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        30,
+        30,
+        40,
+        50
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/5396.html",
+      "file": "5396.html",
+      "sha256": "a4b6304d0f35d502e5af19ad59ebfd8a32c1e8c0cc069ca0601edadde4b83efb",
+      "title": "2023贵州省考申论真题及答案解析（A卷）",
+      "region": "贵州",
+      "year": 2023,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        20,
+        30,
+        40,
+        60
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/3660.html",
+      "file": "3660.html",
+      "sha256": "45c6e65312bd1bdee99819d6e1de12154b2e7186fba9eaee81e1d04b09797da5",
+      "title": "2022贵州省考申论真题及答案解析（B卷）",
+      "region": "贵州",
+      "year": 2022,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        30,
+        30,
+        40,
+        50
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9608.html",
+      "file": "9608.html",
+      "sha256": "fd627cbd42b607ab11fa8ad256a5323c38efc86f6b93113b3b97e357322c9c7d",
+      "title": "2024甘肃省考申论真题及答案解析（县乡卷）",
+      "region": "甘肃",
+      "year": 2024,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/7466.html",
+      "file": "7466.html",
+      "sha256": "0c34aafa3c0147f5327f4d993e47921f18ef9ce43046c492d8de250714c2a568",
+      "title": "2023甘肃省考申论真题及答案解析（县乡卷）",
+      "region": "甘肃",
+      "year": 2023,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        10,
+        25,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/5386.html",
+      "file": "5386.html",
+      "sha256": "c1288bb37b3b3c205bd0acf3428d893ff9deeea7ec50dacd89d8ddb6a58ccd97",
+      "title": "2022甘肃省考申论真题及答案解析（县乡卷）",
+      "region": "甘肃",
+      "year": 2022,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        30,
+        15,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10403.html",
+      "file": "10403.html",
+      "sha256": "3e8391c5190f9ca01fdd0685ac3bb9e2c26cbc421447a0d3ccbc82cd1e820daa",
+      "title": "2025黑龙江省考申论真题及答案解析（县乡卷）",
+      "region": "黑龙江",
+      "year": 2025,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10402.html",
+      "file": "10402.html",
+      "sha256": "322a5d17e274ad731fd4080b875349c2416418121b4d6e13d8cf55bdb4e760b6",
+      "title": "2025黑龙江省考申论真题及答案解析（省市卷）",
+      "region": "黑龙江",
+      "year": 2025,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10290.html",
+      "file": "10290.html",
+      "sha256": "dd6926d8237ce57e617bea3a7ccb84b87c3fba18dd96830f6e37d19bb7c8c6e0",
+      "title": "2024黑龙江省考申论真题及答案解析（省市卷）",
+      "region": "黑龙江",
+      "year": 2024,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9870.html",
+      "file": "9870.html",
+      "sha256": "899ead0299e2dc2d52e48968175b505581081e69d2a04ffae0e52de487266b0e",
+      "title": "2024黑龙江省考申论真题及答案解析（县乡卷）",
+      "region": "黑龙江",
+      "year": 2024,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9869.html",
+      "file": "9869.html",
+      "sha256": "f3b1a1d489794417746d11362983d64e1b99d408e452d66bbf1d2b708735f7db",
+      "title": "2024黑龙江省考申论真题及答案解析（行政执法卷）",
+      "region": "黑龙江",
+      "year": 2024,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9002.html",
+      "file": "9002.html",
+      "sha256": "63e1892e1a69f13230788a39d3e57a4abef3db56d64817242e0fa7f9ec501c7f",
+      "title": "2023黑龙江省考申论真题及答案解析（县乡卷）",
+      "region": "黑龙江",
+      "year": 2023,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9001.html",
+      "file": "9001.html",
+      "sha256": "fa8c0203535e71135549a464eadac47bd5d424d66a770c2d84c7b39ecb8054eb",
+      "title": "2023黑龙江省考申论真题及答案解析（行政执法卷）",
+      "region": "黑龙江",
+      "year": 2023,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/5388.html",
+      "file": "5388.html",
+      "sha256": "d3a55fa36cf4ea4c707c3fe2f5d4f5476728b89508c4ea88185e24a07916b53f",
+      "title": "2022黑龙江省考申论真题及答案解析（行政执法卷）",
+      "region": "黑龙江",
+      "year": 2022,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10237.html",
+      "file": "10237.html",
+      "sha256": "2e6b4050282bea2c7819f37a497460d91c17c5fee397c8bb0a62197b43b540ce",
+      "title": "2025河南省考申论真题及答案解析（市级卷）",
+      "region": "河南",
+      "year": 2025,
+      "category": "市级卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9594.html",
+      "file": "9594.html",
+      "sha256": "2353e812e1b5914bffb2627bd58a7baed14412c949fd880973d79da45fb6d4c0",
+      "title": "2024河南省考申论真题及答案解析（市级卷）",
+      "region": "河南",
+      "year": 2024,
+      "category": "市级卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9593.html",
+      "file": "9593.html",
+      "sha256": "22b799773c4ba83eb21791ceeac888b9a80220b6adbe0f6f3444df49b022a622",
+      "title": "2024河南省考申论真题及答案解析（县级卷）",
+      "region": "河南",
+      "year": 2024,
+      "category": "县级卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/8907.html",
+      "file": "8907.html",
+      "sha256": "3b874f209153b644cdd82f9f6164aea12c1da0ee0e850d70a2c99746567d6853",
+      "title": "2022河南省考申论真题及答案解析（乡镇卷）",
+      "region": "河南",
+      "year": 2022,
+      "category": "乡镇卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6699.html",
+      "file": "6699.html",
+      "sha256": "d8cfdc563e2b0f563df269670999f7e1433f4b51c91663a51b94f0947e89fa08",
+      "title": "2023河南省考申论真题及答案解析（市级卷）",
+      "region": "河南",
+      "year": 2023,
+      "category": "市级卷",
+      "questionCount": 4,
+      "materialCount": 6,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6698.html",
+      "file": "6698.html",
+      "sha256": "e24d687a6787b8af11f3ce6cd5edf80325a05845d4db3c31e2cd1d8dad25f86a",
+      "title": "2023河南省考申论真题及答案解析（县级卷）",
+      "region": "河南",
+      "year": 2023,
+      "category": "县级卷",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        20,
+        20,
+        20,
+        20,
+        20
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10236.html",
+      "file": "10236.html",
+      "sha256": "20be201e9a0c66265b6536e9e3b6b16814a995a48de627d476bb30ebee2de1a5",
+      "title": "2025河北省考申论真题及答案解析（A卷）",
+      "region": "河北",
+      "year": 2025,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9938.html",
+      "file": "9938.html",
+      "sha256": "a899210bb78aa3d5ecee2edc913a5abc8c6c80559236e4613e641809a2e83f6a",
+      "title": "2024河北省考申论真题及答案解析（C卷）",
+      "region": "河北",
+      "year": 2024,
+      "category": "C卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9591.html",
+      "file": "9591.html",
+      "sha256": "bf4cfe7b7a5547a360036c2007603684ea9934366754a99abfb892fc4358be81",
+      "title": "2024河北省考申论真题及答案解析（A卷）",
+      "region": "河北",
+      "year": 2024,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9590.html",
+      "file": "9590.html",
+      "sha256": "50286fc53d608f913ec928dc95fae28f8c559823d80fa8bf84a348d128edc886",
+      "title": "2024河北省考申论真题及答案解析（B卷）",
+      "region": "河北",
+      "year": 2024,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        25,
+        15,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10295.html",
+      "file": "10295.html",
+      "sha256": "fbdd6af3af12bf82a6701d4574e9024dcf4d80581c7087cddd9931f4f66e43c4",
+      "title": "2023河北省考申论真题及答案解析（C卷）",
+      "region": "河北",
+      "year": 2023,
+      "category": "C卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        25,
+        15,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10294.html",
+      "file": "10294.html",
+      "sha256": "28ff43361033d73f49795fcc77b62d7d0f70aa653e4ad61a659f61fba0f3e32c",
+      "title": "2023河北省考申论真题及答案解析（B卷）",
+      "region": "河北",
+      "year": 2023,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        25,
+        20,
+        15,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10285.html",
+      "file": "10285.html",
+      "sha256": "679b67bfbab9348437bc9cf28940e7abd4f4bed1081e87b851bdc5e979ade3a0",
+      "title": "2025湖北省考申论真题及答案解析（省市卷）",
+      "region": "湖北",
+      "year": 2025,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9597.html",
+      "file": "9597.html",
+      "sha256": "310b03ddd1eeeefbfa52336eec17d71f1f5228a5e1080cec1f8f4e2de58e5c56",
+      "title": "2024湖北省考申论真题及答案解析（县乡卷）",
+      "region": "湖北",
+      "year": 2024,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10293.html",
+      "file": "10293.html",
+      "sha256": "821c155b719fc0d686f2fae00577d728f37b2770279257aad8eaa6d1fb038e78",
+      "title": "2023湖北省考申论真题及答案解析（省市卷）",
+      "region": "湖北",
+      "year": 2023,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 8,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6700.html",
+      "file": "6700.html",
+      "sha256": "662d8cd81744d1a650e1f5bc7c86e35bc0812287b983b7cfe24977388f27fbf0",
+      "title": "2023湖北省考申论真题及答案解析（县乡卷）",
+      "region": "湖北",
+      "year": 2023,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 8,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10284.html",
+      "file": "10284.html",
+      "sha256": "832aa13a8a19e39912fc9dd7ae221cc80265545cfd3421f6f5a1248e5f732cbd",
+      "title": "2025湖南省考申论真题及答案解析（行政执法卷）",
+      "region": "湖南",
+      "year": 2025,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9596.html",
+      "file": "9596.html",
+      "sha256": "976742b42cb24272d3902e186f343cc9bfa78a45a925269da50a9b9bc202c2ab",
+      "title": "2024湖南省考申论真题及答案解析（省市卷）",
+      "region": "湖南",
+      "year": 2024,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        10,
+        20,
+        30,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10292.html",
+      "file": "10292.html",
+      "sha256": "84d94f9603086da10b50ca04f5e7c04f2183d74d9f67121225723d566975b2de",
+      "title": "2023湖南省考申论真题及答案解析（县乡卷）",
+      "region": "湖南",
+      "year": 2023,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/8719.html",
+      "file": "8719.html",
+      "sha256": "256b07e2ba382ee3499822dce04ba19af7794233beadf0cf9c574483c674bff8",
+      "title": "2022湖南省考申论真题及答案解析（行政执法卷）",
+      "region": "湖南",
+      "year": 2022,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/7481.html",
+      "file": "7481.html",
+      "sha256": "2739127e82534b886101afafcdf63c36246f01d8158f57189fd9acd8b3c3af54",
+      "title": "2023湖南省考申论真题及答案解析（省市卷）",
+      "region": "湖南",
+      "year": 2023,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        10,
+        25,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10286.html",
+      "file": "10286.html",
+      "sha256": "575f2a8c57b63b66df758871415cb3cfae9b52ba550a2ff56f6552b05f9f615f",
+      "title": "2025海南省考申论真题及答案解析（B卷）",
+      "region": "海南",
+      "year": 2025,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9592.html",
+      "file": "9592.html",
+      "sha256": "e7e7907cd5d4f27b9d36fe7b7f2e0d47ed846a133b83ac694f62f0163d84c63f",
+      "title": "2024海南省考申论真题及答案解析（A卷）",
+      "region": "海南",
+      "year": 2024,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        10,
+        20,
+        30,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/7480.html",
+      "file": "7480.html",
+      "sha256": "974f1fd29bcbbe5939bcb1d363593e32a1be92b7ecc4126d8504471f31c8d006",
+      "title": "2023海南省考申论真题及答案解析（A卷）",
+      "region": "海南",
+      "year": 2023,
+      "category": "A卷",
+      "questionCount": 3,
+      "materialCount": 4,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/7479.html",
+      "file": "7479.html",
+      "sha256": "f61c7fe54f953d83b29c1451b8ecc9b8c51b2686a79f6c25157133d61b9eafe2",
+      "title": "2023海南省考申论真题及答案解析（C卷）",
+      "region": "海南",
+      "year": 2023,
+      "category": "C卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        25,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6420.html",
+      "file": "6420.html",
+      "sha256": "50ffbfa614c94a408154c50ac591248fbeb30f9fe260985c65630a8e6bd920e1",
+      "title": "2022海南省考申论真题及答案解析（C卷）",
+      "region": "海南",
+      "year": 2022,
+      "category": "C卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        25,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/5387.html",
+      "file": "5387.html",
+      "sha256": "55858b4ce2b4cd26b7c2be2147c35ce5f7421174fe82eeba26de5eb109f93103",
+      "title": "2022海南省考申论真题及答案解析（B卷）",
+      "region": "海南",
+      "year": 2022,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        30,
+        30
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10169.html",
+      "file": "10169.html",
+      "sha256": "09d3e8fcdf7428c13705c5de81a9689f5015db4aa9335c8b2f6089ad3766e46d",
+      "title": "2025江苏省考申论真题及答案解析（C类）",
+      "region": "江苏",
+      "year": 2025,
+      "category": "C类",
+      "questionCount": 4,
+      "materialCount": 7,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10168.html",
+      "file": "10168.html",
+      "sha256": "b7f4ace781cea31f82c8d7efecd36847432c77b1deb4381a0700af10b95dd28c",
+      "title": "2025江苏省考申论真题及答案解析（B类）",
+      "region": "江苏",
+      "year": 2025,
+      "category": "B类",
+      "questionCount": 4,
+      "materialCount": 7,
+      "scores": [
+        20,
+        15,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10005.html",
+      "file": "10005.html",
+      "sha256": "196584700bdaae4492f7525e185be52f01770510ffdb664841eb13019823a965",
+      "title": "2025江苏省考申论真题及答案解析（A类）",
+      "region": "江苏",
+      "year": 2025,
+      "category": "A类",
+      "questionCount": 4,
+      "materialCount": 7,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9569.html",
+      "file": "9569.html",
+      "sha256": "be0e973925db46228b94fde8c580372aac3c6d99ee0ed23a14fc29dfce519d0c",
+      "title": "2024江苏省考申论真题及答案解析（A类）",
+      "region": "江苏",
+      "year": 2024,
+      "category": "A类",
+      "questionCount": 4,
+      "materialCount": 8,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9568.html",
+      "file": "9568.html",
+      "sha256": "50e2c9b66540466333424dde5630a55744c5c44ab78ebccfce0c5463c0b11f8d",
+      "title": "2024江苏省考申论真题及答案解析（B类）",
+      "region": "江苏",
+      "year": 2024,
+      "category": "B类",
+      "questionCount": 4,
+      "materialCount": 7,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9567.html",
+      "file": "9567.html",
+      "sha256": "1db15b1dc53eccb856303a6337d1833aeff0f4df41d19b47e22e7edc40b9fa81",
+      "title": "2024江苏省考申论真题及答案解析（C类）",
+      "region": "江苏",
+      "year": 2024,
+      "category": "C类",
+      "questionCount": 4,
+      "materialCount": 7,
+      "scores": [
+        20,
+        15,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/8721.html",
+      "file": "8721.html",
+      "sha256": "540def431f706003e24bc788fd0fce87afd46e082829209735004f1f13d80c21",
+      "title": "2023江苏省考申论真题及答案解析（C类）",
+      "region": "江苏",
+      "year": 2023,
+      "category": "C类",
+      "questionCount": 4,
+      "materialCount": 7,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6423.html",
+      "file": "6423.html",
+      "sha256": "6efa57d77f2ea755ff8d9ac1c51b8c0358b1cbabc0b256249e24488756fde4a0",
+      "title": "2023江苏省考申论真题及答案解析（B类）",
+      "region": "江苏",
+      "year": 2023,
+      "category": "B类",
+      "questionCount": 4,
+      "materialCount": 6,
+      "scores": [
+        20,
+        15,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6422.html",
+      "file": "6422.html",
+      "sha256": "39b838b68af3cf8b928e746237f8d0b0a66ae878f22d930954f8ee2a25c1025c",
+      "title": "2023江苏省考申论真题及答案解析（A类）",
+      "region": "江苏",
+      "year": 2023,
+      "category": "A类",
+      "questionCount": 4,
+      "materialCount": 8,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6702.html",
+      "file": "6702.html",
+      "sha256": "e351da1f9e88cff0511af39a17fcb906dfc7a6da2ddafb918681a937efd90a12",
+      "title": "2023吉林省考申论真题及答案解析（乙卷）",
+      "region": "吉林",
+      "year": 2023,
+      "category": "乙卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6701.html",
+      "file": "6701.html",
+      "sha256": "970e8b439e847f4079f47ba81b19cfa7338f18e74c6f3d84e523140c7ea68555",
+      "title": "2023吉林省考申论真题及答案解析（丙卷）",
+      "region": "吉林",
+      "year": 2023,
+      "category": "丙卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        25,
+        25,
+        30
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10193.html",
+      "file": "10193.html",
+      "sha256": "e9185ac6f54a5119ab0fe06d0906d9d64104fa5b6a0ad423726d3114316598ff",
+      "title": "2025辽宁省考申论真题及答案解析（B卷）",
+      "region": "辽宁",
+      "year": 2025,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10192.html",
+      "file": "10192.html",
+      "sha256": "bace9dcb5768c3eff2b2710f9c662b9acbf599db9ead09bd52db9c22e1862a31",
+      "title": "2025辽宁省考申论真题及答案解析（A卷）",
+      "region": "辽宁",
+      "year": 2025,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9584.html",
+      "file": "9584.html",
+      "sha256": "8ea8924b69d745abb2654adf22000af55898d64570622b3e8e9cc738e98aa01f",
+      "title": "2024辽宁省考申论真题及答案解析（A卷）",
+      "region": "辽宁",
+      "year": 2024,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9583.html",
+      "file": "9583.html",
+      "sha256": "55ebd503269253c32f4ce47136f0703604c763c9f6e527f7ee0a577f85020f31",
+      "title": "2024辽宁省考申论真题及答案解析（B卷）",
+      "region": "辽宁",
+      "year": 2024,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/8033.html",
+      "file": "8033.html",
+      "sha256": "3763fdacb14fa25725b2eeb2958f569e80e8425fcb32ae7d72fe91c2b8a83a76",
+      "title": "2022辽宁省考申论真题及答案解析（A卷）",
+      "region": "辽宁",
+      "year": 2022,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6428.html",
+      "file": "6428.html",
+      "sha256": "6e07a9bc7e9dfe1e7396c8044f5903e981a392ee534ee3b7a0a0ca7ecdcc7f96",
+      "title": "2023辽宁省考申论真题及答案解析（B卷）",
+      "region": "辽宁",
+      "year": 2023,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6427.html",
+      "file": "6427.html",
+      "sha256": "99147b2f248c9a5aad0a87246c53229c7e513a28db15607bf6e45046b008bc3f",
+      "title": "2023辽宁省考申论真题及答案解析（A卷）",
+      "region": "辽宁",
+      "year": 2023,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10241.html",
+      "file": "10241.html",
+      "sha256": "c1d176284484b26fa7ba9759fc6e7328bb39d115010971da6b1f49f800a0eaa1",
+      "title": "2024内蒙古公务员申论真题及答案解析（盟市卷）",
+      "region": "内蒙古",
+      "year": 2024,
+      "category": "盟市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        15,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10240.html",
+      "file": "10240.html",
+      "sha256": "fedf315c8e6e64d304ad803e99430fa873a559f4abc3482e0e8cc03a7987c7c3",
+      "title": "2024内蒙古公务员申论真题及答案解析（旗县卷）",
+      "region": "内蒙古",
+      "year": 2024,
+      "category": "旗县卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        25,
+        15,
+        25,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6703.html",
+      "file": "6703.html",
+      "sha256": "4b12e8a7a3f4289a84ed756027471b938e095951d1feb4c712393b547ffd824b",
+      "title": "2023内蒙古公务员申论真题及答案解析（旗县卷）",
+      "region": "内蒙古",
+      "year": 2023,
+      "category": "旗县卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        15,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/5392.html",
+      "file": "5392.html",
+      "sha256": "df791bbc5d7a90a4d6c31abe698bdea10ddca951fbcf16b01bd11dd46419d8a1",
+      "title": "2022内蒙古公务员申论真题及答案解析（旗县卷）",
+      "region": "内蒙古",
+      "year": 2022,
+      "category": "旗县卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        28,
+        22,
+        18,
+        32
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10250.html",
+      "file": "10250.html",
+      "sha256": "86857fb8b4bac0753e5ecb5712f7f939aa07686e1ecc368807024ff4a2b0fc4a",
+      "title": "2023宁夏公务员申论真题及答案解析（C卷）",
+      "region": "宁夏",
+      "year": 2023,
+      "category": "C卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        25,
+        30,
+        35,
+        60
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10249.html",
+      "file": "10249.html",
+      "sha256": "76d81121fdc78ada69a17e9ba4cf67687fc62c7a7b8a68b88b7c07e3e8ff45d9",
+      "title": "2023宁夏公务员申论真题及答案解析（A卷）",
+      "region": "宁夏",
+      "year": 2023,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        25,
+        35,
+        30,
+        60
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9609.html",
+      "file": "9609.html",
+      "sha256": "9586ff66b00cc4a6d645c26b6c082203f9ac4278e4582f67e87fbee284638085",
+      "title": "2024宁夏公务员申论真题及答案解析（C卷）",
+      "region": "宁夏",
+      "year": 2024,
+      "category": "C卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        25,
+        30,
+        35,
+        60
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/8720.html",
+      "file": "8720.html",
+      "sha256": "3b25a9c095c4abb484b0d612bde42588086d95be36f3bd0db77765431678d21f",
+      "title": "2022宁夏公务员申论真题及答案解析（C卷）",
+      "region": "宁夏",
+      "year": 2022,
+      "category": "C卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        30,
+        30,
+        40,
+        50
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/8034.html",
+      "file": "8034.html",
+      "sha256": "72d996a3a71e29df267fa1a2004dd394c4ef27b191e13d1ee3c2bccebe11cd3d",
+      "title": "2022宁夏公务员申论真题及答案解析（A卷）",
+      "region": "宁夏",
+      "year": 2022,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        30,
+        40,
+        60
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/5393.html",
+      "file": "5393.html",
+      "sha256": "998f562df831b995deb4c5faa6544f7cd2418835b37d6fd489d6240a1d6bc4d6",
+      "title": "2022宁夏公务员申论真题及答案解析（B卷）",
+      "region": "宁夏",
+      "year": 2022,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        25,
+        30,
+        35,
+        60
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10251.html",
+      "file": "10251.html",
+      "sha256": "776db2766dae761997cd161ae8c7ebcc4c81bacebc0347be024ed46302965c0b",
+      "title": "2025青海省考申论真题及答案解析（行政执法卷）",
+      "region": "青海",
+      "year": 2025,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        25,
+        25,
+        50
+      ],
+      "totalScore": 120,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/7482.html",
+      "file": "7482.html",
+      "sha256": "5c1555f6781d61b9a92c806b2c7458d96c364d38630fe6aeb0bc2ff55098f8b3",
+      "title": "2023青海省考申论真题及答案解析（行政执法卷）",
+      "region": "青海",
+      "year": 2023,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10401.html",
+      "file": "10401.html",
+      "sha256": "d0b41d6fd1c47c1b1ae12962f097ad6475db37dab2b9ba7db42e4866f8fac771",
+      "title": "2025山东省考申论真题及答案解析（C类）",
+      "region": "山东",
+      "year": 2025,
+      "category": "C类",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10167.html",
+      "file": "10167.html",
+      "sha256": "b917428fcba09957cbef009c4d733cd60450259922f519f063f35578627fdccc",
+      "title": "2024山东省考申论真题及答案解析（A类）",
+      "region": "山东",
+      "year": 2024,
+      "category": "A类",
+      "questionCount": 4,
+      "materialCount": 6,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10166.html",
+      "file": "10166.html",
+      "sha256": "16dd9fb9818f36a3b9b1f3637041fe31a19d6f81858ab4b78d4780323f40d57e",
+      "title": "2023山东省考申论真题及答案解析（A类）",
+      "region": "山东",
+      "year": 2023,
+      "category": "A类",
+      "questionCount": 3,
+      "materialCount": 5,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9934.html",
+      "file": "9934.html",
+      "sha256": "69e08793ca433a103fe812404510f664f99b2f7998b1ec4f9c8aed3158702f77",
+      "title": "2024山东省考申论真题及答案解析（B卷）",
+      "region": "山东",
+      "year": 2024,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10191.html",
+      "file": "10191.html",
+      "sha256": "ba8819338c04a5ed6218fb7ac9f074703ff04b6c7c7eeeaf54bb8efcae1fae26",
+      "title": "2025上海公务员申论真题及答案解析（B卷）",
+      "region": "上海",
+      "year": 2025,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 11,
+      "scores": [
+        15,
+        15,
+        20,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9582.html",
+      "file": "9582.html",
+      "sha256": "4b8413fe76182691bd23ffeb3bc4b3decbe2c27b380a957b92fd84d68745a1ee",
+      "title": "2024上海公务员申论真题及答案解析（A卷）",
+      "region": "上海",
+      "year": 2024,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 11,
+      "scores": [
+        15,
+        15,
+        20,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9581.html",
+      "file": "9581.html",
+      "sha256": "75aee3ef398cdfe745ffecc898b61da27ca13820ed9a466d74cdf2fb25987e0f",
+      "title": "2024上海公务员申论真题及答案解析（B卷）",
+      "region": "上海",
+      "year": 2024,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 14,
+      "scores": [
+        15,
+        20,
+        15,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6421.html",
+      "file": "6421.html",
+      "sha256": "09e72038aefbf4b6d7324a657e5e25d41178183affe984894a20166dfd0413e8",
+      "title": "2023上海公务员申论真题及答案解析（A卷）",
+      "region": "上海",
+      "year": 2023,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 6,
+      "scores": [
+        15,
+        20,
+        15,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10245.html",
+      "file": "10245.html",
+      "sha256": "382ffcb65a0259670d9c23fe1daf8c6151a54eb7b33624e0e9ed1ed589f6ae90",
+      "title": "2025陕西省考申论真题及答案解析（A卷）",
+      "region": "陕西",
+      "year": 2025,
+      "category": "A卷",
+      "questionCount": 6,
+      "materialCount": 6,
+      "scores": [
+        10,
+        15,
+        20,
+        25,
+        30,
+        50
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10289.html",
+      "file": "10289.html",
+      "sha256": "dc915c4c097d7ab2281d2ce4c11e36d325e0f5f0dfd3a1247ad5aed56f5d3dad",
+      "title": "2024陕西省考申论真题及答案解析（C卷）",
+      "region": "陕西",
+      "year": 2024,
+      "category": "C卷",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        15,
+        25,
+        25,
+        35,
+        50
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10244.html",
+      "file": "10244.html",
+      "sha256": "2dcaaada413a91b56efc52debbf525b3c4bd7b720051099bbe27a69a12f7857c",
+      "title": "2024陕西省考申论真题及答案解析（B卷）",
+      "region": "陕西",
+      "year": 2024,
+      "category": "B卷",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        15,
+        20,
+        30,
+        35,
+        50
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/8036.html",
+      "file": "8036.html",
+      "sha256": "7ebe1e740da3e8694c84f0c4df3e2d529a4e75e5297ad412ec74f434b5827eec",
+      "title": "2022陕西省考申论真题及答案解析（C卷）",
+      "region": "陕西",
+      "year": 2022,
+      "category": "C卷",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        15,
+        20,
+        30,
+        35,
+        50
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/8035.html",
+      "file": "8035.html",
+      "sha256": "c44c2996728d95e087d66368e14d5296aeb0ef0109767bd50fda8ac262866148",
+      "title": "2022陕西省考申论真题及答案解析（A卷）",
+      "region": "陕西",
+      "year": 2022,
+      "category": "A卷",
+      "questionCount": 6,
+      "materialCount": 6,
+      "scores": [
+        10,
+        15,
+        25,
+        20,
+        30,
+        50
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10239.html",
+      "file": "10239.html",
+      "sha256": "2d49632e40203e98fb5b4e4562a8107e22eb80ea892fe647f704c27af05863c8",
+      "title": "2025山西省考申论真题及答案解析（县乡卷）",
+      "region": "山西",
+      "year": 2025,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10238.html",
+      "file": "10238.html",
+      "sha256": "324dc75e06f94d245e2be555437663000fadfbedc0ba4539217b007811cd3ae8",
+      "title": "2025山西省考申论真题及答案解析（省市卷）",
+      "region": "山西",
+      "year": 2025,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9606.html",
+      "file": "9606.html",
+      "sha256": "c77e1681beb8e94d905565dc7f6dc9ada618add599bdac1c717f66283e435dbb",
+      "title": "2024山西省考申论真题及答案解析（省市卷）",
+      "region": "山西",
+      "year": 2024,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        15,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9605.html",
+      "file": "9605.html",
+      "sha256": "a811d225b088333cc7d87ddab47a17e31141c942ad710c8fe31484e3b9561b6c",
+      "title": "2024山西省考申论真题及答案解析（县乡卷）",
+      "region": "山西",
+      "year": 2024,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6705.html",
+      "file": "6705.html",
+      "sha256": "c9b83e664c83dfdceb2793e4c885d29e6e7b511d913ad64272b81fdcaa48d152",
+      "title": "2023山西省考申论真题及答案解析（县乡卷）",
+      "region": "山西",
+      "year": 2023,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        30,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6704.html",
+      "file": "6704.html",
+      "sha256": "463f101c853b0d99cc676e1a1273be23727e54ade54051b92109db75eeee8a02",
+      "title": "2023山西省考申论真题及答案解析（省市卷）",
+      "region": "山西",
+      "year": 2023,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10174.html",
+      "file": "10174.html",
+      "sha256": "b508294daff2100e5571a8acfb3acc1873667f3fd264297eb3e6345246591f0b",
+      "title": "2025四川省考申论真题及答案解析（行政执法卷）",
+      "region": "四川",
+      "year": 2025,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10173.html",
+      "file": "10173.html",
+      "sha256": "542b12633af8f3f072d97374609c6de3f24dd94f147233c9cc5a65a600e86d26",
+      "title": "2025四川省考申论真题及答案解析（省市卷）",
+      "region": "四川",
+      "year": 2025,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10006.html",
+      "file": "10006.html",
+      "sha256": "c2145fe6e1059333e77fba31cc9219c5d31f8198bab42e6cdfb2e768ba6a6907",
+      "title": "2025四川省考申论真题及答案解析（县乡卷）",
+      "region": "四川",
+      "year": 2025,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9866.html",
+      "file": "9866.html",
+      "sha256": "8bdc04d5ec274d12007623590b54aa1f96fb93b930038e7ea98ae667884b8e55",
+      "title": "2024四川省考申论真题及答案解析（行政执法卷）",
+      "region": "四川",
+      "year": 2024,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9574.html",
+      "file": "9574.html",
+      "sha256": "ea487fe00c2a2aa41c067c7537541e5976917c3158d3fe450dd8a35d3300d1f9",
+      "title": "2024四川省考申论真题及答案解析（县乡卷）",
+      "region": "四川",
+      "year": 2024,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/7461.html",
+      "file": "7461.html",
+      "sha256": "456963f2d1a7f545c29ade431a93758bab7a2b205db58d63bcadfd92a754fdd2",
+      "title": "2022下半年四川省考申论真题及答案解析（行政执法卷）",
+      "region": "四川",
+      "year": 2022,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6707.html",
+      "file": "6707.html",
+      "sha256": "2a157c11167c48250bc5745c3f3694d4b7e21ccffc34c2a28b2dd6e94ed41e54",
+      "title": "2023四川省考申论真题及答案解析（省市卷）",
+      "region": "四川",
+      "year": 2023,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10235.html",
+      "file": "10235.html",
+      "sha256": "30d6ba2e8f7d2e76d85e379d24115c6bc50824435a773ac44156fcde727c1de1",
+      "title": "2025天津公务员申论真题及答案解析（街镇卷）",
+      "region": "天津",
+      "year": 2025,
+      "category": "街镇卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10234.html",
+      "file": "10234.html",
+      "sha256": "1f0812bde227c0cff38a378fb6195f6ce0e5708a66c6bd1d4b1246b2586606ce",
+      "title": "2025天津公务员申论真题及答案解析（市区卷）",
+      "region": "天津",
+      "year": 2025,
+      "category": "市区卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9871.html",
+      "file": "9871.html",
+      "sha256": "76da959af5edef4b43815e2044d337df7768188a4dac40cae782b96e342ac4b9",
+      "title": "2024天津公务员申论真题及答案解析（市区卷）",
+      "region": "天津",
+      "year": 2024,
+      "category": "市区卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/8908.html",
+      "file": "8908.html",
+      "sha256": "5d34ac177861a69ce48bf4ccd28b6f8242fca9a4e07bb254a3ade33b04edc330",
+      "title": "2023天津公务员申论真题及答案解析（行政执法卷）",
+      "region": "天津",
+      "year": 2023,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/8037.html",
+      "file": "8037.html",
+      "sha256": "dbb311f14dd8c6b7e09ef4aa1c380b7b7d9548bc57fe9a7d14aa0b08dd259ac1",
+      "title": "2022天津公务员申论真题及答案解析（区级卷）",
+      "region": "天津",
+      "year": 2022,
+      "category": "区级卷",
+      "questionCount": 3,
+      "materialCount": 3,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/7483.html",
+      "file": "7483.html",
+      "sha256": "35334c5b3de7a44971a9873dd13ac8dc08f132d4bd44cd54c827a9b562d2cd12",
+      "title": "2023天津公务员申论真题及答案解析（乡镇卷）",
+      "region": "天津",
+      "year": 2023,
+      "category": "乡镇卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10248.html",
+      "file": "10248.html",
+      "sha256": "e5159128e29abadbb032a5f2d963445806c3c99e5ecd2a017f191c487f473615",
+      "title": "2025新疆公务员申论真题及答案解析（行政执法卷）",
+      "region": "新疆",
+      "year": 2025,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        10,
+        25,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9872.html",
+      "file": "9872.html",
+      "sha256": "0524a9d8e8c6d04aa34529e9500dbf75cf829ad5aee1a60c4159e30ec750bc2b",
+      "title": "2024新疆公务员申论真题及答案解析（县乡卷）",
+      "region": "新疆",
+      "year": 2024,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        25,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/8032.html",
+      "file": "8032.html",
+      "sha256": "7427c40d6f23f26266970300467a76a44ab6e4f6e349c9e227729ce64034933f",
+      "title": "2022新疆公务员申论真题及答案解析（县乡卷）",
+      "region": "新疆",
+      "year": 2022,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10247.html",
+      "file": "10247.html",
+      "sha256": "2a0ba5a5887a1e0a94217074735eadbdc07de6cd7fd0d3b7af392eb7246e4f33",
+      "title": "2025云南省考申论真题及答案解析（县乡卷）",
+      "region": "云南",
+      "year": 2025,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10246.html",
+      "file": "10246.html",
+      "sha256": "89703639c126be00931bbd8703bc7a781f6c2ec46b22a6ada62f04549f54adc9",
+      "title": "2024云南省考申论真题及答案解析（县乡卷）",
+      "region": "云南",
+      "year": 2024,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9412.html",
+      "file": "9412.html",
+      "sha256": "5649aedbb9c5e1aa218ad73adf9b452cd5c7ade30d109d7b3ccec597ea6a1f3e",
+      "title": "2024云南省考申论真题及答案解析（州市卷）",
+      "region": "云南",
+      "year": 2024,
+      "category": "州市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10291.html",
+      "file": "10291.html",
+      "sha256": "000188df55064c11c65a5b0555a2298740483881bf7c6d4b0745d034df8fcb3b",
+      "title": "2023云南省考申论真题及答案解析（州市卷）",
+      "region": "云南",
+      "year": 2023,
+      "category": "州市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/8909.html",
+      "file": "8909.html",
+      "sha256": "f086020f0aab2cd9ce4e29b33af68276643b4b140cd59a0b346650f7ee6c4605",
+      "title": "2023云南省考申论真题及答案解析（县乡卷）",
+      "region": "云南",
+      "year": 2023,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        30,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10165.html",
+      "file": "10165.html",
+      "sha256": "ab0260cbe3bef1227b6a47a5271a9c2adf5200d2c77ba9564832273fb018a19d",
+      "title": "2025浙江省考申论真题及答案解析（C类）",
+      "region": "浙江",
+      "year": 2025,
+      "category": "C类",
+      "questionCount": 3,
+      "materialCount": 6,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10164.html",
+      "file": "10164.html",
+      "sha256": "ae56ea74992e1c22968df7b38421d9412c9eb1e7d10488934e547e9655ed35f8",
+      "title": "2025浙江省考申论真题及答案解析（B类）",
+      "region": "浙江",
+      "year": 2025,
+      "category": "B类",
+      "questionCount": 3,
+      "materialCount": 7,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10007.html",
+      "file": "10007.html",
+      "sha256": "7bf36d2e2e33b3c78141ebb8ebe8665dde8136a09f507da7d760b74bba6bf4cd",
+      "title": "2025浙江省考申论真题及答案解析（A类）",
+      "region": "浙江",
+      "year": 2025,
+      "category": "A类",
+      "questionCount": 3,
+      "materialCount": 10,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9566.html",
+      "file": "9566.html",
+      "sha256": "8b1a33995fb4e0356b5cf68e339594ef39b1251e04bf961b762e720b8054e78a",
+      "title": "2024浙江省考申论真题及答案解析（A类）",
+      "region": "浙江",
+      "year": 2024,
+      "category": "A类",
+      "questionCount": 3,
+      "materialCount": 7,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9565.html",
+      "file": "9565.html",
+      "sha256": "6373ed04cc40f559cdedc6b0b4e63da5e8da67a94470ee3af0ba5e455d9702fd",
+      "title": "2024浙江省考申论真题及答案解析（B类）",
+      "region": "浙江",
+      "year": 2024,
+      "category": "B类",
+      "questionCount": 3,
+      "materialCount": 7,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9564.html",
+      "file": "9564.html",
+      "sha256": "f0816080d142d931d5630e720e83cec7a1b8fc058cbd3d1027afe29afc04e4e8",
+      "title": "2024浙江省考申论真题及答案解析（C类）",
+      "region": "浙江",
+      "year": 2024,
+      "category": "C类",
+      "questionCount": 3,
+      "materialCount": 6,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6426.html",
+      "file": "6426.html",
+      "sha256": "7d64d00db4fd07698d930b9f8c6a6b8e7494b9967a2964575fd8c436ea271c6f",
+      "title": "2023浙江省考申论真题及答案解析（C类）",
+      "region": "浙江",
+      "year": 2023,
+      "category": "C类",
+      "questionCount": 3,
+      "materialCount": 4,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6425.html",
+      "file": "6425.html",
+      "sha256": "927d95c37dd5759549a4ac1057bdb1e02a135cb3f0816ed21894afd3e33738ff",
+      "title": "2023浙江省考申论真题及答案解析（B类）",
+      "region": "浙江",
+      "year": 2023,
+      "category": "B类",
+      "questionCount": 3,
+      "materialCount": 6,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6424.html",
+      "file": "6424.html",
+      "sha256": "c6e81bfb5e7a8eafdadf4c03177c1e7adf8b4f7eb68300cb748d5cc9eff09c54",
+      "title": "2023浙江省考申论真题及答案解析（A类）",
+      "region": "浙江",
+      "year": 2023,
+      "category": "A类",
+      "questionCount": 3,
+      "materialCount": 7,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10624.html",
+      "file": "10624.html",
+      "sha256": "12ce52f126e40080be7ef50eaf5faeaad4ad76c411e9e5e0b41b113ecb5442b7",
+      "title": "2026国考申论真题及答案解析（地市卷）",
+      "region": "全国",
+      "year": 2026,
+      "category": "地市卷",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        10,
+        15,
+        20,
+        20,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10625.html",
+      "file": "10625.html",
+      "sha256": "c42bc20904e43cc95bd93f5791e2a2ed2d810a785dc2ca8258262c600abd980d",
+      "title": "2026国考申论真题及答案解析（副省卷）",
+      "region": "全国",
+      "year": 2026,
+      "category": "副省卷",
+      "questionCount": 5,
+      "materialCount": 4,
+      "scores": [
+        10,
+        15,
+        20,
+        20,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10455.html",
+      "file": "10455.html",
+      "sha256": "7990d604170da6da09fdb90bae3cc1ae7cd3920c9fedca0f5bfea150d1db6657",
+      "title": "2026国考申论真题及答案解析（行政执法卷）",
+      "region": "全国",
+      "year": 2026,
+      "category": "行政执法卷",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        15,
+        10,
+        20,
+        20,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10150.html",
+      "file": "10150.html",
+      "sha256": "b11bef8b3be47fe526b397240ed6a26a59ac3b2a1597784f4b402cfb7ad0ae91",
+      "title": "2025国考申论真题及答案解析（副省卷）",
+      "region": "全国",
+      "year": 2025,
+      "category": "副省卷",
+      "questionCount": 5,
+      "materialCount": 4,
+      "scores": [
+        15,
+        10,
+        20,
+        20,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10149.html",
+      "file": "10149.html",
+      "sha256": "d4d0b95a2f66aea47ee0dbc9e7b8bb8b1da6761e2a2c3a3739fda2ae770d6486",
+      "title": "2025国考申论真题及答案解析（地市卷）",
+      "region": "全国",
+      "year": 2025,
+      "category": "地市卷",
+      "questionCount": 5,
+      "materialCount": 4,
+      "scores": [
+        10,
+        15,
+        20,
+        20,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9943.html",
+      "file": "9943.html",
+      "sha256": "4ed2e007acd69ee2ce69e2784b0d75fcd604b23df7435cbc90acd2ce23e8f8b8",
+      "title": "2025国考申论真题及答案解析（行政执法卷）",
+      "region": "全国",
+      "year": 2025,
+      "category": "行政执法卷",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        10,
+        15,
+        20,
+        20,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9220.html",
+      "file": "9220.html",
+      "sha256": "6eb7332a27ad952f44d7235423fb501a7c115c49fe467a772c9415befb54b063",
+      "title": "2024国考申论真题及答案解析（行政执法卷）",
+      "region": "全国",
+      "year": 2024,
+      "category": "行政执法卷",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        10,
+        15,
+        20,
+        20,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9221.html",
+      "file": "9221.html",
+      "sha256": "fb33fdbf68215fde228e9d9ba945991b6e528b412f802113586f153bf3179ca8",
+      "title": "2024国考申论真题及答案解析（地市卷）",
+      "region": "全国",
+      "year": 2024,
+      "category": "地市卷",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        10,
+        15,
+        20,
+        20,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/9222.html",
+      "file": "9222.html",
+      "sha256": "e476884c49b6c094508b13bf082b57bf062a3d16934f326b08a222ad138aee4d",
+      "title": "2024国考申论真题及答案解析（副省卷）",
+      "region": "全国",
+      "year": 2024,
+      "category": "副省卷",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        10,
+        20,
+        15,
+        20,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6419.html",
+      "file": "6419.html",
+      "sha256": "52104fc6355301618d4c74679c9b07cf913bffdbe611332810b6e61b1e1081ad",
+      "title": "2023国考申论真题及答案解析（副省级）",
+      "region": "全国",
+      "year": 2023,
+      "category": "副省级",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        10,
+        15,
+        20,
+        20,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/5682.html",
+      "file": "5682.html",
+      "sha256": "daaf31ed702318973b24850a8e1aa8bb9d8538e646c0db65e7bf4eba2d670cbe",
+      "title": "2023国考申论真题及答案解析（地市级）",
+      "region": "全国",
+      "year": 2023,
+      "category": "地市级",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        10,
+        15,
+        20,
+        20,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/4397.html",
+      "file": "4397.html",
+      "sha256": "25688a91dcd5a2d42747762d56f62656b39f3ae16c213f9719fdfa8cd88b9954",
+      "title": "2023国考申论真题及答案解析（行政执法卷）",
+      "region": "全国",
+      "year": 2023,
+      "category": "行政执法卷",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        10,
+        20,
+        20,
+        15,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/259.html",
+      "file": "259.html",
+      "sha256": "5fb407faf63f8d56aa11cefd07721b45a53846c741242937c65a2f61f3465497",
+      "title": "2022国考申论真题及答案解析（地市级)",
+      "region": "全国",
+      "year": 2022,
+      "category": "地市级",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        15,
+        20,
+        15,
+        15,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/258.html",
+      "file": "258.html",
+      "sha256": "7c9eb3a6e460733b2979a7c720d3a23b820a009f917a752e45070536516ebde1",
+      "title": "2022国考申论真题及答案解析（副省级)",
+      "region": "全国",
+      "year": 2022,
+      "category": "副省级",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        10,
+        15,
+        20,
+        20,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/257.html",
+      "file": "257.html",
+      "sha256": "6f58286794edc8d13d1c8d3e057d941c7b2fccce166a905d1b954d23b6980526",
+      "title": "2022国考申论真题答案及解析（行政执法卷)",
+      "region": "全国",
+      "year": 2022,
+      "category": "行政执法卷",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        15,
+        15,
+        20,
+        20,
+        30
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10643.html",
+      "file": "10643.html",
+      "sha256": "43765deccd8d49071bb2f8b952a5a4e6da273e98dbe2914c6c9acd9343cc06b8",
+      "title": "2026安徽省考申论真题及答案解析（B卷）",
+      "region": "安徽",
+      "year": 2026,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10642.html",
+      "file": "10642.html",
+      "sha256": "95182d9d60f318c31f9a09e4431a9771c00ed12528182ce3964613df344d3f6b",
+      "title": "2026安徽省考申论真题及答案解析（C卷）",
+      "region": "安徽",
+      "year": 2026,
+      "category": "C卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10641.html",
+      "file": "10641.html",
+      "sha256": "03015ebcda4b1cd184f59836e025ce5e01b31a6069565908f09883af42fb38c1",
+      "title": "2026安徽省考申论真题及答案解析（A卷）",
+      "region": "安徽",
+      "year": 2026,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/3661.html",
+      "file": "3661.html",
+      "sha256": "00888629146401967826205d945fa7e495f1a8de8570d819d4a2f35008aef5d5",
+      "title": "2022安徽省考申论真题及答案解析（C卷）",
+      "region": "安徽",
+      "year": 2022,
+      "category": "C卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        25,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1268.html",
+      "file": "1268.html",
+      "sha256": "f291c32cd89683859d15b10fec023604d39f777609a69d9a54ef813f641c4335",
+      "title": "2022安徽省考申论真题及答案解析（B卷）",
+      "region": "安徽",
+      "year": 2022,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        25,
+        25,
+        30
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1267.html",
+      "file": "1267.html",
+      "sha256": "69145d1b69106413346ccf13ff93e05b97f948cf8dbfbfff70062fa298776762",
+      "title": "2022安徽省考申论真题及答案解析（A卷）",
+      "region": "安徽",
+      "year": 2022,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6693.html",
+      "file": "6693.html",
+      "sha256": "c30f9639a3876b14c43cdade8f082f6f7fecc80bf731f455bbfe2fda0fa33974",
+      "title": "2023北京公务员申论真题及答案解析",
+      "region": "北京",
+      "year": 2023,
+      "category": "申论",
+      "questionCount": 4,
+      "materialCount": 6,
+      "scores": [
+        20,
+        15,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1276.html",
+      "file": "1276.html",
+      "sha256": "0a8dbefe6ddb442c07db02cfcebd902749b164ad637c845fabb586eae9677862",
+      "title": "2022北京公务员申论真题及答案解析",
+      "region": "北京",
+      "year": 2022,
+      "category": "申论",
+      "questionCount": 4,
+      "materialCount": 10,
+      "scores": [
+        20,
+        15,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1284.html",
+      "file": "1284.html",
+      "sha256": "7da3f9d17d54c2f3838ba5b719dba05bdfb343ab35ebfd1fd22e77eef82eb0f6",
+      "title": "2022重庆公务员申论真题及答案解析（一卷）",
+      "region": "重庆",
+      "year": 2022,
+      "category": "一卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10399.html",
+      "file": "10399.html",
+      "sha256": "9676e50492b2969ab7a82cdc3efe0fa61dcb7d1e4b647e2dd353bb8c5019efb9",
+      "title": "2022福建省考申论真题及答案解析（行政执法卷）",
+      "region": "福建",
+      "year": 2022,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        25,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/5385.html",
+      "file": "5385.html",
+      "sha256": "f44c14cd6ef69510a6cff6254b44ad5779e704d0ba2c57d00f9a97fa3452a430",
+      "title": "2022福建省考申论真题及答案解析（县乡卷）",
+      "region": "福建",
+      "year": 2022,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        25,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/5384.html",
+      "file": "5384.html",
+      "sha256": "248d20b87e8e5a8ae00999b3e5ede65491672e238c9aef399d8efc4f96bfe3c9",
+      "title": "2022福建省考申论真题及答案解析（省市卷）",
+      "region": "福建",
+      "year": 2022,
+      "category": "省市卷",
+      "questionCount": 3,
+      "materialCount": 4,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/5395.html",
+      "file": "5395.html",
+      "sha256": "2820899763f015c5be59f43ec1f2e575e318e2e119841a7ed0cdde91711aa78a",
+      "title": "2023广东省考申论真题及答案解析（县级卷）",
+      "region": "广东",
+      "year": 2023,
+      "category": "县级卷",
+      "questionCount": 3,
+      "materialCount": 9,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1301.html",
+      "file": "1301.html",
+      "sha256": "24c8fefc59c69f3e240d213efa08caf2312ed0b30688192c3a3a53a915b0c787",
+      "title": "2022广东省考申论真题及答案解析（县级卷）",
+      "region": "广东",
+      "year": 2022,
+      "category": "县级卷",
+      "questionCount": 3,
+      "materialCount": 7,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1300.html",
+      "file": "1300.html",
+      "sha256": "ac4b6d4a9fa372debd1c245f95e5dd643614d49712370cbf36a30513432f777c",
+      "title": "2022广东省考申论真题及答案解析（乡镇卷）",
+      "region": "广东",
+      "year": 2022,
+      "category": "乡镇卷",
+      "questionCount": 5,
+      "materialCount": 1,
+      "scores": [
+        15,
+        15,
+        20,
+        20,
+        30
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/3656.html",
+      "file": "3656.html",
+      "sha256": "2e033d69ae0a8cd631bab642940f7844d4016b96eb665baf22a3e1d4c2a5ed4e",
+      "title": "2022广西公务员申论真题及答案解析（A类）",
+      "region": "广西",
+      "year": 2022,
+      "category": "A类",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6697.html",
+      "file": "6697.html",
+      "sha256": "275f466d3365ae891e0749e4ec12351616e9bb78129a1386710475e1b7774a88",
+      "title": "2023河北省考申论真题及答案解析（A卷）",
+      "region": "河北",
+      "year": 2023,
+      "category": "A卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/10400.html",
+      "file": "10400.html",
+      "sha256": "f242998ded90febb973b46f35cd0c6936b61a2e662552581b40062ccf83cfd2f",
+      "title": "2022河北省考申论真题及答案解析（乡镇卷）",
+      "region": "河北",
+      "year": 2022,
+      "category": "乡镇卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/3659.html",
+      "file": "3659.html",
+      "sha256": "d556af7417409b891e21361111307b6b88486b091392361e6f44a3602f82932a",
+      "title": "2022河北省考申论真题及答案解析（县级卷）",
+      "region": "河北",
+      "year": 2022,
+      "category": "县级卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        25,
+        20,
+        15,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/3658.html",
+      "file": "3658.html",
+      "sha256": "9e195cc923878fff15ddda66aa0aac1d72e8a352996238824708ae7b345a592f",
+      "title": "2022河南省考申论真题及答案解析（县级卷）",
+      "region": "河南",
+      "year": 2022,
+      "category": "县级卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/4398.html",
+      "file": "4398.html",
+      "sha256": "17196f5cf0ba6ad3df9d869ad2bb4caf0bffb2e7dc0bff49834af33cdc1a4d9b",
+      "title": "2022黑龙江省考申论真题及答案解析（省直卷）",
+      "region": "黑龙江",
+      "year": 2022,
+      "category": "省直卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1345.html",
+      "file": "1345.html",
+      "sha256": "22bb1d5eeeb6865a9018376a846292c775e628698aea1a7736372c77fc1fc68c",
+      "title": "2022黑龙江省考申论真题及答案解析（县乡卷）",
+      "region": "黑龙江",
+      "year": 2022,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/4399.html",
+      "file": "4399.html",
+      "sha256": "f0e1801a0bd3d078c98d5c71a671261f63a377896cbc01bc26605d016c20ee38",
+      "title": "2022湖南省考申论真题及答案解析（县乡卷）",
+      "region": "湖南",
+      "year": 2022,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/5389.html",
+      "file": "5389.html",
+      "sha256": "57d7d56c5b0404de222d02e9512c6b938b8cc358729a922b9c156c1af41e1468",
+      "title": "2022湖北省考申论真题及答案解析（市县卷）",
+      "region": "湖北",
+      "year": 2022,
+      "category": "市县卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/4400.html",
+      "file": "4400.html",
+      "sha256": "d2aa2f016312ed32420fa85ba952e9bff3517b273b586e91312e85df87978628",
+      "title": "2022吉林省考申论真题及答案解析（丙卷）",
+      "region": "吉林",
+      "year": 2022,
+      "category": "丙卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        25,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1195.html",
+      "file": "1195.html",
+      "sha256": "897c683cbb2b9381546174c6f85e4e698eb7f25c37f948776b1393aaad400e9a",
+      "title": "2022江苏省考申论真题及答案解析（C类）",
+      "region": "江苏",
+      "year": 2022,
+      "category": "C类",
+      "questionCount": 4,
+      "materialCount": 6,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1194.html",
+      "file": "1194.html",
+      "sha256": "ff4ef4e6ae6ac24d2622578324bfbb95784c3d962c6dcf877975c1d7de69429c",
+      "title": "2022江苏省考申论真题及答案解析（B类）",
+      "region": "江苏",
+      "year": 2022,
+      "category": "B类",
+      "questionCount": 5,
+      "materialCount": 7,
+      "scores": [
+        10,
+        15,
+        20,
+        15,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1193.html",
+      "file": "1193.html",
+      "sha256": "2e7b6be42c63a9a6c95aa195eb033295061c161d62f8e2432b3272acd3756dc2",
+      "title": "2022江苏省考申论真题及答案解析（A类）",
+      "region": "江苏",
+      "year": 2022,
+      "category": "A类",
+      "questionCount": 4,
+      "materialCount": 7,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1409.html",
+      "file": "1409.html",
+      "sha256": "d4c4163adf0d37f90ac6557ed5b465812735c33694d4b67f654419ef5afac205",
+      "title": "2022辽宁省考申论真题及答案解析（B卷）",
+      "region": "辽宁",
+      "year": 2022,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/4401.html",
+      "file": "4401.html",
+      "sha256": "83065b38ad64de9bb41a958904a6efc026d7d165d4445fd45929980d15483f0a",
+      "title": "2022内蒙古公务员申论真题及答案解析（盟市以上卷）",
+      "region": "内蒙古",
+      "year": 2022,
+      "category": "盟市以上卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        25,
+        15,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1433.html",
+      "file": "1433.html",
+      "sha256": "ef163b574dfa6a549a95eaa46dd2395a79d5e43ddc27963732c9ce497923ba1b",
+      "title": "2022青海省考申论真题及答案解析（县乡卷）",
+      "region": "青海",
+      "year": 2022,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/5397.html",
+      "file": "5397.html",
+      "sha256": "23f081eb7d6b4b3a29f662de639120f159f8b0354a9d1b038fc35c69ba3be6f7",
+      "title": "2023陕西省考申论真题及答案解析（B卷）",
+      "region": "陕西",
+      "year": 2023,
+      "category": "B卷",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        15,
+        20,
+        30,
+        35,
+        50
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1451.html",
+      "file": "1451.html",
+      "sha256": "c5501195f5e5cfbc5b0efe15611016afc6243c89eb83b3dbd2ca8178870e9ef1",
+      "title": "2022陕西省考申论真题及答案解析（B卷）",
+      "region": "陕西",
+      "year": 2022,
+      "category": "B卷",
+      "questionCount": 5,
+      "materialCount": 5,
+      "scores": [
+        15,
+        20,
+        30,
+        35,
+        50
+      ],
+      "totalScore": 150,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/6706.html",
+      "file": "6706.html",
+      "sha256": "3f0caefcf84f0375f8cb1ae8786ce38c9fea1c72385b33363384ace09453dcb6",
+      "title": "2023四川省考申论真题及答案解析（县乡卷）",
+      "region": "四川",
+      "year": 2023,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1015.html",
+      "file": "1015.html",
+      "sha256": "3503e2539fec934d33f5d369b4d12b6561f176b494a8a0e4628adab6834b56cc",
+      "title": "2022四川省考申论真题及答案解析（行政执法卷）",
+      "region": "四川",
+      "year": 2022,
+      "category": "行政执法卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        25,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1014.html",
+      "file": "1014.html",
+      "sha256": "e7a7ebbfdaf51ce66e49defd88069fc90d370c813518532233b8019ccea20a84",
+      "title": "2022四川省考申论真题及答案解析（省市卷）",
+      "region": "四川",
+      "year": 2022,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 5,
+      "scores": [
+        15,
+        15,
+        30,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1013.html",
+      "file": "1013.html",
+      "sha256": "cbacf66d00ba3d1a264473b53d39648264c0b644f3a131fe015a0c86087f4710",
+      "title": "2022四川省考申论真题及答案解析（县乡卷）",
+      "region": "四川",
+      "year": 2022,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        10,
+        25,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1443.html",
+      "file": "1443.html",
+      "sha256": "e4dc34ff0fb8df59dc6ecc3869cfacf9f30ab74f5d48706c207e84c2129a59a7",
+      "title": "2022山东省考申论真题及答案解析（A类）",
+      "region": "山东",
+      "year": 2022,
+      "category": "A类",
+      "questionCount": 3,
+      "materialCount": 5,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1442.html",
+      "file": "1442.html",
+      "sha256": "372ec9daf03cfa67bc603d810eae86c523588648bc4f15764e5f63ac21e32e07",
+      "title": "2022山东省考申论真题及答案解析（B类）",
+      "region": "山东",
+      "year": 2022,
+      "category": "B类",
+      "questionCount": 3,
+      "materialCount": 4,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/3663.html",
+      "file": "3663.html",
+      "sha256": "43f83b4d0b35c1d4734d2ac4bef82a637a278093b33c6925ef85e01aeae0d097",
+      "title": "2022上海公务员申论真题及答案解析（B卷）",
+      "region": "上海",
+      "year": 2022,
+      "category": "B卷",
+      "questionCount": 4,
+      "materialCount": 15,
+      "scores": [
+        20,
+        20,
+        20,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/3657.html",
+      "file": "3657.html",
+      "sha256": "f7b6c9b89381f1cca26dbfdec707103bb4bcfe7a3ae078544a57f435af638e79",
+      "title": "2022山西省考申论真题及答案解析（省市卷）",
+      "region": "山西",
+      "year": 2022,
+      "category": "省市卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        15,
+        20,
+        25,
+        40
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/3464.html",
+      "file": "3464.html",
+      "sha256": "7b770632790f5a88b2bddd52465c54d01d7127f8b522e0df664d7489cb2a863e",
+      "title": "2022山西省考申论真题及答案解析（县乡卷）",
+      "region": "山西",
+      "year": 2022,
+      "category": "县乡卷",
+      "questionCount": 4,
+      "materialCount": 4,
+      "scores": [
+        20,
+        20,
+        25,
+        35
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    },
+    {
+      "url": "https://www.aipta.com/article/1471.html",
+      "file": "1471.html",
+      "sha256": "9b63bb988ad5c2c53805b2ab876507f7d69d24c1e3f5e01e7561ebe7efb0143c",
+      "title": "2022天津公务员申论真题及答案解析（市级卷）",
+      "region": "天津",
+      "year": 2022,
+      "category": "市级卷",
+      "questionCount": 3,
+      "materialCount": 3,
+      "scores": [
+        20,
+        30,
+        50
+      ],
+      "totalScore": 100,
+      "subjectiveOnly": false
+    }
+  ]
+}

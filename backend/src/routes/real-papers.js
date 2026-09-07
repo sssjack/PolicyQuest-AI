@@ -6,6 +6,7 @@ const {
   PaperQuestion,
   RealPaperAttempt,
   RealPaperAttemptAnswer,
+  sequelize,
 } = require('../models');
 const { auth } = require('../middleware/auth');
 const { gradeAttempt } = require('../services/real-paper-grading');
@@ -38,6 +39,8 @@ function parsePositiveInt(value, defaultValue, maxValue) {
 function buildWhere(query) {
   const where = { status: 'approved' };
   const { type, system, year, keyword } = query;
+  if (query.region && query.region !== 'all') where.region = String(query.region);
+  if (query.category && query.category !== 'all') where.category = String(query.category);
 
   if (['essay', 'interview'].includes(type)) {
     where.practice_type = type;
@@ -132,6 +135,8 @@ function mapAttemptAnswer(row) {
     duration: answer.duration,
     status: answer.status,
     score: answer.score,
+    maxScore: answer.max_score || 100,
+    questionSnapshot: answer.question_snapshot || null,
     level: answer.level,
     dimensions: answer.dimensions || [],
     evaluation: answer.evaluation || null,
@@ -157,6 +162,8 @@ function mapAttempt(row, includeAnswers = false) {
     answeredCount: attempt.answered_count,
     gradedCount: attempt.graded_count,
     averageScore: attempt.average_score,
+    totalScore: attempt.total_score || 0,
+    maxScore: attempt.max_score || 0,
     totalDuration: attempt.total_duration,
     submittedAt: attempt.submitted_at,
     completedAt: attempt.completed_at,
@@ -175,7 +182,7 @@ router.get('/', auth, async (req, res) => {
       where,
       distinct: true,
       attributes: PAPER_ATTRIBUTES,
-      include: [{
+      include: [...(['summary', 'analysis', 'solution', 'implementation', 'article'].includes(req.query.questionType) ? [{ model: PaperQuestion, attributes: [], required: true, where: { question_type: `essay_${req.query.questionType}` } }] : []), {
         model: PaperMaterial,
         attributes: MATERIAL_SUMMARY_ATTRIBUTES,
         required: false,
@@ -202,6 +209,22 @@ router.get('/', auth, async (req, res) => {
   } catch (e) {
     res.status(500).json({ code: 500, message: '获取真题列表失败', error: e.message });
   }
+});
+
+router.get('/essay-profile', auth, async (req, res) => {
+  try { res.json({ code: 200, data: await require('../services/essay-profile').essayProfile(req.userId) }); }
+  catch (error) { res.status(500).json({ code: 500, message: '获取申论错误画像失败' }); }
+});
+
+router.get('/coverage', auth, async (req, res) => {
+  const { REGION_PATTERNS } = require('../seeds/real-paper-importer');
+  try {
+    const papers = await RealPaper.findAll({ where: { practice_type: 'essay', status: 'approved', year: { [Op.between]: [2022, 2026] } }, attributes: ['id', 'year', 'region', 'category', 'source_url', 'title'] });
+    res.json({ code: 200, data: { years: [2022, 2023, 2024, 2025, 2026], total: papers.length,
+      rows: ['全国', ...REGION_PATTERNS].map(region => ({ region, years: [2022, 2023, 2024, 2025, 2026].map(year => ({ year,
+        papers: papers.filter(p => p.region === region && p.year === year).map(p => ({ id: p.id, title: p.title, category: p.category, sourceUrl: p.source_url })) })) })),
+      note: '待补充表示当前缺少可核验的来源，不表示该地区当年没有考试。统计收录题组，部分广东卷仅含主观题，详情有标签。副省级、地市级按国考分类，各省保留实际卷别。' } });
+  } catch { res.status(500).json({ code: 500, message: '获取题库覆盖情况失败' }); }
 });
 
 router.get('/stats', auth, async (req, res) => {
@@ -294,7 +317,14 @@ router.get('/attempts/:id', auth, async (req, res) => {
       return res.status(404).json({ code: 404, message: '练习记录不存在' });
     }
 
-    return res.json({ code: 200, data: mapAttempt(attempt, true) });
+    const data = mapAttempt(attempt, true);
+    if (attempt.practice_type === 'essay') {
+      const previous = await RealPaperAttemptAnswer.findAll({ where: { user_id: req.userId, status: 'graded',
+        question_id: data.answers.map(a => a.questionId), graded_at: { [Op.lt]: attempt.submitted_at } },
+        attributes: ['question_id', 'report'], order: [['graded_at', 'DESC']], limit: 500 });
+      data.answers = data.answers.map(answer => ({ ...answer, previousRate: previous.find(row => row.question_id === answer.questionId && row.report?.reportVersion === 'essay-v2' && row.report.referenceFingerprint === answer.report?.referenceFingerprint)?.report.percentScore ?? null }));
+    }
+    return res.json({ code: 200, data });
   } catch (e) {
     return res.status(500).json({ code: 500, message: '获取练习报告失败', error: e.message });
   }
@@ -313,6 +343,7 @@ router.post('/attempts', auth, async (req, res) => {
       include: [{
         model: PaperQuestion,
         attributes: QUESTION_ATTRIBUTES,
+        where: { status: 'approved' },
         required: false,
         separate: true,
         order: [['question_no', 'ASC']],
@@ -326,6 +357,7 @@ router.post('/attempts', auth, async (req, res) => {
     if (!questions.length) {
       return res.status(400).json({ code: 400, message: '本卷暂无题目，无法提交' });
     }
+    if (paper.practice_type === 'essay' && questions.some(q => !Number.isFinite(Number(q.score)) || Number(q.score) <= 0)) return res.status(422).json({ code: 422, message: '原题分值尚未核验，暂不能提交评分' });
 
     const answerMap = new Map((Array.isArray(answers) ? answers : []).map(item => [String(item.questionId), item]));
     const missing = questions.filter(question => !String(answerMap.get(String(question.id))?.answer || '').trim());
@@ -333,7 +365,8 @@ router.post('/attempts', auth, async (req, res) => {
       return res.status(400).json({ code: 400, message: '请先填写本卷所有题目后再提交' });
     }
 
-    const attempt = await RealPaperAttempt.create({
+    const attempt = await sequelize.transaction(async transaction => {
+    const created = await RealPaperAttempt.create({
       user_id: req.userId,
       paper_id: paper.id,
       practice_type: paper.practice_type,
@@ -343,14 +376,15 @@ router.post('/attempts', auth, async (req, res) => {
       answered_count: questions.length,
       graded_count: 0,
       average_score: 0,
+      max_score: questions.reduce((sum, q) => sum + Number(q.score || 100), 0),
       total_duration: Math.max(0, Number(totalDuration) || 0),
       submitted_at: new Date(),
-    });
+    }, { transaction });
 
     await RealPaperAttemptAnswer.bulkCreate(questions.map(question => {
       const answerPayload = answerMap.get(String(question.id)) || {};
       return {
-        attempt_id: attempt.id,
+        attempt_id: created.id,
         user_id: req.userId,
         paper_id: paper.id,
         question_id: question.id,
@@ -360,8 +394,12 @@ router.post('/attempts', auth, async (req, res) => {
         user_answer: String(answerPayload.answer || '').trim(),
         duration: Math.max(0, Number(answerPayload.duration) || 0),
         status: 'pending',
+        max_score: Number(question.score),
+        question_snapshot: question.toJSON(),
       };
-    }));
+    }), { transaction });
+    return created;
+    });
 
     setImmediate(() => {
       gradeAttempt(attempt.id).catch(error => {
@@ -376,6 +414,21 @@ router.post('/attempts', auth, async (req, res) => {
   } catch (e) {
     return res.status(500).json({ code: 500, message: '提交真题试卷失败', error: e.message });
   }
+});
+
+router.post('/attempts/:id/regrade', auth, async (req, res) => {
+  try {
+    const attempt = await RealPaperAttempt.findOne({ where: { id: req.params.id, user_id: req.userId } });
+    if (!attempt) return res.status(404).json({ code: 404, message: '练习不存在' });
+    const claimed = await sequelize.transaction(async transaction => {
+      const [count] = await RealPaperAttempt.update({ status: 'grading', error_message: null }, { where: { id: attempt.id, user_id: req.userId, status: { [Op.ne]: 'grading' } }, transaction });
+      if (count) await RealPaperAttemptAnswer.update({ status: 'pending', report: null, evaluation: null, score: null, error_message: null }, { where: { attempt_id: attempt.id, ...(attempt.status === 'failed' ? { status: { [Op.ne]: 'graded' } } : {}) }, transaction });
+      return count;
+    });
+    if (!claimed) return res.status(409).json({ code: 409, message: '本卷正在批改，请等待完成' });
+    setImmediate(() => { void gradeAttempt(attempt.id).catch(() => RealPaperAttempt.update({ status: 'failed', error_message: '批改中断，请重试' }, { where: { id: attempt.id } })).catch(() => undefined); });
+    return res.json({ code: 200, message: '已重新提交批改' });
+  } catch { return res.status(500).json({ code: 500, message: '重新批改失败' }); }
 });
 
 router.get('/:id', auth, async (req, res) => {
@@ -394,6 +447,7 @@ router.get('/:id', auth, async (req, res) => {
         {
           model: PaperQuestion,
           attributes: QUESTION_ATTRIBUTES,
+        where: { status: 'approved' },
           required: false,
           separate: true,
           order: [['question_no', 'ASC']],

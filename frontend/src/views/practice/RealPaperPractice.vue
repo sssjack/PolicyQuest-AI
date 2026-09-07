@@ -23,6 +23,7 @@ import {
 } from '@element-plus/icons-vue'
 import { notesApi, realPaperApi } from '../../api'
 import AbilityRadar from '../../components/AbilityRadar.vue'
+import EssayReport from '../../components/EssayReport.vue'
 import {
   fallbackEvaluation,
   formatSeconds,
@@ -105,6 +106,9 @@ type RemoteAttemptAnswer = {
   report?: any
   errorMessage?: string
   gradedAt?: string
+  maxScore?: number
+  questionSnapshot?: any
+  previousRate?: number | null
 }
 
 type RemoteAttempt = {
@@ -144,6 +148,8 @@ const noteHighlightIds = ref<string[]>([])
 const savingNote = ref(false)
 const ANSWER_GRID_COLUMNS = 25
 let timerId: number | undefined
+let pollId: number | undefined
+let disposed = false
 let allowLeave = false
 let noteHighlightSequence = 0
 
@@ -164,6 +170,7 @@ const currentAttemptAnswer = computed(() => {
   return remoteAttempt.value?.answers?.find(item => String(item.questionId) === questionId) || null
 })
 const currentInterviewReport = computed(() => currentAttemptAnswer.value?.report || null)
+const currentEssayReport = computed(() => currentInterviewReport.value?.reportVersion === 'essay-v2' ? currentInterviewReport.value : null)
 const hasReviewReport = computed(() => reviewMode.value && Boolean(currentInterviewReport.value || currentEvaluation.value))
 const currentReportScore = computed(() => normalizeDisplayScore(
   currentInterviewReport.value?.score ?? currentEvaluation.value?.score ?? 0,
@@ -182,7 +189,11 @@ const shouldPromptOnLeave = computed(() => Boolean(paper.value.id && hasWork.val
 const activeMaterialIndex = computed(() => Math.max(0, paper.value.materials.findIndex(material => material.id === activeMaterialId.value)))
 const activeMaterialLabel = computed(() => `材料${activeMaterialIndex.value + 1}`)
 const currentQuestionLabel = computed(() => `题${currentIndex.value + 1}`)
-const wordLimitText = computed(() => (currentQuestion.value.wordLimit > 0 ? `${currentQuestion.value.wordLimit} 字以内` : '口述不限字'))
+const wordLimitText = computed(() => {
+  if (paper.value.type === 'interview') return '口述不限字'
+  const original = [currentQuestion.value.prompt, ...currentQuestion.value.requirements].join(' ').match(/不少于\s*\d+\s*字/)
+  return currentQuestion.value.wordLimit > 0 ? `${currentQuestion.value.wordLimit} 字以内` : original?.[0] || '按题干字数要求作答'
+})
 const wordLimitBase = computed(() => (currentQuestion.value.wordLimit > 0 ? currentQuestion.value.wordLimit : 500))
 const wordProgress = computed(() => Math.min(100, Math.round((wordCount.value / wordLimitBase.value) * 100)))
 const readerMaterialHtml = computed(() => buildReaderHtml(activeMaterial.value.content || activeMaterial.value.summary || ''))
@@ -200,6 +211,7 @@ const submitPaperTip = computed(() => {
   return allAnswered.value ? '提交本卷' : '请先填写本卷所有题目'
 })
 const reviewEmptyTitle = computed(() => {
+  if (reviewMode.value && remoteAttempt.value?.status === 'failed') return '批改未完成'
   if (reviewMode.value && remoteAttempt.value?.status !== 'graded') return 'AI 正在批改中'
   return '填写全卷后提交，AI 将逐题批改'
 })
@@ -243,6 +255,8 @@ watch(
       const nextPaper = mapBackendPaper(response.data)
       paper.value = nextPaper
       resetWorkspace()
+      const requestedIndex = nextPaper.questions.findIndex(q => q.id === String(route.query.questionId))
+      currentIndex.value = Math.max(0, requestedIndex)
       if (reviewMode.value && route.query.attemptId) {
         await loadAttemptDetail(String(route.query.attemptId))
       } else if (route.query.mode === 'local-review') {
@@ -277,6 +291,8 @@ onMounted(() => {
 })
 
 onBeforeUnmount(() => {
+  disposed = true
+  window.clearTimeout(pollId)
   if (timerId) window.clearInterval(timerId)
   window.removeEventListener('beforeunload', handleBeforeUnload)
   clearNoteHighlights()
@@ -315,8 +331,13 @@ function resetWorkspace() {
 
 async function loadAttemptDetail(attemptId: string) {
   const response: any = await realPaperApi.attemptDetail(attemptId)
+  if (disposed || String(route.query.attemptId) !== attemptId) return
   const attempt = response.data as RemoteAttempt
   remoteAttempt.value = attempt
+  paper.value.questions = (attempt.answers || []).map(answer => {
+    const original = paper.value.questions.find(q => q.id === String(answer.questionId))
+    return { ...(original || emptyQuestion), id: String(answer.questionId), title: answer.questionTitle, prompt: answer.questionPrompt }
+  })
 
   const nextAnswers: Record<string, string> = {}
   const nextEvaluations: Record<string, EvaluationResult> = {}
@@ -329,6 +350,12 @@ async function loadAttemptDetail(attemptId: string) {
       id: questionId,
       title: answer.questionTitle,
       prompt: answer.questionPrompt,
+    }
+    if (answer.questionSnapshot) {
+      question.score = answer.maxScore ?? answer.questionSnapshot.score
+      question.prompt = answer.questionPrompt
+      question.requirements = answer.questionSnapshot.requirements || []
+      question.wordLimit = answer.questionSnapshot.word_limit || 0
     }
     nextAnswers[questionId] = answer.answer || ''
     nextTimers[questionId] = Number(answer.duration) || 0
@@ -347,6 +374,28 @@ async function loadAttemptDetail(attemptId: string) {
   totalSeconds.value = Number(attempt.totalDuration) || Object.values(nextTimers).reduce((sum, value) => sum + value, 0)
   allowLeave = true
   queueAnswerResize()
+  window.clearTimeout(pollId)
+  if (attempt.status === 'grading') pollId = window.setTimeout(() => {
+    loadAttemptDetail(attemptId).catch(() => ElMessage.error('批改状态更新失败，请刷新页面查看'))
+  }, 4000)
+}
+
+async function regradeAttempt() {
+  if (!remoteAttempt.value || submitting.value) return
+  submitting.value = true
+  try {
+    await realPaperApi.regrade(remoteAttempt.value.id)
+    await loadAttemptDetail(String(remoteAttempt.value.id))
+    ElMessage.success('已重新提交批改，完成后自动展示报告')
+  } catch (e: any) { ElMessage.error(e.message || '重新批改失败') }
+  finally { submitting.value = false }
+}
+
+function revealMaterial(id: string) {
+  const material = paper.value.materials[Number(id.replace('M', '')) - 1]
+  if (material) activeMaterialId.value = material.id
+  reviewSourceTab.value = 'materials'
+  document.querySelector('.review-source-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 function restoreLocalRecords(nextPaper: RealPaper) {
@@ -536,7 +585,7 @@ function reportToEvaluation(report: any, answer: string, question: PaperQuestion
   if (!report || typeof report !== 'object') return null
   const local = fallbackEvaluation(answer || '', question, paper.value)
   return {
-    score: Number(report.score) || local.score,
+    score: Number(report.score ?? local.score),
     level: String(report.level || local.level),
     summary: String(report.summary || local.summary),
     dimensions: normalizeScoreDimensions(Array.isArray(report.dimensions) ? report.dimensions : local.dimensions),
@@ -558,11 +607,12 @@ function reportToEvaluation(report: any, answer: string, question: PaperQuestion
 }
 
 function normalizeEvaluation(value: any, answer = currentAnswer.value, question = currentQuestion.value): EvaluationResult {
+  if (value?.reportVersion === 'essay-v2') return value
   const local = fallbackEvaluation(answer, question, paper.value)
   if (!value || isGarbled(value.summary) || !Array.isArray(value.dimensions)) return local
 
   return {
-    score: Number(value.score) || local.score,
+    score: Number(value.score ?? local.score),
     level: String(value.level || local.level),
     summary: String(value.summary || local.summary),
     dimensions: value.dimensions.length
@@ -1051,11 +1101,12 @@ async function saveSelectedNote() {
       </article>
 
       <section class="answer-sheet">
+        <p v-if="paper.type === 'essay'" class="source-notice"><a v-if="paper.sourceUrl" :href="paper.sourceUrl" target="_blank" rel="noopener noreferrer">查看原题来源</a> · {{ paper.sourceName }}<strong v-if="paper.tags.includes('仅收录主观题')"> · 本题组仅收录主观题</strong></p>
         <article v-if="hasReviewReport" class="review-source-card">
           <header class="review-source-head">
             <div>
               <span>{{ paper.type === 'essay' ? '申论' : '面试' }} · {{ currentQuestionLabel }}</span>
-              <h1>{{ currentQuestion.title }}</h1>
+              <h1>{{ currentQuestion.title }}</h1><strong v-if="paper.type === 'essay'">本题 {{ currentEssayReport?.maxScore ?? currentQuestion.score }} 分</strong>
             </div>
             <nav class="review-source-tabs" aria-label="历史记录内容切换">
               <button type="button" :class="{ active: reviewSourceTab === 'answer' }" @click="reviewSourceTab = 'answer'">我的回答</button>
@@ -1115,7 +1166,7 @@ async function saveSelectedNote() {
             </button>
             <div>
               <span>{{ paper.type === 'essay' ? '申论' : '面试' }} · {{ currentQuestionLabel }}</span>
-              <h1>{{ currentQuestion.title }}</h1>
+              <h1>{{ currentQuestion.title }}</h1><strong v-if="paper.type === 'essay'">本题 {{ currentEssayReport?.maxScore ?? currentQuestion.score }} 分</strong>
             </div>
             <button
               type="button"
@@ -1160,7 +1211,9 @@ async function saveSelectedNote() {
           </footer>
         </article>
 
-        <article v-if="currentInterviewReport" class="review-card interview-report-card">
+        <EssayReport v-if="currentEssayReport" :report="currentEssayReport" :previous-rate="currentAttemptAnswer?.previousRate" @material="revealMaterial" />
+        <article v-else-if="currentInterviewReport" class="review-card interview-report-card">
+          <p v-if="paper.type === 'essay'">这是旧版百分制报告。<el-button :loading="submitting" @click="regradeAttempt">按原题分值重新批改</el-button></p>
           <section class="report-section conclusion">
             <div class="score-summary">
               <div class="score-ring" :style="{ '--score-angle': currentReportScoreAngle }">
@@ -1325,6 +1378,7 @@ async function saveSelectedNote() {
         </article>
 
         <article v-else class="review-empty">
+          <el-button v-if="remoteAttempt?.status === 'failed'" :loading="submitting" @click="regradeAttempt">重试未完成的批改</el-button>
           <el-icon><EditPen /></el-icon>
           <strong>{{ reviewEmptyTitle }}</strong>
           <span>{{ reviewEmptyText }}</span>
@@ -1335,6 +1389,7 @@ async function saveSelectedNote() {
 </template>
 
 <style scoped>
+.source-notice{padding:12px 18px;margin:0 0 12px;background:#f3f7fc;border-radius:8px;font-size:13px;line-height:1.7;color:#5c6f86}.source-notice a{color:#235dc8}.source-notice strong{color:#9a5816}
 .focus-practice {
   min-height: 100vh;
   padding: 0 24px 28px;

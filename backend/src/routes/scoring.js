@@ -1,6 +1,7 @@
 const express = require('express');
 const fetch = require('node-fetch');
 const config = require('../config');
+const { auth } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -234,10 +235,18 @@ function normalizeAiEvaluation(value, payload) {
   };
 }
 
-router.post('/evaluate', async (req, res) => {
+router.post('/evaluate', auth, async (req, res) => {
   const { answer, question, type = 'essay' } = req.body || {};
   if (!answer || String(answer).trim().length < 20) {
     return res.status(400).json({ code: 400, message: '请至少输入 20 个字的作答内容' });
+  }
+
+  if (type === 'essay') {
+    try {
+      const { gradeEssayAnswer } = require('../services/essay-grading');
+      const report = await gradeEssayAnswer({ answer, question, paper: req.body.paper || { materials: req.body.materials || [] } });
+      return res.json({ code: 200, data: report });
+    } catch (error) { return res.status(422).json({ code: 422, message: error.message }); }
   }
 
   if (!config.llm.apiUrl || !config.llm.apiKey) {
@@ -263,8 +272,7 @@ router.post('/evaluate', async (req, res) => {
       },
       body: JSON.stringify({
         model: config.llm.model,
-        temperature: 0.35,
-        max_tokens: 5000,
+        max_completion_tokens: 5000,
         response_format: { type: 'json_object' },
         messages: [
           {

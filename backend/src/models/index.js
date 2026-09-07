@@ -149,6 +149,8 @@ const RealPaperAttempt = sequelize.define('RealPaperAttempt', {
   answered_count: { type: DataTypes.INTEGER, defaultValue: 0 },
   graded_count: { type: DataTypes.INTEGER, defaultValue: 0 },
   average_score: { type: DataTypes.FLOAT, defaultValue: 0 },
+  total_score: { type: DataTypes.FLOAT, defaultValue: 0 },
+  max_score: { type: DataTypes.FLOAT, defaultValue: 0 },
   total_duration: { type: DataTypes.INTEGER, defaultValue: 0 },
   submitted_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   completed_at: { type: DataTypes.DATE },
@@ -176,6 +178,8 @@ const RealPaperAttemptAnswer = sequelize.define('RealPaperAttemptAnswer', {
   status: { type: DataTypes.ENUM('pending', 'grading', 'graded', 'failed'), defaultValue: 'pending' },
   score: { type: DataTypes.FLOAT, defaultValue: 0 },
   level: { type: DataTypes.STRING(30), defaultValue: '' },
+  max_score: { type: DataTypes.FLOAT, defaultValue: 100 },
+  question_snapshot: { type: DataTypes.JSON },
   dimensions: { type: DataTypes.JSON },
   evaluation: { type: DataTypes.JSON },
   report: { type: DataTypes.JSON },
@@ -272,6 +276,15 @@ const AiTask = sequelize.define('AiTask', {
   created_by: { type: DataTypes.INTEGER },
 }, { tableName: 'ai_tasks' });
 
+const EssayReference = sequelize.define('EssayReference', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  question_id: { type: DataTypes.INTEGER, allowNull: false },
+  fingerprint: { type: DataTypes.STRING(64), allowNull: false },
+  model: { type: DataTypes.STRING(80), allowNull: false },
+  rubric_version: { type: DataTypes.STRING(30), allowNull: false },
+  reference: { type: DataTypes.JSON, allowNull: false },
+}, { tableName: 'essay_references', indexes: [{ unique: true, fields: ['question_id', 'fingerprint', 'model'] }] });
+
 // Associations
 ArticleSource.hasMany(Article, { foreignKey: 'source_id' });
 Article.belongsTo(ArticleSource, { foreignKey: 'source_id' });
@@ -328,5 +341,5 @@ UserNote.belongsTo(RealPaperAttemptAnswer, { foreignKey: 'attempt_answer_id' });
 module.exports = {
   sequelize, User, ArticleSource, Article, Question,
   RealPaper, PaperMaterial, PaperQuestion, RealPaperAttempt, RealPaperAttemptAnswer,
-  PracticeSession, UserAnswer, WrongQuestion, Favorite, UserNote, AiTask
+  PracticeSession, UserAnswer, WrongQuestion, Favorite, UserNote, AiTask, EssayReference
 };

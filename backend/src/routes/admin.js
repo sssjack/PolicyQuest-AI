@@ -240,7 +240,7 @@ ${articleContent || '请生成与当前时政热点相关的通用练习题目�
 ]
 只输出JSON数组，不要输出其他内容。` }
         ],
-        temperature: 0.7, max_tokens: 4000,
+        max_completion_tokens: 4000,
       }),
     });
 

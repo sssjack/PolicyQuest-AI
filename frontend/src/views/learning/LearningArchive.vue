@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import EssayProfile from "../../components/EssayProfile.vue"
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -263,10 +264,11 @@ const remotePracticeRecords = computed<PracticeRecord[]>(() => remoteAttempts.va
 const allPracticeRecords = computed(() => [...records.value, ...remotePracticeRecords.value])
 const essayRecords = computed(() => allPracticeRecords.value.filter(record => record.type === 'essay'))
 const interviewRecords = computed(() => allPracticeRecords.value.filter(record => record.type === 'interview'))
-const essayRadarItems = computed(() => aggregateReportDimensions(essayRecords.value, essayDimensions))
+const legacyEssayRecords = computed(() => essayRecords.value.filter(record => record.evaluation.reportVersion !== 'essay-v2'))
+const essayRadarItems = computed(() => aggregateReportDimensions(legacyEssayRecords.value, essayDimensions))
 const interviewRadarItems = computed(() => aggregateReportDimensions(interviewRecords.value, interviewDimensions))
 const dimensionRows = computed(() => [
-  ...buildDimensionRows('申论', essayRadarItems.value, essayRecords.value.length),
+  ...buildDimensionRows('旧版申论', essayRadarItems.value, legacyEssayRecords.value.length),
   ...buildDimensionRows('面试', interviewRadarItems.value, interviewRecords.value.length),
 ])
 const average = computed(() => averageScore(allPracticeRecords.value))
@@ -296,9 +298,9 @@ const archiveStats = computed(() => [
 ])
 
 const reportStats = computed(() => [
-  { label: '预测分', value: average.value ? average.value.toFixed(1) : '0.0', suffix: '/100' },
-  { label: '申论均分', value: essayAverage.value ? essayAverage.value.toFixed(1) : '--', suffix: essayRecords.value.length ? ` / ${essayRecords.value.length}道` : '' },
-  { label: '面试均分', value: interviewAverage.value ? interviewAverage.value.toFixed(1) : '--', suffix: interviewRecords.value.length ? ` / ${interviewRecords.value.length}道` : '' },
+  { label: '练习得分率', value: average.value ? average.value.toFixed(1) : '0.0', suffix: '%' },
+  { label: '申论得分率', value: essayAverage.value ? essayAverage.value.toFixed(1) : '--', suffix: essayRecords.value.length ? ` / ${essayRecords.value.length}道` : '' },
+  { label: '面试得分率', value: interviewAverage.value ? interviewAverage.value.toFixed(1) : '--', suffix: interviewRecords.value.length ? ` / ${interviewRecords.value.length}道` : '' },
 ])
 
 const noteItems = computed(() => userNotes.value)
@@ -375,6 +377,7 @@ function buildDimensionRows(typeLabel: string, dimensions: ScoreDimension[], sam
 }
 
 function normalizeAttemptEvaluation(answer: RemoteAttemptAnswer): EvaluationResult {
+  if (answer.evaluation?.reportVersion === 'essay-v2') return answer.evaluation
   if (answer.evaluation) {
     return {
       score: Number(answer.evaluation.score || answer.score || 0),
@@ -761,6 +764,7 @@ function formatShortDate(value?: string) {
         </article>
       </section>
 
+      <EssayProfile v-if="activeTab === 'report' || activeTab === 'wrong'" />
       <section v-if="activeTab === 'history'" class="archive-panel history-view">
         <div class="panel-toolbar">
           <div class="sub-tabs">
@@ -809,10 +813,10 @@ function formatShortDate(value?: string) {
       <section v-else-if="activeTab === 'report'" class="report-view">
         <div class="report-grid">
           <article class="score-card">
-            <h2>预测分</h2>
+            <h2>练习得分率</h2>
             <div class="score-ring" :style="{ '--score-angle': scoreAngle }">
               <strong>{{ average ? average.toFixed(1) : '0.0' }}</strong>
-              <span>满分100</span>
+              <span>得分率 %</span>
             </div>
             <div class="score-lines">
               <div v-for="item in reportStats" :key="item.label">
@@ -823,10 +827,10 @@ function formatShortDate(value?: string) {
           </article>
 
           <article class="radar-card">
-            <h2>申论能力雷达</h2>
+            <h2>旧版申论能力雷达</h2>
             <AbilityRadar v-if="essayRadarItems.length" :items="essayRadarItems" :height="318" />
             <div v-else class="mini-empty">
-              <strong>暂无申论评分样本</strong>
+              <strong>暂无旧版评分样本；新版能力见上方档案</strong>
               <span>完成申论真题并提交 AI 评分后生成。</span>
             </div>
             <div class="legend-row">

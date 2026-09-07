@@ -42,6 +42,17 @@ async function start() {
     console.log('Database connected');
     await sequelize.sync();
     console.log('Database synced');
+    const { RealPaperAttempt, RealPaperAttemptAnswer } = require('./models');
+    const { Op } = require('sequelize');
+    // 单实例启动时把上次进程中断的任务标为可重试，避免永久停在“批改中”。
+    await sequelize.transaction(async transaction => {
+      const interrupted = await RealPaperAttempt.findAll({ where: { status: 'grading' }, attributes: ['id'], transaction });
+      if (interrupted.length) {
+        const ids = interrupted.map(a => a.id);
+        await RealPaperAttemptAnswer.update({ status: 'failed', error_message: '服务重启导致批改中断，请重试' }, { where: { attempt_id: ids, status: { [Op.in]: ['pending', 'grading'] } }, transaction });
+        await RealPaperAttempt.update({ status: 'failed', error_message: '服务重启导致批改中断，请重试未完成题目' }, { where: { id: ids }, transaction });
+      }
+    });
 
     const { seedData } = require('./seeds/initial');
     await seedData();

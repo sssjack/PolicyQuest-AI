@@ -123,6 +123,7 @@ function detectSystem(title) {
 }
 
 function detectRegion(title) {
+  if (/深圳|广州/.test(title)) return '广东';
   const match = REGION_PATTERNS.find(region => title.includes(region));
   return match || '全国';
 }
@@ -183,8 +184,9 @@ function getEssayMaterials(paragraphs) {
   let current = null;
 
   for (const text of source) {
-    const match = text.match(/^材料\s*([一二三四五六七八九十\d]+)\s*$/)
-      || text.match(/^给定(?:资料|材料)\s*([一二三四五六七八九十\d]+)\s*$/);
+    const match = text.match(/^材料\s*([一二三四五六七八九十\d]+)\s*(?:[（(]\d+[）)])?\s*[：:]?$/)
+      || text.match(/^给定(?:资料|材料)\s*([一二三四五六七八九十\d]+)\s*[：:]?$/)
+      || text.match(/^([一二三四五六七八九十\d]+)[.．、]?$/);
     if (match) {
       if (current) {
         materials.push(current);
@@ -217,13 +219,16 @@ function getEssayMaterials(paragraphs) {
 }
 
 function isQuestionLine(text) {
-  return /^\d+[.．、]\s*/.test(text) || /^第[一二三四五六七八九十\d]+题[：:]?/.test(text);
+  return /^\d+[.．、]\s*/.test(text) || /^第[一二三四五六七八九十\d]+题[：:]?/.test(text)
+    || /^[一二三四五六七八九十]+、/.test(text) || /^[（(][一二三四五六七八九十]+[）)]/.test(text);
 }
 
 function stripQuestionPrefix(text) {
   return text
     .replace(/^\d+[.．、]\s*/, '')
     .replace(/^第[一二三四五六七八九十\d]+题[：:]?\s*/, '')
+    .replace(/^[一二三四五六七八九十]+、\s*/, '')
+    .replace(/^[（(][一二三四五六七八九十]+[）)]\s*/, '')
     .trim();
 }
 
@@ -236,7 +241,9 @@ function getQuestionSections(paragraphs) {
   let current = null;
 
   for (const text of source) {
-    if (isQuestionLine(text)) {
+    if (/^注[：:]/.test(text)) continue;
+    const hasScore = value => /[（(]\s*\d{1,3}\s*分\s*[）)]/.test(value);
+    if (isQuestionLine(text) || (questionStart >= 0 && hasScore(text) && !/^要求/.test(text) && (!current || hasScore([current.prompt, ...current.requirements].join(''))))) {
       if (current) {
         sections.push(current);
       }
@@ -244,7 +251,8 @@ function getQuestionSections(paragraphs) {
       continue;
     }
     if (current) {
-      current.requirements.push(text);
+      if (!current.prompt || (!hasScore(current.prompt) && hasScore(text))) current.prompt += text;
+      else current.requirements.push(text);
     }
   }
   if (current) {
@@ -255,9 +263,11 @@ function getQuestionSections(paragraphs) {
 }
 
 function detectEssayQuestionType(prompt) {
-  if (/写一篇|自拟题目|自选角度|文章|作文/.test(prompt)) {
+  if (/写一篇[\s\S]{0,40}(文章|议论文)|自拟(题目|标题)[\s\S]{0,80}(文章|议论文)|撰写[\s\S]{0,20}议论文/.test(prompt)) {
     return 'essay_article';
   }
+  if (/讲话稿|发言稿|汇报提纲|宣传稿|倡议书|建议书|工作简报|调研报告|情况报告|短评|通知|公开信/.test(prompt)) return 'essay_implementation';
+  if (/概括|归纳|总结/.test(prompt) && !/提出[\s\S]{0,15}(对策|建议)/.test(prompt)) return 'essay_summary';
   if (/建议|对策|措施|解决|提出/.test(prompt)) {
     return 'essay_solution';
   }
@@ -299,20 +309,22 @@ function detectInterviewQuestionType(prompt, title) {
 }
 
 function parseScore(prompt, fallback) {
-  const score = Number.parseInt(prompt.match(/[（(]?(\d{1,3})分[）)]?/)?.[1] || '', 10);
+  const score = Number.parseInt(String(prompt).normalize('NFKC').match(/[（(]\s*(\d{1,3})\s*分\s*[）)]/)?.[1] || '', 10);
   return Number.isFinite(score) ? score : fallback;
 }
 
 function parseWordLimit(prompt, requirements, fallback) {
-  const text = [prompt, ...requirements].join('\n');
+  const text = [prompt, ...requirements].join('\n').normalize('NFKC');
   const direct = text.match(/不超过\s*(\d{2,4})\s*字|(\d{2,4})\s*字以内/);
   if (direct) {
     return Number.parseInt(direct[1] || direct[2], 10);
   }
-  const range = text.match(/(\d{2,4})\s*[—～~-]\s*(\d{2,4})\s*字/);
+  const range = text.match(/(\d{2,4})\s*[—～~－-]\s*(\d{2,4})\s*字/);
   if (range) {
     return Number.parseInt(range[2], 10);
   }
+  const approximate = text.match(/(\d{2,4})\s*字左右/);
+  if (approximate) return Number.parseInt(approximate[1], 10);
   return fallback;
 }
 
@@ -324,14 +336,14 @@ function buildQuestionTitle(prompt, no) {
 
 function getEssayQuestions(paragraphs) {
   return getQuestionSections(paragraphs).map((section, index) => {
-    const questionType = detectEssayQuestionType(section.prompt);
+    const questionType = `essay_${require('../services/essay-rubric').questionKind({ prompt: section.prompt })}`;
     return {
       questionNo: index + 1,
       questionType,
       title: buildQuestionTitle(section.prompt, index + 1),
       prompt: section.prompt,
-      score: parseScore(section.prompt, questionType === 'essay_article' ? 35 : 20),
-      wordLimit: parseWordLimit(section.prompt, section.requirements, questionType === 'essay_article' ? 1200 : 500),
+      score: parseScore([section.prompt, ...section.requirements].join('\n'), null),
+      wordLimit: parseWordLimit(section.prompt, section.requirements, 0),
       suggestedMinutes: questionType === 'essay_article' ? 70 : 25,
       requirements: section.requirements.length ? section.requirements : ['紧扣材料', '条理清晰', '按题干要求作答'],
       dimensions: questionType === 'essay_article'
@@ -588,10 +600,14 @@ async function savePaper(paperData) {
       imported_at: new Date(),
     }, { transaction });
 
-    await PaperMaterial.destroy({ where: { paper_id: paper.id }, transaction });
-    await PaperQuestion.destroy({ where: { paper_id: paper.id }, transaction });
+    // 按原题编号复用主键，避免重导题库删除已有答案、笔记和引用关系。
+    const existingMaterials = await PaperMaterial.findAll({ where: { paper_id: paper.id }, transaction });
+    const existingQuestions = await PaperQuestion.findAll({ where: { paper_id: paper.id }, transaction });
+    const obsoleteQuestionIds = existingQuestions.filter(q => !paperData.questions.some(next => next.questionNo === q.question_no)).map(q => q.id);
+    if (obsoleteQuestionIds.length) await PaperQuestion.update({ status: 'archived' }, { where: { id: obsoleteQuestionIds }, transaction });
 
     await PaperMaterial.bulkCreate(paperData.materials.map(material => ({
+      id: existingMaterials.find(item => item.material_no === material.materialNo)?.id,
       paper_id: paper.id,
       material_no: material.materialNo,
       title: material.title,
@@ -599,9 +615,10 @@ async function savePaper(paperData) {
       content: material.content,
       word_count: material.wordCount,
       source_url: paperData.sourceUrl,
-    })), { transaction });
+    })), { transaction, updateOnDuplicate: ['title', 'summary', 'content', 'word_count', 'source_url', 'updated_at'] });
 
     await PaperQuestion.bulkCreate(paperData.questions.map(question => ({
+      id: existingQuestions.find(item => item.question_no === question.questionNo)?.id,
       paper_id: paper.id,
       question_no: question.questionNo,
       question_type: question.questionType,
@@ -615,7 +632,7 @@ async function savePaper(paperData) {
       sample_answer: question.sampleAnswer,
       source_url: paperData.sourceUrl,
       status: 'approved',
-    })), { transaction });
+    })), { transaction, updateOnDuplicate: ['question_type', 'title', 'prompt', 'score', 'word_limit', 'suggested_minutes', 'requirements', 'dimensions', 'sample_answer', 'source_url', 'status', 'updated_at'] });
 
     return paper.id;
   });
@@ -693,4 +710,6 @@ module.exports = {
   importRealPaperUrls,
   collectPapers,
   parsePaper,
+  savePaper,
+  REGION_PATTERNS,
 };

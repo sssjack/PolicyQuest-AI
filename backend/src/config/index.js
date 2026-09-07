@@ -14,7 +14,7 @@ const llm = {
     process.env.LLM_API_KEY ||
     process.env.OPENAI_API_KEY ||
     process.env.DEEPSEEK_API_KEY,
-  model: process.env.APIYI_MODEL || process.env.LLM_MODEL || process.env.DEEPSEEK_MODEL || 'gpt-5.4-thinking-all',
+  model: process.env.APIYI_MODEL || process.env.LLM_MODEL || process.env.DEEPSEEK_MODEL || 'gpt-5.6-luna',
 };
 
 module.exports = {
