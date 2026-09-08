@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import EssayProfile from "../../components/EssayProfile.vue"
+import EssayPaperHistory from '../../components/EssayPaperHistory.vue'
 import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
@@ -38,7 +39,7 @@ import {
   type PracticeRecord,
   type ScoreDimension,
 } from '../../data/policyQuest'
-import { useUserStore } from '../../store/user'
+import UserAccountMenu from '../../components/UserAccountMenu.vue'
 
 type ArchiveTab = 'history' | 'report' | 'wrong' | 'notes' | 'favorite'
 type HistoryFilter = 'all' | 'completed' | 'draft'
@@ -140,7 +141,6 @@ type UserNote = {
 
 const route = useRoute()
 const router = useRouter()
-const userStore = useUserStore()
 
 const records = ref<PracticeRecord[]>([])
 const drafts = ref<PracticeDraft[]>([])
@@ -213,8 +213,6 @@ const historyFilters: Array<{ key: HistoryFilter; label: string }> = [
 ]
 
 const activeTab = computed<ArchiveTab>(() => normalizeTab(route.query.tab || (route.path === '/report' ? 'report' : 'history')))
-const currentUserName = computed(() => userStore.user?.nickname || userStore.user?.username || '同学')
-const currentUserInitial = computed(() => currentUserName.value.slice(0, 1).toUpperCase())
 
 const localHistoryItems = computed(() => buildPracticeHistory(records.value, drafts.value))
 const remoteHistoryItems = computed<RemoteHistoryItem[]>(() => remoteAttempts.value.map(attempt => ({
@@ -490,6 +488,7 @@ function stopAttemptPolling() {
 
 function openHistoryItem(item: ArchiveHistoryItem) {
   if (isRemoteHistoryItem(item)) {
+    if (item.type === 'essay') { router.push(routeTarget(`/paper-report/${item.attemptId}`)); return }
     router.push(routeTarget(`/practice/${item.paperId}`, {
       from: 'history',
       mode: 'review',
@@ -728,9 +727,7 @@ function formatShortDate(value?: string) {
           <strong>PolicyQuest</strong>
         </router-link>
 
-        <button class="avatar-button" type="button" @click="router.push(routeTarget('/profile'))" :aria-label="`${currentUserName}的个人档案`">
-          {{ currentUserInitial }}
-        </button>
+        <UserAccountMenu />
       </div>
     </header>
 
@@ -764,6 +761,7 @@ function formatShortDate(value?: string) {
         </article>
       </section>
 
+      <EssayPaperHistory v-if="activeTab === 'report'" />
       <EssayProfile v-if="activeTab === 'report' || activeTab === 'wrong'" />
       <section v-if="activeTab === 'history'" class="archive-panel history-view">
         <div class="panel-toolbar">

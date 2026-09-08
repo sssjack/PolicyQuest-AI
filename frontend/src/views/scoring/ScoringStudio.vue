@@ -16,6 +16,7 @@ import {
   UserFilled,
 } from '@element-plus/icons-vue'
 import AbilityRadar from '../../components/AbilityRadar.vue'
+import UserAccountMenu from '../../components/UserAccountMenu.vue'
 import { practiceApi, realPaperApi, statsApi } from '../../api'
 import {
   aggregateDimensions,
@@ -32,7 +33,6 @@ import {
   type PracticeType,
   type RealPaper,
 } from '../../data/policyQuest'
-import { useUserStore } from '../../store/user'
 
 type PaperTypeFilter = 'all' | PracticeType
 
@@ -95,7 +95,6 @@ type EntryCard = {
 
 const route = useRoute()
 const router = useRouter()
-const userStore = useUserStore()
 
 const records = ref<PracticeRecord[]>([])
 const drafts = ref<PracticeDraft[]>([])
@@ -109,8 +108,6 @@ const searchText = ref('')
 const activeType = ref<PaperTypeFilter>('all')
 const loading = ref(true)
 
-const currentUserName = computed(() => userStore.user?.nickname || userStore.user?.username || '同学')
-const currentUserInitial = computed(() => currentUserName.value.slice(0, 1).toUpperCase())
 
 const typeTabs = [
   { key: 'all' as const, label: '全部真题' },
@@ -364,9 +361,7 @@ async function loadDashboardData() {
           <strong>PolicyQuest</strong>
         </router-link>
 
-        <button class="avatar-button" type="button" @click="router.push(routeTarget('/profile'))" :aria-label="`${currentUserName}的个人档案`">
-          <span>{{ currentUserInitial }}</span>
-        </button>
+        <UserAccountMenu />
       </div>
     </header>
 
@@ -586,7 +581,7 @@ async function loadDashboardData() {
 
 .fenbi-nav-inner {
   display: grid;
-  grid-template-columns: 220px minmax(0, 1fr) 64px;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   width: min(1420px, calc(100vw - 48px));
   height: 100%;
@@ -1230,7 +1225,7 @@ async function loadDashboardData() {
   }
 
   .fenbi-nav-inner {
-    grid-template-columns: 190px minmax(0, 1fr) 52px;
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .coach-grid,
@@ -1254,7 +1249,7 @@ async function loadDashboardData() {
   }
 
   .fenbi-nav-inner {
-    grid-template-columns: 1fr 42px;
+    grid-template-columns: minmax(0, 1fr) auto;
     gap: 10px;
     min-height: 60px;
   }
@@ -1421,3 +1416,5 @@ async function loadDashboardData() {
   }
 }
 </style>
+
+<style scoped>@media(max-width:430px){.fenbi-brand strong{display:none}}</style>

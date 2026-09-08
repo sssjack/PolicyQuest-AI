@@ -13,7 +13,7 @@ import {
   type PracticeType,
   type RealPaper,
 } from '../../data/policyQuest'
-import { useUserStore } from '../../store/user'
+import UserAccountMenu from '../../components/UserAccountMenu.vue'
 
 type FilterKind = 'recommend' | 'system' | 'region'
 type FilterOption = {
@@ -25,7 +25,6 @@ type FilterOption = {
 
 const route = useRoute()
 const router = useRouter()
-const userStore = useUserStore()
 
 const selectedType = ref<PracticeType>(route.query.type === 'interview' ? 'interview' : 'essay')
 const activeFilterKey = ref('recommend')
@@ -41,8 +40,6 @@ const coverage = ref<any>(null)
 let loadVersion = 0
 const categories = computed(() => [...new Set(papers.value.map(p => p.category))].sort())
 
-const currentUserName = computed(() => userStore.user?.nickname || userStore.user?.username || '同学')
-const currentUserInitial = computed(() => currentUserName.value.slice(0, 1).toUpperCase())
 
 const typeOptions = [
   { value: 'essay' as PracticeType, label: '申论真题', crumb: '公务员申论', title: '申论' },
@@ -242,9 +239,7 @@ function paperMeta(paper: RealPaper) {
           <strong>PolicyQuest</strong>
         </router-link>
 
-        <button class="avatar-button" type="button" @click="router.push(routeTarget('/profile'))" :aria-label="`${currentUserName}的个人档案`">
-          {{ currentUserInitial }}
-        </button>
+        <UserAccountMenu />
       </div>
     </header>
 

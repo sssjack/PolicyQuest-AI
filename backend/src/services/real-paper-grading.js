@@ -1,4 +1,3 @@
-const fetch = require('node-fetch');
 const config = require('../config');
 const {
   RealPaper,
@@ -7,6 +6,7 @@ const {
   RealPaperAttempt,
   RealPaperAttemptAnswer,
 } = require('../models');
+const { requestAi } = require('./ai-request');
 
 const INTERVIEW_RUBRICS = [
   { name: '审题理解', weight: 15, comment: '是否准确识别题型、身份、任务、矛盾焦点和价值取向。' },
@@ -772,17 +772,16 @@ async function gradeInterviewAnswer(payload) {
   const rubricLines = INTERVIEW_RUBRICS.map(item => `${item.name}${item.weight}分：${item.comment}`).join('\n');
 
   try {
-    const response = await fetch(config.llm.apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.llm.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: config.llm.model,
-        max_completion_tokens: 12000,
-        response_format: { type: 'json_object' },
-        messages: [
+    const data = await requestAi({
+      url: config.llm.apiUrl,
+      apiKey: config.llm.apiKey,
+      model: config.llm.model,
+      maxTokens: 12000,
+      responseFormat: { type: 'json_object' },
+      timeout: 70000,
+      purpose: 'interview_grading',
+      ...(payload.auditContext || {}),
+      messages: [
           {
             role: 'system',
             content: '你是 PolicyQuest AI Exam Coach 的资深公务员/事业编结构化面试考官。你熟悉真实面试评分标准，批改必须严格、具体、可改写。不要因为答案字数多、口号多就给高分；要依据审题、分析、逻辑、岗位匹配、应变处置、语言规范逐项评分。不要评价考生肢体动作、仪态举止、眼神表情，因为系统只能看到文字作答。必须输出合法 JSON，不要 Markdown，不要额外解释。',
@@ -834,15 +833,7 @@ ${rubricLines}
 ${answer}`,
           },
         ],
-      }),
-      timeout: 70000,
     });
-
-    if (!response.ok) {
-      throw new Error(`AI 服务返回 HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
     return normalizeReport(extractJson(data.choices?.[0]?.message?.content), payload);
   } catch (error) {
     return {
@@ -880,6 +871,7 @@ async function refreshAttemptStatus(attemptId) {
     completed_at: nextStatus === 'graded' ? new Date() : attempt.completed_at,
     error_message: nextStatus === 'failed' ? '部分或全部题目批改失败' : null,
   });
+  if (nextStatus === 'graded' && attempt.practice_type === 'essay') require('./essay-paper-report').enqueuePaperReport(attemptId);
 }
 
 const runningAttempts = new Set();
@@ -905,7 +897,16 @@ async function gradeAttempt(attemptId) {
         const current = questions.find(q => q.id === row.question_id)?.toJSON() || {};
         const question = { ...current, ...(row.question_snapshot || {}), title: row.question_title, prompt: row.question_prompt };
         try {
-          const report = await (attempt.practice_type === 'essay' ? gradeEssayAnswer : gradeInterviewAnswer)({ answer: row.user_answer, paper, question });
+          const report = await (attempt.practice_type === 'essay' ? gradeEssayAnswer : gradeInterviewAnswer)({
+            answer: row.user_answer,
+            paper,
+            question,
+            auditContext: {
+              userId: attempt.user_id,
+              attemptId: attempt.id,
+              attemptAnswerId: row.id,
+            },
+          });
           return { ...data, status: 'graded', score: report.score, max_score: report.maxScore || 100,
             level: report.level, dimensions: report.dimensions, evaluation: toEvaluation(report), report,
             error_message: null, graded_at: new Date() };

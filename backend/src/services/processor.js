@@ -1,18 +1,19 @@
-const fetch = require('node-fetch');
 const config = require('../config');
 const { Article, Question, AiTask } = require('../models');
 const { Op } = require('sequelize');
+const { requestAi } = require('./ai-request');
 
-async function callDeepSeek(messages, maxTokens = 4000) {
-  const resp = await fetch(config.deepseek.apiUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${config.deepseek.apiKey}` },
-    body: JSON.stringify({
-      model: config.deepseek.model, messages, max_completion_tokens: maxTokens,
-    }),
+async function callDeepSeek(messages, maxTokens = 4000, auditContext = {}) {
+  const data = await requestAi({
+    url: config.deepseek.apiUrl,
+    apiKey: config.deepseek.apiKey,
+    model: config.deepseek.model,
+    messages,
+    maxTokens,
     timeout: 60000,
+    purpose: 'content_processing',
+    ...auditContext,
   });
-  const data = await resp.json();
   if (!data.choices?.[0]?.message?.content) throw new Error('DeepSeek returned empty response');
   return { content: data.choices[0].message.content, usage: data.usage?.total_tokens || 0 };
 }

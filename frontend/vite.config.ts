@@ -10,6 +10,8 @@ export default defineConfig({
     }
   },
   build: {
+    // 保留旧版 Chromium 可识别的媒体查询，避免构建后响应式布局失效。
+    cssTarget: 'chrome90',
     outDir: 'dist',
     assetsDir: 'assets',
   }

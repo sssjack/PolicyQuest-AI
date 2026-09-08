@@ -26,7 +26,9 @@ app.use('/api/stats', require('./routes/stats'));
 app.use('/api/articles', require('./routes/articles'));
 app.use('/api/scoring', require('./routes/scoring'));
 app.use('/api/real-papers', require('./routes/real-papers'));
+app.use('/api/handwriting', require('./routes/handwriting'));
 app.use('/api/notes', require('./routes/notes'));
+app.use('/api/account', require('./routes/account'));
 app.use('/api/admin', require('./routes/admin'));
 
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date().toISOString() }));
@@ -42,7 +44,7 @@ async function start() {
     console.log('Database connected');
     await sequelize.sync();
     console.log('Database synced');
-    const { RealPaperAttempt, RealPaperAttemptAnswer } = require('./models');
+    const { RealPaperAttempt, RealPaperAttemptAnswer, AiRequestLog } = require('./models');
     const { Op } = require('sequelize');
     // 单实例启动时把上次进程中断的任务标为可重试，避免永久停在“批改中”。
     await sequelize.transaction(async transaction => {
@@ -53,6 +55,9 @@ async function start() {
         await RealPaperAttempt.update({ status: 'failed', error_message: '服务重启导致批改中断，请重试未完成题目' }, { where: { id: ids }, transaction });
       }
     });
+
+    await RealPaperAttempt.update({ paper_report_status: 'failed', paper_report_token: null, paper_report_error: '服务重启中断了整卷总结，请重试生成；单题批改已保留' }, { where: { paper_report_status: 'generating' } });
+    await AiRequestLog.update({ status: 'failed', error_message: '服务重启导致AI请求中断' }, { where: { status: 'pending' } });
 
     const { seedData } = require('./seeds/initial');
     await seedData();

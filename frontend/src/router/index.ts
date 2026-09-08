@@ -9,6 +9,7 @@ const routes = [
   { path: '/papers', component: () => import('../views/AppLayout.vue'), meta: { requiresAuth: true }, children: [{ path: '', name: 'TruePaperLibrary', component: () => import('../views/practice/TruePaperLibrary.vue') }] },
   { path: '/history', component: () => import('../views/AppLayout.vue'), meta: { requiresAuth: true }, children: [{ path: '', name: 'PracticeHistory', component: () => import('../views/learning/LearningArchive.vue') }] },
   { path: '/practice/:paperId', name: 'RealPaperPractice', component: () => import('../views/practice/RealPaperPractice.vue'), meta: { requiresAuth: true } },
+  { path: '/paper-report/:attemptId', name: 'EssayPaperReport', component: () => import('../views/learning/EssayPaperReport.vue'), meta: { requiresAuth: true } },
   { path: '/report', component: () => import('../views/AppLayout.vue'), meta: { requiresAuth: true }, children: [{ path: '', name: 'GrowthReport', component: () => import('../views/learning/LearningArchive.vue') }] },
   { path: '/profile', component: () => import('../views/AppLayout.vue'), meta: { requiresAuth: true }, children: [{ path: '', name: 'Profile', component: () => import('../views/auth/ProfilePage.vue') }] },
   { path: '/wrongbook', redirect: { path: '/history', query: { tab: 'wrong' } } },
@@ -27,11 +28,23 @@ const routes = [
     children: [
       { path: '', redirect: '/admin/dashboard' },
       { path: 'dashboard', name: 'AdminDashboard', component: () => import('../views/admin/AdminDashboard.vue') },
-      { path: 'questions', name: 'AdminQuestions', component: () => import('../views/admin/AdminQuestions.vue') },
       { path: 'users', name: 'AdminUsers', component: () => import('../views/admin/AdminUsers.vue') },
+      { path: 'practice-records', name: 'AdminPracticeRecords', component: () => import('../views/admin/AdminPracticeRecords.vue') },
+      { path: 'feedback', name: 'AdminFeedback', component: () => import('../views/admin/AdminFeedback.vue') },
+      { path: 'papers', name: 'AdminPapers', component: () => import('../views/admin/AdminPapers.vue') },
+      { path: 'ai-cost', name: 'AdminAiCost', component: () => import('../views/admin/AdminAiCost.vue') },
+      { path: 'ai-requests', name: 'AdminAiRequests', component: () => import('../views/admin/AdminAiRequests.vue') },
+      { path: 'quality', name: 'AdminQuality', component: () => import('../views/admin/AdminQuality.vue') },
+      { path: 'operations', name: 'AdminOperations', component: () => import('../views/admin/AdminOperations.vue') },
+      { path: 'announcements', name: 'AdminAnnouncements', component: () => import('../views/admin/AdminAnnouncements.vue') },
+      { path: 'packages', name: 'AdminPackages', component: () => import('../views/admin/AdminDeferred.vue'), meta: { deferredTitle: '套餐管理', deferredCode: 'PACKAGE_V2' } },
+      { path: 'orders', name: 'AdminOrders', component: () => import('../views/admin/AdminDeferred.vue'), meta: { deferredTitle: '订单与支付', deferredCode: 'PAYMENT_V2' } },
+      { path: 'ledger', name: 'AdminLedger', redirect: '/admin/users' },
+      { path: 'security', name: 'AdminSecurity', component: () => import('../views/admin/AdminSecurity.vue') },
       { path: ':pathMatch(.*)*', redirect: '/admin/dashboard' },
     ]
   },
+  { path: '/account/:section', name: 'UserAccount', component: () => import('../views/account/UserAccountPage.vue'), meta: { requiresAuth: true } },
 ]
 
 const router = createRouter({

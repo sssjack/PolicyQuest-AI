@@ -21,7 +21,9 @@ import {
   Timer,
   Warning,
 } from '@element-plus/icons-vue'
-import { notesApi, realPaperApi } from '../../api'
+import HandwritingUpload from '../../components/HandwritingUpload.vue'
+import { useUserStore } from '../../store/user'
+import { notesApi, realPaperApi, requestId } from '../../api'
 import AbilityRadar from '../../components/AbilityRadar.vue'
 import EssayReport from '../../components/EssayReport.vue'
 import {
@@ -42,6 +44,7 @@ import {
   type RealPaper,
 } from '../../data/policyQuest'
 
+const userStore = useUserStore()
 const route = useRoute()
 const router = useRouter()
 
@@ -216,6 +219,7 @@ const reviewEmptyTitle = computed(() => {
   return '填写全卷后提交，AI 将逐题批改'
 })
 const reviewEmptyText = computed(() => {
+  if (reviewMode.value && currentAttemptAnswer.value?.status === 'failed') return currentAttemptAnswer.value.errorMessage || '本题批改失败，已保留作答内容，可重试未完成的批改。'
   if (reviewMode.value && remoteAttempt.value?.status === 'failed') return remoteAttempt.value.errorMessage || '本次批改失败，请稍后重新进入报告查看。'
   if (reviewMode.value && currentAttemptAnswer.value?.status !== 'graded') return `本题状态：${currentAttemptAnswer.value?.status === 'failed' ? '批改失败' : 'AI 正在批改中'}，完成后会在这里显示完整报告。`
   return '每道题都有内容后点击提交本卷，系统会后台异步批改并保存报告。'
@@ -275,6 +279,7 @@ watch(
 )
 
 onMounted(() => {
+  if (userStore.isLoggedIn) void userStore.fetchProfile().catch(() => undefined)
   timerId = window.setInterval(() => {
     if (!paper.value.id || loading.value || reviewMode.value) return
     totalSeconds.value += 1
@@ -632,6 +637,7 @@ function normalizeEvaluation(value: any, answer = currentAnswer.value, question 
 }
 
 async function finishPaper() {
+  if (submitting.value) return
   if (reviewMode.value) {
     ElMessage.info('当前正在查看历史报告')
     return
@@ -644,7 +650,7 @@ async function finishPaper() {
 
   try {
     await ElMessageBox.confirm(
-      '提交后整张试卷会进入 AI 批改，批改完成前不能继续修改本次答案。是否确认提交？',
+      `本次提交消耗 ${userStore.user?.paperCost ?? 10} 积分，当前剩余 ${userStore.user?.credits ?? '—'} 积分。提交后整卷进入 AI 批改，失败重试不再扣分。确认提交？`,
       '确认提交本卷',
       {
         confirmButtonText: '确认提交',
@@ -658,7 +664,14 @@ async function finishPaper() {
 
   submitting.value = true
   try {
-    await realPaperApi.submitAttempt({
+    const submissionKey = `pq-submit-${userStore.user?.id}-${paper.value.id}`
+    const payloadHash = JSON.stringify(paper.value.questions.map(q => [q.id, answers.value[q.id]]))
+    let saved: { id: string; payload: string } | null = null
+    try { saved = JSON.parse(localStorage.getItem(submissionKey) || 'null') } catch { /* 损坏缓存可重新生成 */ }
+    if (!saved || saved.payload !== payloadHash) saved = { id: requestId(), payload: payloadHash }
+    localStorage.setItem(submissionKey, JSON.stringify(saved))
+    const submitted: any = await realPaperApi.submitAttempt({
+      requestId: saved.id,
       paperId: paper.value.id,
       totalDuration: totalSeconds.value,
       answers: paper.value.questions.map(question => ({
@@ -667,10 +680,15 @@ async function finishPaper() {
         duration: questionTimers.value[question.id] || 0,
       })),
     })
+    localStorage.removeItem(submissionKey)
+    void userStore.fetchProfile().catch(() => undefined)
     removePracticeDraft(paper.value.id)
     allowLeave = true
     ElMessage.success('本卷已提交，AI 正在后台逐题批改')
-    router.push(routeTarget('/history'))
+    router.push(routeTarget(paper.value.type === 'essay' ? `/paper-report/${submitted.data.id}` : '/history'))
+  } catch (error: any) {
+    ElMessage.error(error?.message || '提交失败，答案已保留，请重试')
+    void userStore.fetchProfile().catch(() => undefined)
   } finally {
     submitting.value = false
   }
@@ -1012,6 +1030,7 @@ async function saveSelectedNote() {
       </section>
 
       <section class="focus-actions" aria-label="作答操作">
+        <span class="practice-credits" :title="`每套真题消耗 ${userStore.user?.paperCost ?? 10} 积分`">剩余积分 <b>{{ userStore.user?.credits ?? '—' }}</b></span>
         <div v-if="noteCaptureMode" class="note-capture-toolbar" aria-label="划词笔记操作">
           <span>{{ noteSelectionText }}</span>
           <button
@@ -1073,6 +1092,9 @@ async function saveSelectedNote() {
       </section>
     </header>
 
+    <div v-if="paper.type === 'essay' && remoteAttempt" class="paper-report-entry">
+      <router-link :to="`/paper-report/${remoteAttempt.id}`">查看本套申论整卷能力诊断 →</router-link>
+    </div>
     <section class="focus-stage" :class="{ 'interview-stage': paper.type === 'interview', 'review-stage': hasReviewReport }">
       <aside v-if="paper.type === 'essay' && !hasReviewReport" class="material-rail" aria-label="材料导航">
         <span>材料</span>
@@ -1186,6 +1208,7 @@ async function saveSelectedNote() {
             <strong v-for="item in currentQuestion.requirements" :key="item">{{ item }}</strong>
           </div>
 
+          <HandwritingUpload v-if="paper.type === 'essay'" :key="currentQuestion.id" v-model="currentAnswer" :disabled="submitting || reviewMode" />
           <div class="answer-input-shell" :class="{ 'essay-grid-shell': paper.type === 'essay' }">
           <textarea
             ref="answerTextarea"
@@ -1211,7 +1234,7 @@ async function saveSelectedNote() {
           </footer>
         </article>
 
-        <EssayReport v-if="currentEssayReport" :report="currentEssayReport" :previous-rate="currentAttemptAnswer?.previousRate" @material="revealMaterial" />
+        <EssayReport v-if="currentEssayReport" :report="currentEssayReport" :answer="currentAttemptAnswer?.answer" :previous-rate="currentAttemptAnswer?.previousRate" @material="revealMaterial" />
         <article v-else-if="currentInterviewReport" class="review-card interview-report-card">
           <p v-if="paper.type === 'essay'">这是旧版百分制报告。<el-button :loading="submitting" @click="regradeAttempt">按原题分值重新批改</el-button></p>
           <section class="report-section conclusion">
@@ -1389,6 +1412,7 @@ async function saveSelectedNote() {
 </template>
 
 <style scoped>
+.paper-report-entry{padding:12px 24px;background:#eef4ff;font-size:14px}.paper-report-entry a{color:#3265ed;text-decoration:none}
 .source-notice{padding:12px 18px;margin:0 0 12px;background:#f3f7fc;border-radius:8px;font-size:13px;line-height:1.7;color:#5c6f86}.source-notice a{color:#235dc8}.source-notice strong{color:#9a5816}
 .focus-practice {
   min-height: 100vh;
@@ -1806,6 +1830,15 @@ async function saveSelectedNote() {
   grid-template-columns: minmax(420px, 0.92fr) minmax(560px, 1.08fr);
   gap: 22px;
   align-items: start;
+}
+
+.review-stage .source-notice {
+  grid-column: 1 / -1;
+  margin-bottom: 0;
+}
+
+.review-stage .answer-sheet > * {
+  min-width: 0;
 }
 
 .interview-stage .answer-sheet {
@@ -2908,3 +2941,5 @@ async function saveSelectedNote() {
   }
 }
 </style>
+
+<style scoped>.practice-credits{padding:8px 10px;border-radius:16px;background:#edf3ff;color:#4670a8;font-size:12px;white-space:nowrap}.practice-credits b{color:#2766e9;font-size:16px}</style>

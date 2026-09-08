@@ -95,7 +95,7 @@ async function handleRegister() {
         <div class="auth-header">
           <p class="page-kicker">Register</p>
           <h2>注册 PolicyQuest</h2>
-          <p>创建账号后自动进入工作台，后续训练记录会保存在你的备考档案中。</p>
+          <p>注册即得100积分，可完成10套申论真题；每套提交消耗10积分。</p>
         </div>
 
         <form class="auth-form" @submit.prevent="handleRegister">

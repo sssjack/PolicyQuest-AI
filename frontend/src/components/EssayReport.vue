@@ -1,18 +1,54 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, nextTick, watch } from 'vue'
+import AnnotatedAnswer from './AnnotatedAnswer.vue'
+import { annotationScore } from '../types/grading'
 
-const props = defineProps<{ report: any; previousRate?: number | null }>()
+const props = defineProps<{ report: any; answer?: string; previousRate?: number | null }>()
 const emit = defineEmits<{ material: [id: string] }>()
 const root = ref<HTMLElement | null>(null)
 const answerKind = ref('safe')
 const pointFilter = ref('all')
-const problemOnly = ref(false)
+const activeAnnotation = ref('')
+const evidenceDimension = ref('')
+const focusedAnchor = ref<{ startOffset: number; endOffset: number; quote: string } | null>(null)
+const dimensionNames = computed(() => Object.fromEntries(props.report.dimensions.map((d: any) => [d.id, d.name])))
+const gradingPoints = computed(() => props.report.answerAnalysis?.rubricPoints || props.report.pointAnalysis || [])
+const supplements = computed(() => props.report.teacherSupplement?.items || [])
+const originalAnswer = computed(() => props.report.originalAnswer ?? props.answer ?? '')
+const trainingPlan = computed(() => props.report.trainingPlan)
+watch(() => props.report, () => { activeAnnotation.value = ''; focusedAnchor.value = null; evidenceDimension.value = ''; pointFilter.value = 'all' })
+function selectAnnotation(id: string) { focusedAnchor.value = null; activeAnnotation.value = id }
+async function showSource(point: any) {
+  activeAnnotation.value = ''
+  focusedAnchor.value = point.sourceAnchor
+  await nextTick()
+  root.value?.querySelector('[data-evidence-id="point-source"]')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+async function openEvidence(id: string) {
+  focusedAnchor.value = null
+  activeAnnotation.value = id.startsWith('A') ? id : ''
+  await nextTick()
+  const element = root.value?.querySelector<HTMLElement>(`[data-evidence-id="${id}"]`)
+  if (element) { element.scrollIntoView({ behavior: 'smooth', block: 'center' }); element.focus({ preventScroll: true }) }
+  else jump('teacher')
+}
+function showDimension(d: any) {
+  evidenceDimension.value = d.id
+  openEvidence(d.annotationIds?.[0] || d.supplementIds?.[0] || '')
+}
+async function showPoint(id: string) {
+  activeAnnotation.value = ''
+  pointFilter.value = 'all'
+  await nextTick()
+  const element = root.value?.querySelector<HTMLDetailsElement>(`[data-point-id="${id}"]`)
+  if (element) { element.open = true; element.scrollIntoView({ behavior: 'smooth', block: 'start' }); element.querySelector('summary')?.focus({ preventScroll: true }) }
+}
+const linkedDimension = computed(() => props.report.dimensions.find((d: any) => d.id === evidenceDimension.value))
 const labels: Record<string, string> = { covered: '已踩中', partial: '部分踩中', missing: '遗漏', incorrect: '表述错误', mixed: '部分有效', effective: '有效信息', redundant: '重复表达', background: '背景描述', irrelevant: '无效扩写', error: '表述错误' }
 const kindLabels: Record<string, string> = { summary: '归纳概括', analysis: '综合分析', solution: '提出对策', implementation: '贯彻执行', article: '大作文' }
-const points = computed(() => props.report.pointAnalysis.filter((p: any) => pointFilter.value === 'all' || p.status === pointFilter.value))
-const sentences = computed(() => props.report.sentenceReviews.filter((s: any) => !problemOnly.value || s.classification !== 'effective'))
+const points = computed(() => gradingPoints.value.filter((p: any) => pointFilter.value === 'all' || p.status === pointFilter.value))
 const selectedAnswer = computed(() => props.report.referenceAnswers.find((a: any) => a.kind === answerKind.value) || props.report.referenceAnswers[0])
-const navigation = [ ['score', '总分与维度'], ['points', '采点与溯源'], ['sentences', '逐句批注'], ['diagnosis', '失分原因'], ['structure', '结构与逻辑'], ['reference', '答案与拆解'], ['training', '下一步训练'] ]
+const navigation = [ ['score', '总分与维度'], ['teacher', 'AI老师批卷'], ['reference', '答案与拆解'], ['training', '下一步训练'] ]
 function jump(id: string) { root.value?.querySelector(`[data-section="${id}"]`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 const display = (value: unknown) => typeof value === 'string' ? value : Array.isArray(value) ? value.join('；') : ''
 </script>
@@ -34,72 +70,30 @@ const display = (value: unknown) => typeof value === 'string' ? value : Array.is
       <h3>分项评分</h3>
       <div class="table-scroll"><table>
         <thead><tr><th>评分维度</th><th>得分 / 满分</th><th>评分依据</th></tr></thead>
-        <tbody><tr v-for="d in report.dimensions" :key="d.name"><th>{{ d.name }}</th><td class="numeric">{{ d.score }} / {{ d.maxScore }}</td><td>{{ d.reason }}</td></tr></tbody>
+        <tbody><tr v-for="d in report.dimensions" :key="d.name"><th>{{ d.name }}</th><td class="numeric">{{ d.score }} / {{ d.maxScore }}</td><td>{{ d.reason }}<button v-if="d.annotationIds?.length || d.supplementIds?.length" type="button" class="evidence-link" @click="showDimension(d)">查看具体依据（{{ (d.annotationIds?.length || 0) + (d.supplementIds?.length || 0) }}） →</button></td></tr></tbody>
         <tfoot><tr><th>合计</th><td>{{ report.score }} / {{ report.maxScore }}</td><td>各维度得分相加，与本题总分一致</td></tr></tfoot>
       </table></div>
       <p class="muted">{{ report.rubricNote }}</p>
     </section>
 
-    <section data-section="points" class="report-section">
-      <h2>{{ report.kind === 'article' ? '材料与立意覆盖诊断' : '参考要点 · 你的踩点情况' }}</h2>
-      <p>{{ report.reference.taskAnalysis }}</p>
-      <p class="muted">{{ report.reference.sourceLabel }}<template v-if="report.kind === 'article'">；本模块不用于作文逐点计分。</template></p>
-      <div class="point-filters" aria-label="筛选采点状态">
-        <button v-for="key in ['all', 'covered', 'partial', 'missing', 'incorrect']" :key="key" type="button" :aria-pressed="pointFilter === key" :class="{ active: pointFilter === key }" @click="pointFilter = key">
-          {{ key === 'all' ? '全部要点' : labels[key] }} <b>{{ key === 'all' ? report.coverage.total : report.coverage[key] }}</b>
-        </button>
-      </div>
-      <details v-for="point in points" :key="point.id" class="point-card" :class="point.status" :open="point.status !== 'covered'">
-        <summary><span class="status">{{ labels[point.status] }}</span><strong>{{ point.point }}</strong><b v-if="report.kind !== 'article'">{{ point.score }} / {{ point.maxScore }}</b></summary>
-        <div class="detail-body">
-          <h4>材料依据 · {{ point.evidence.materialTitle }}</h4>
-          <blockquote>{{ point.evidence.quote }}</blockquote>
-          <button type="button" class="text-button" @click="emit('material', point.evidence.materialId)">定位原材料</button>
-          <p><b>从材料到概括：</b>{{ point.explanation }}</p>
-          <p><b>你的表述：</b>{{ point.userQuote || '没有相关表达' }}</p>
-          <p><b>为什么这样判定：</b>{{ point.reason }}</p>
-          <div class="rewrite"><b>可以直接这样写</b><p>{{ point.rewrite }}</p></div>
-        </div>
-      </details>
-      <p v-if="!points.length" class="muted">本题没有这一状态的要点。</p>
-    </section>
-
-    <section data-section="sentences" class="report-section">
-      <div class="section-heading"><h2>逐句批注 · 修改前后对照</h2><label><input v-model="problemOnly" type="checkbox" />只看需改进的句子</label></div>
-      <article v-for="s in sentences" :key="s.id" class="sentence-card">
-        <header><b>{{ s.id }}</b><span class="status" :class="s.classification">{{ labels[s.classification] }}</span><span class="muted">{{ s.relatedPointIds.join(' · ') }}</span></header>
-        <blockquote>{{ s.text }}</blockquote>
-        <p><b>诊断：</b>{{ s.issue }}</p>
-        <div class="rewrite"><b>替换表达</b><p>{{ s.rewrite }}</p></div>
-        <p><b>改写原因：</b>{{ s.reason }}</p>
-      </article>
-      <p v-if="!sentences.length" class="muted">没有符合当前筛选条件的句子。</p>
-    </section>
-
-    <section data-section="diagnosis" class="report-section">
-      <h2>主要失分原因</h2>
-      <article v-for="(d, index) in report.diagnoses" :key="index" class="diagnosis-card">
-        <h3>{{ d.tag }} · {{ d.problem }}</h3><blockquote>{{ d.original }}</blockquote>
-        <p><b>为什么不好：</b>{{ d.reason }}</p>
-        <div class="rewrite"><b>本题具体改法</b><p>{{ d.rewrite }}</p></div>
-        <p><b>为什么这样改：</b>{{ d.explanation }}</p>
-      </article>
-      <p v-if="!report.diagnoses.length">本次未识别到需要单列的问题；可结合逐句批注和材料采点进一步复盘。</p>
-      <h3>字数与信息密度</h3>
-      <p v-if="report.wordAnalysis.minWords">最低参考字数 {{ report.wordAnalysis.minWords }}；当前不足 {{ report.wordAnalysis.underMinimum || 0 }} 字。具体以题干原始要求为准。</p>
-      <div class="metrics">
-        <div><span>作答字数 / 上限</span><strong>{{ report.wordAnalysis.wordCount }} / {{ report.wordAnalysis.wordLimit || '未标明' }}</strong></div>
-        <div><span>超出字数</span><strong>{{ report.wordAnalysis.overLimit }}</strong></div>
-        <div><span>有效信息占比（估算）</span><strong>{{ report.wordAnalysis.effectiveRatio }}%</strong></div>
-        <div><span>重复信息占比（估算）</span><strong>{{ report.wordAnalysis.redundantRatio }}%</strong></div>
-        <div><span>每100字覆盖参考点</span><strong>{{ report.wordAnalysis.pointsPer100Words }}</strong></div>
-        <div><span>重复 / 背景 / 无效字符</span><strong>{{ report.wordAnalysis.redundantWords }} / {{ report.wordAnalysis.backgroundWords }} / {{ report.wordAnalysis.irrelevantWords }}</strong></div>
-      </div>
-      <p class="muted">{{ report.wordAnalysis.method }}</p>
-    </section>
-
-    <section data-section="structure" class="report-section">
-      <h2>结构分析与逻辑关系检查</h2>
+    <section data-section="teacher" class="report-section teacher-section">
+      <div class="eyebrow">02 · 定位具体问题</div>
+      <h2>AI老师批卷</h2>
+      <p class="muted">在你的原始作答上，读懂得分依据与表达改法。评分点分值已计入总分。</p>
+      <div v-if="linkedDimension" class="dimension-evidence"><b>{{ linkedDimension.name }} · 具体依据</b><div class="evidence-links"><button v-for="id in [...(linkedDimension.annotationIds || []), ...(linkedDimension.supplementIds || [])]" :key="id" type="button" class="evidence-link" @click="openEvidence(id)">{{ id.startsWith('A') ? id.replace('A', '注') : id.replace('T', '老师补充 ') }} →</button><button type="button" class="text-button" @click="evidenceDimension = ''">收起</button></div></div>
+      <AnnotatedAnswer :answer="originalAnswer" :annotations="report.annotations || []" :active-id="activeAnnotation" :dimension-names="dimensionNames" :focused-anchor="focusedAnchor" @select="selectAnnotation" @rubric="showPoint" @material="emit('material', $event)" />
+      <div class="teacher-supplement">
+        <h3>老师补充</h3><p class="muted">遗漏内容、全局问题，以及需要进一步展开的说明。</p>
+        <article v-for="(item, index) in supplements" :key="item.id" :data-evidence-id="item.id" tabindex="-1" class="supplement-card">
+          <header><span class="supplement-number">{{ Number(index) + 1 }}</span><h4>{{ item.title }}</h4><b v-if="item.scoreImpact" class="loss-label">{{ annotationScore(item) }}</b></header>
+          <blockquote v-if="item.quote">{{ item.quote }}</blockquote><p>{{ item.comment }}</p>
+          <div v-if="item.suggestion" class="rewrite"><b>补充说明与改法</b><p>{{ item.suggestion }}</p></div><p v-if="item.explanation">{{ item.explanation }}</p>
+          <p v-if="item.scoreImpact" class="muted">该评分点得 {{ item.scoreImpact.earned }}/{{ item.scoreImpact.maxScore }} 分，失 {{ item.scoreImpact.lost }} 分，已计入总分。</p>
+          <button v-if="item.rubricPointId" type="button" class="evidence-link" @click="showPoint(item.rubricPointId)">查看对应评分点 {{ item.rubricPointId }} →</button>
+        </article>
+        <p v-if="!supplements.length" class="muted">本次没有额外补充的问题。</p>
+        <details class="supplement-details"><summary>整体结构与题型专项分析</summary>
+      <h3>结构分析与逻辑关系检查</h3>
       <p><b>原答案：</b>{{ report.structure.detected }}</p><p><b>建议结构：</b>{{ report.structure.recommended }}</p><p>{{ report.structure.analysis }}</p>
       <div class="structure-tree"><div v-for="(part, index) in report.structure.outline" :key="index"><b>{{ Number(index) + 1 }} · {{ part.title }}</b><p>{{ part.detail }}</p></div></div>
       <article v-for="(r, index) in report.structure.relations" :key="index" class="sentence-card">
@@ -125,10 +119,54 @@ const display = (value: unknown) => typeof value === 'string' ? value : Array.is
           <p class="chain">{{ Array.isArray(p.chain) ? p.chain.join(' → ') : p.chain }}</p><div class="rewrite"><b>示范重写</b><p>{{ p.rewrite }}</p></div>
         </div></details>
       </template>
+
+        </details>
+        <details class="supplement-details"><summary>字数与信息密度</summary>
+      <h3>字数与信息密度</h3>
+      <p v-if="report.wordAnalysis.minWords">最低参考字数 {{ report.wordAnalysis.minWords }}；当前不足 {{ report.wordAnalysis.underMinimum || 0 }} 字。具体以题干原始要求为准。</p>
+      <div class="metrics">
+        <div><span>作答字数 / 上限</span><strong>{{ report.wordAnalysis.wordCount }} / {{ report.wordAnalysis.wordLimit || '未标明' }}</strong></div>
+        <div><span>超出字数</span><strong>{{ report.wordAnalysis.overLimit }}</strong></div>
+        <div><span>有效信息占比（估算）</span><strong>{{ report.wordAnalysis.effectiveRatio }}%</strong></div>
+        <div><span>重复信息占比（估算）</span><strong>{{ report.wordAnalysis.redundantRatio }}%</strong></div>
+        <div><span>每100字覆盖参考点</span><strong>{{ report.wordAnalysis.pointsPer100Words }}</strong></div>
+        <div><span>重复 / 背景 / 无效字符</span><strong>{{ report.wordAnalysis.redundantWords }} / {{ report.wordAnalysis.backgroundWords }} / {{ report.wordAnalysis.irrelevantWords }}</strong></div>
+      </div>
+      <p class="muted">{{ report.wordAnalysis.method }}</p>
+
+        </details>
+      </div>
     </section>
 
     <section data-section="reference" class="report-section">
-      <h2>参考答案与答题拆解</h2><p class="muted">AI生成教学示例。先看组织思路，再对照具体句段，理解材料如何变成答案。</p>
+      <div class="eyebrow">03 · 理解正确解法</div><h2>答案与拆解</h2>
+      <h3>审题分析 · 题目到底在问什么</h3><p>{{ report.answerAnalysis?.questionAnalysis?.taskAnalysis || report.reference.taskAnalysis }}</p>
+      <ul v-if="report.answerAnalysis?.questionAnalysis?.requirements?.length"><li v-for="requirement in report.answerAnalysis.questionAnalysis.requirements" :key="requirement">{{ requirement }}</li></ul>
+      <h3>作答任务拆解</h3><ol><li v-for="(task, index) in report.answerAnalysis?.taskBreakdown || report.reference.outline" :key="index">{{ task }}</li></ol>
+      <h3>{{ report.kind === 'article' ? '材料与立意覆盖诊断' : '参考要点 · 你的踩点情况' }}</h3>
+      <p>{{ report.reference.taskAnalysis }}</p>
+      <p class="muted">{{ report.reference.sourceLabel }}<template v-if="report.kind === 'article'">；本模块不用于作文逐点计分。</template></p>
+      <div class="point-filters" aria-label="筛选采点状态">
+        <button v-for="key in ['all', 'covered', 'partial', 'missing', 'incorrect']" :key="key" type="button" :aria-pressed="pointFilter === key" :class="{ active: pointFilter === key }" @click="pointFilter = key">
+          {{ key === 'all' ? '全部要点' : labels[key] }} <b>{{ key === 'all' ? report.coverage.total : report.coverage[key] }}</b>
+        </button>
+      </div>
+      <details v-for="point in points" :key="point.id" :data-point-id="point.id" class="point-card" :class="point.status" :open="point.status !== 'covered'">
+        <summary tabindex="0"><span class="status">{{ labels[point.status] }}</span><strong>{{ point.point }}</strong><b v-if="report.kind !== 'article'">{{ point.score }} / {{ point.maxScore }}</b></summary>
+        <div class="detail-body">
+          <h4>材料依据 · {{ point.evidence.materialTitle }}</h4>
+          <blockquote>{{ point.evidence.quote }}</blockquote>
+          <button type="button" class="text-button" @click="emit('material', point.evidence.materialId)">定位原材料</button>
+          <p><b>从材料到概括：</b>{{ point.explanation }}</p>
+          <div class="evidence-links"><button v-if="!point.annotationIds?.length && point.sourceAnchor" type="button" class="evidence-link" @click="showSource(point)">定位学生原文 →</button><button v-for="id in point.annotationIds || []" :key="id" type="button" class="evidence-link" @click="openEvidence(id)">定位原文批注 {{ id.replace('A', '注') }} →</button><button v-for="id in point.supplementIds || []" :key="id" type="button" class="evidence-link" @click="openEvidence(id)">查看老师补充 {{ id.replace('T', '') }} →</button></div>
+          <p><b>你的表述：</b>{{ point.userQuote || '没有相关表达' }}</p>
+          <p><b>为什么这样判定：</b>{{ point.reason }}</p>
+          <div class="rewrite"><b>可以直接这样写</b><p>{{ point.rewrite }}</p></div>
+        </div>
+      </details>
+      <p v-if="!points.length" class="muted">本题没有这一状态的要点。</p>
+
+      <h3>参考答案与答题拆解</h3><p class="muted">AI生成教学示例。先看组织思路，再对照具体句段，理解材料如何变成答案。</p>
       <div class="point-filters" aria-label="参考答案版本"><button v-for="a in report.referenceAnswers" :key="a.kind" type="button" :aria-pressed="answerKind === a.kind" :class="{ active: answerKind === a.kind }" @click="answerKind = a.kind">{{ a.label }}</button></div>
       <div v-if="selectedAnswer" class="reference-answer">
         <div class="section-heading"><h3>{{ selectedAnswer.label }}</h3><span>{{ selectedAnswer.wordCount }} 字</span></div>
@@ -140,8 +178,16 @@ const display = (value: unknown) => typeof value === 'string' ? value : Array.is
     </section>
 
     <section data-section="training" class="report-section">
-      <h2>本题技巧与下一步训练</h2>
-      <article v-for="(t, index) in report.training" :key="index" class="training-card"><span class="eyebrow">训练 {{ Number(index) + 1 }}</span><h3>{{ t.target }}</h3><p>连续练 {{ t.count }} 道{{ kindLabels[t.questionType] }}题</p><p>{{ t.exercise }}</p><p><b>验收标准：</b>{{ t.successCriteria }}</p><router-link :to="{ path: '/papers', query: { type: 'essay', questionType: t.questionType } }">查找对应题型 →</router-link></article>
+      <div class="eyebrow">04 · 把本次失分变成训练任务</div><h2>下一步训练</h2>
+      <div v-if="trainingPlan" class="training-diagnosis">
+        <span class="muted">当前第一短板</span><h3>{{ trainingPlan.primaryWeakness }}</h3><p><b>判断依据：</b>{{ trainingPlan.reason }}</p>
+        <div class="error-distribution"><span v-for="(count, type) in trainingPlan.errorTypeDistribution" :key="type">{{ ({ missed_point: '要点遗漏', expression: '表达', logic: '逻辑', structure: '结构', accuracy: '理解与概括', format: '规范', relevance: '回应任务' } as Record<string, string>)[type] }} <b>{{ count }}</b></span></div>
+        <h4>本题具体证据</h4><div class="evidence-links"><button v-for="id in trainingPlan.evidenceAnnotationIds" :key="id" type="button" class="evidence-link" @click="openEvidence(id)">{{ id.replace('A', '注') }} · 查看原文 →</button><button v-for="id in trainingPlan.evidenceSupplementIds" :key="id" type="button" class="evidence-link" @click="openEvidence(id)">{{ id.replace('T', '老师补充 ') }} →</button></div>
+        <p><b>改进方法：</b>{{ trainingPlan.improvementMethod }}</p>
+        <article v-for="example in trainingPlan.examples" :key="example.evidenceId" class="sentence-card"><h4>本题修改示例</h4><blockquote>{{ example.original }}</blockquote><p class="rewrite">{{ example.improved }}</p><p>{{ example.explanation }}</p></article>
+      </div>
+      <article v-for="(t, index) in trainingPlan?.trainingMethods || report.training" :key="index" class="training-card"><span class="eyebrow">训练 {{ Number(index) + 1 }}</span><h3>{{ t.target }}</h3><p>连续练 {{ t.count }} 道{{ kindLabels[t.questionType] }}题</p><p>{{ t.exercise }}</p><p><b>验收标准：</b>{{ t.successCriteria }}</p><router-link :to="{ path: '/papers', query: { type: 'essay', questionType: t.questionType } }">查找对应题型 →</router-link></article>
+      <div v-if="trainingPlan?.checklist?.length" class="training-checklist"><h3>下一次作答前检查</h3><ul><li v-for="item in trainingPlan.checklist" :key="item">{{ item }}</li></ul></div>
       <p v-if="previousRate != null">本题得分率 {{ report.percentScore }}%，上次同题得分率 {{ previousRate }}%；变化 {{ report.percentScore - previousRate > 0 ? '+' : '' }}{{ (report.percentScore - previousRate).toFixed(1) }} 个百分点。</p>
       <router-link :to="{ path: '/report', query: { tab: 'report' } }">查看长期错误画像与能力趋势 →</router-link>
       <p v-for="note in report.limitations" :key="note" class="muted">{{ note }}</p>
@@ -150,6 +196,8 @@ const display = (value: unknown) => typeof value === 'string' ? value : Array.is
 </template>
 
 <style scoped>
+.evidence-link{display:inline-block;border:0;background:none;color:#285d9f;font-size:12px;padding:4px 0;cursor:pointer;text-align:left}.evidence-links{display:flex;gap:8px 20px;flex-wrap:wrap}td .evidence-link{display:block}.dimension-evidence{padding:14px 18px;background:#eef4fe;border-radius:8px;margin-top:18px}.teacher-section h2{margin-top:6px}.teacher-supplement{border-top:1px solid #e9e2da;margin-top:32px;padding-top:12px}.supplement-card{margin:16px 0;padding:16px 18px;background:#fdfaf7;border:1px solid #ece4dc;border-radius:10px}.supplement-card header{display:flex;align-items:center;gap:12px}.supplement-card h4{flex:1;margin:0}.supplement-number{background:#ede1d8;color:#8a6051;border-radius:50%;width:24px;height:24px;flex-shrink:0;line-height:24px;font-size:12px;text-align:center}.loss-label{font-size:13px;color:#a15c52}.supplement-details{margin-top:12px;padding:14px 18px;border:1px solid #e3e8ef;border-radius:9px}.supplement-details>summary{cursor:pointer;font-size:14px;font-weight:600}.supplement-card:focus{outline:2px solid #ad7568;outline-offset:3px}.training-diagnosis{border-left:3px solid #3f79d9;padding:18px 22px;background:#f6f9fe;border-radius:0 10px 10px 0}.training-diagnosis h3{margin-top:0}.error-distribution{display:flex;gap:8px;flex-wrap:wrap}.error-distribution span{padding:4px 10px;background:white;border:1px solid #e1e7ef;border-radius:6px;font-size:12px}.error-distribution b{margin-left:6px}.training-checklist{margin:20px 0;padding:16px;background:#f8fafc;border-radius:9px}.training-checklist li{margin:6px 0}
+
 .essay-report{background:#fff;border:1px solid #e3e9f2;border-radius:18px;color:#20304a;min-width:0;line-height:1.85;overflow-wrap:anywhere}
 .report-nav{display:flex;gap:8px;flex-wrap:wrap;padding:18px 24px;background:#f5f8fe;border-radius:18px 18px 0 0;border-bottom:1px solid #e3e9f2}
 button{cursor:pointer;font:inherit}.report-nav button,.point-filters button{padding:6px 12px;border:1px solid #d5dfed;background:#fff;border-radius:8px;color:#334862;font-size:13px}

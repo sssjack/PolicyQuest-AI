@@ -1,7 +1,7 @@
 const express = require('express');
-const fetch = require('node-fetch');
 const config = require('../config');
-const { auth } = require('../middleware/auth');
+const { adminAuth } = require('../middleware/auth');
+const { requestAi } = require('../services/ai-request');
 
 const router = express.Router();
 
@@ -235,7 +235,8 @@ function normalizeAiEvaluation(value, payload) {
   };
 }
 
-router.post('/evaluate', auth, async (req, res) => {
+// 用户作答统一经整卷扣费；旧即时评分接口仅供后台内部调试。
+router.post('/evaluate', adminAuth, async (req, res) => {
   const { answer, question, type = 'essay' } = req.body || {};
   if (!answer || String(answer).trim().length < 20) {
     return res.status(400).json({ code: 400, message: '请至少输入 20 个字的作答内容' });
@@ -244,7 +245,12 @@ router.post('/evaluate', auth, async (req, res) => {
   if (type === 'essay') {
     try {
       const { gradeEssayAnswer } = require('../services/essay-grading');
-      const report = await gradeEssayAnswer({ answer, question, paper: req.body.paper || { materials: req.body.materials || [] } });
+      const report = await gradeEssayAnswer({
+        answer,
+        question,
+        paper: req.body.paper || { materials: req.body.materials || [] },
+        auditContext: { userId: req.userId },
+      });
       return res.json({ code: 200, data: report });
     } catch (error) { return res.status(422).json({ code: 422, message: error.message }); }
   }
@@ -264,17 +270,16 @@ router.post('/evaluate', auth, async (req, res) => {
     const rubricLines = (RUBRICS[type === 'interview' ? 'interview' : 'essay'] || RUBRICS.essay)
       .map(item => `${item.name}${item.weight}分：${item.comment}`)
       .join('\n');
-    const response = await fetch(config.llm.apiUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${config.llm.apiKey}`,
-      },
-      body: JSON.stringify({
-        model: config.llm.model,
-        max_completion_tokens: 5000,
-        response_format: { type: 'json_object' },
-        messages: [
+    const data = await requestAi({
+      url: config.llm.apiUrl,
+      apiKey: config.llm.apiKey,
+      model: config.llm.model,
+      maxTokens: 5000,
+      responseFormat: { type: 'json_object' },
+      timeout: 70000,
+      purpose: 'quick_grading',
+      userId: req.userId,
+      messages: [
           {
             role: 'system',
             content: '你是 PolicyQuest AI Exam Coach 的资深公考阅卷官，熟悉国考、省考、事业单位申论和结构化面试真实评分标准。你必须像真实阅卷组一样严格：不因字数堆砌给高分，不因使用政策词就默认高分；必须根据题干任务、材料转化、逻辑层次、岗位意识、可执行性和表达规范进行量化评分。请严格按 JSON 输出，不要输出 Markdown。',
@@ -317,15 +322,7 @@ ${rubricLines}
 作答：${answer}`,
           },
         ],
-      }),
-      timeout: 70000,
     });
-
-    if (!response.ok) {
-      throw new Error(`AI 服务返回 HTTP ${response.status}`);
-    }
-
-    const data = await response.json();
     const parsed = normalizeAiEvaluation(extractJson(data.choices?.[0]?.message?.content), { answer, question, type });
     if (!parsed) throw new Error('AI 返回内容不是有效 JSON');
     return res.json({ code: 200, data: parsed });

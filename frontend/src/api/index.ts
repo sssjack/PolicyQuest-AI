@@ -27,6 +27,21 @@ api.interceptors.response.use(
 
 export default api
 
+export const handwritingApi = {
+  recognize: (file: File, signal?: AbortSignal) => {
+    const data = new FormData()
+    data.append('image', file)
+    return api.post('/handwriting/jobs', data, { timeout: 60000, signal })
+  },
+  status: (id: string, signal?: AbortSignal) => api.get(`/handwriting/jobs/${id}`, { timeout: 15000, signal }),
+  cancel: (id: string) => api.delete(`/handwriting/jobs/${id}`, { timeout: 10000 }),
+}
+
+// HTTP 页面也可生成重试标识，不依赖仅安全上下文开放的 randomUUID。
+export function requestId() {
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), item => item.toString(16).padStart(2, '0')).join('')
+}
+
 export const authApi = {
   login: (data: any) => api.post('/auth/login', data),
   register: (data: any) => api.post('/auth/register', data),
@@ -47,6 +62,10 @@ export const questionApi = {
 }
 
 export const realPaperApi = {
+  paperReport: (id: string | number) => api.get(`/real-papers/attempts/${id}/paper-report`),
+  generatePaperReport: (id: string | number) => api.post(`/real-papers/attempts/${id}/paper-report`),
+  paperTarget: (id: string | number, target: number) => api.put(`/real-papers/attempts/${id}/paper-target`, { target }),
+  paperProfile: () => api.get('/real-papers/paper-profile'),
   essayProfile: () => api.get('/real-papers/essay-profile'),
   coverage: () => api.get('/real-papers/coverage'),
   regrade: (id: string | number) => api.post(`/real-papers/attempts/${id}/regrade`),
@@ -94,9 +113,19 @@ export const scoringApi = {
   evaluate: (data: any) => api.post('/scoring/evaluate', data),
 }
 
+export const accountApi = {
+  notifications: (params: any = {}) => api.get('/account/notifications', { params }),
+  readNotification: (id: number) => api.put(`/account/notifications/${id}/read`),
+  readAllNotifications: () => api.put('/account/notifications/read-all'),
+  feedbacks: () => api.get('/account/feedbacks'),
+  createFeedback: (data: any) => api.post('/account/feedbacks', data),
+}
+
 export const adminApi = {
+  adjustCredits: (id: number, data: { delta: number; reason: string; requestId: string }) => api.post(`/admin/users/${id}/credits`, data),
   dashboard: () => api.get('/admin/dashboard'),
   users: (params: any) => api.get('/admin/users', { params }),
+  userSummary: (id: number) => api.get(`/admin/users/${id}/summary`),
   updateUserStatus: (id: number, status: string) => api.put(`/admin/users/${id}/status`, { status }),
   questions: (params: any) => api.get('/admin/questions', { params }),
   updateQuestion: (id: number, data: any) => api.put(`/admin/questions/${id}`, data),
@@ -114,4 +143,27 @@ export const adminApi = {
   triggerCrawl: () => api.post('/admin/crawler/crawl'),
   triggerProcess: (limit = 3) => api.post('/admin/crawler/process', { limit }),
   processArticle: (id: number, count = 3) => api.post(`/admin/crawler/process-article/${id}`, { count }),
+  papers: (params: any) => api.get('/admin/papers', { params }),
+  paperDetail: (id: number) => api.get(`/admin/papers/${id}`),
+  createPaper: (data: any) => api.post('/admin/papers', data),
+  updatePaper: (id: number, data: any) => api.put(`/admin/papers/${id}`, data),
+  deletePaper: (id: number) => api.delete(`/admin/papers/${id}`),
+  createMaterial: (paperId: number, data: any) => api.post(`/admin/papers/${paperId}/materials`, data),
+  updateMaterial: (id: number, data: any) => api.put(`/admin/materials/${id}`, data),
+  deleteMaterial: (id: number) => api.delete(`/admin/materials/${id}`),
+  createPaperQuestion: (paperId: number, data: any) => api.post(`/admin/papers/${paperId}/questions`, data),
+  updatePaperQuestion: (id: number, data: any) => api.put(`/admin/paper-questions/${id}`, data),
+  deletePaperQuestion: (id: number) => api.delete(`/admin/paper-questions/${id}`),
+  attempts: (params: any) => api.get('/admin/attempts', { params }),
+  practiceRecords: (params: any) => api.get('/admin/practice-records', { params }),
+  practiceRecordDetail: (recordType: string, id: number) => api.get(`/admin/practice-records/${recordType}/${id}`),
+  aiRequestLogs: (params: any) => api.get('/admin/ai-request-logs', { params }),
+  aiRequestLogDetail: (id: number) => api.get(`/admin/ai-request-logs/${id}`),
+  feedbacks: (params: any) => api.get('/admin/feedbacks', { params }),
+  updateFeedback: (id: number, data: any) => api.put(`/admin/feedbacks/${id}`, data),
+  announcements: (params: any) => api.get('/admin/announcements', { params }),
+  createAnnouncement: (data: any) => api.post('/admin/announcements', data),
+  updateAnnouncement: (id: number, data: any) => api.put(`/admin/announcements/${id}`, data),
+  deleteAnnouncement: (id: number) => api.delete(`/admin/announcements/${id}`),
+  quality: () => api.get('/admin/quality'),
 }

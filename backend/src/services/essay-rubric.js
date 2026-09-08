@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { buildGradingResult } = require('./essay-annotations');
 
 const VERSION = 'essay-v2';
 const SMALL_RUBRICS = [
@@ -116,6 +117,11 @@ function groundedOriginal(value, ids, sentences, answer) {
 function normalizeAnswers(items, context) {
   return ['safe', 'improved', 'compressed'].map(kind => {
     const item = list(items).find(r => r.kind === kind);
+    return normalizeAnswer(item, context, kind);
+  });
+}
+
+function normalizeAnswer(item, context, kind) {
     if (!item) throw new Error('缺少三个版本的参考答案');
     const content = requireText(item.content, '完整参考答案');
     const wordCount = countWords(content);
@@ -125,7 +131,6 @@ function normalizeAnswers(items, context) {
     if (!breakdown.length) throw new Error('参考答案缺少逐段拆解');
     return { kind, label: { safe: '考场稳妥版', improved: '高分优化版', compressed: context.kind === 'article' ? '压缩提纲版（非完整考场作文）' : '极限压缩版' }[kind],
       content, wordCount, thinking: requireText(item.thinking, '参考答案组织思路'), tradeoff: requireText(item.tradeoff, '版本取舍说明'), breakdown };
-  });
 }
 
 function normalizeReport(raw, context, reference, answer) {
@@ -137,8 +142,11 @@ function normalizeReport(raw, context, reference, answer) {
     if (!item) throw new Error(`缺少${point.id}的采点分析`);
     const status = ['covered', 'partial', 'missing', 'incorrect'].includes(item.status) ? item.status : null;
     if (!status) throw new Error('采点状态无效');
-    const quote = text(item.userQuote);
-    if (status !== 'missing' && (!quote || !compact(answer).includes(compact(quote)))) throw new Error('采点分析引用的考生原文不存在');
+    let quote = '';
+    if (status !== 'missing') {
+      try { quote = groundedOriginal(item.userQuote, item.sentenceIds || (item.sentenceId ? [item.sentenceId] : []), sentences, answer); }
+      catch { throw new Error(`${point.id}采点分析引用的考生原文不存在，请填写准确的sentenceIds；不得拼接或改写原文`); }
+    }
     const earned = status === 'covered' ? point.maxScore : status === 'partial' ? round(point.maxScore * 0.5) : 0;
     return { ...point, status, userQuote: status === 'missing' ? '' : quote, score: earned,
       reason: requireText(item.reason, '采点判定原因'), rewrite: requireText(item.rewrite, '该要点的具体改写') };
@@ -163,7 +171,8 @@ function normalizeReport(raw, context, reference, answer) {
       relatedPointIds: list(item.relatedPointIds).filter(id => reference.points.some(p => p.id === id)) };
   });
   const diagnoses = list(raw.diagnoses).map(item => {
-    const original = groundedOriginal(item.original, item.sentenceIds || (item.sentenceId ? [item.sentenceId] : []), sentences, answer);
+    const globalIssue = item.scope === 'global' || /遗漏|结构|层级|分论点|超字数/.test(item.tag);
+    const original = globalIssue ? '' : groundedOriginal(item.original, item.sentenceIds || (item.sentenceId ? [item.sentenceId] : []), sentences, answer);
     return { tag: ERROR_TAGS.includes(item.tag) ? item.tag : '材料误读', original,
       problem: requireText(item.problem, '具体问题'), reason: requireText(item.reason, '失分原因'),
       rewrite: requireText(item.rewrite, '完整替换表达'), explanation: requireText(item.explanation, '这样改的原因') };
@@ -187,13 +196,13 @@ function normalizeReport(raw, context, reference, answer) {
   if (context.kind === 'article' && (!article || !list(article.paragraphs).length || !list(article.checks).length)) throw new Error('缺少大作文专项诊断');
   if (context.kind === 'solution' && !list(raw.solutionAnalysis).length) throw new Error('缺少问题—原因—对策对应分析');
   if (context.kind === 'implementation' && !text(raw.implementationAnalysis?.diagnosis)) throw new Error('缺少公文身份格式诊断');
-  if (percentScore < 85 && !diagnoses.length) throw new Error('失分答案缺少具体诊断与改写');
+  if (percentScore < 85 && !diagnoses.length && !list(raw.annotations).length && !list(raw.teacherSupplement?.items).length) throw new Error('失分答案缺少具体诊断与改写');
   if (!list(structure.outline).length) throw new Error('缺少具体结构拆分');
   const training = list(raw.training).map(t => ({ target: requireText(t.target, '训练目标'),
     questionType: ['summary', 'analysis', 'solution', 'implementation', 'article'].includes(t.questionType) ? t.questionType : context.kind,
     count: Math.max(1, Math.min(10, Math.round(Number(t.count) || 3))), exercise: requireText(t.exercise, '训练操作'), successCriteria: requireText(t.successCriteria, '训练验收标准') }));
   if (!training.length) throw new Error('缺少后续训练建议');
-  return {
+  return buildGradingResult({
     reportVersion: VERSION, reportType: 'essay', gradingSource: 'ai', kind: context.kind,
     score, maxScore: context.maxScore, percentScore, level, summary: requireText(summary, '总评'),
     scoreInterval: { low: Math.max(0, Math.floor(score - spread)), high: Math.min(context.maxScore, Math.ceil(score + spread)),
@@ -215,7 +224,7 @@ function normalizeReport(raw, context, reference, answer) {
     coverage: { total: pointAnalysis.length, covered, partial, missing: pointAnalysis.filter(p => p.status === 'missing').length,
       incorrect: pointAnalysis.filter(p => p.status === 'incorrect').length, hitRate: round((covered + partial * 0.5) / pointAnalysis.length * 100) },
     training, limitations: ['文本提交可检查标题、段落、错字及字数，无法评判手写字迹和真实卷面。', '参考答案为AI生成的教学示例，不是官方唯一答案。'],
-  };
+  }, answer, { ...raw, questionRequirements: context.requirements });
 }
 
-module.exports = { VERSION, SMALL_RUBRICS, ARTICLE_RUBRICS, ERROR_TAGS, round, countWords, questionKind, allocate, prepareQuestion, fingerprint, normalizeReference, splitSentences, normalizeReport, normalizeAnswers };
+module.exports = { VERSION, SMALL_RUBRICS, ARTICLE_RUBRICS, ERROR_TAGS, round, countWords, questionKind, allocate, prepareQuestion, fingerprint, normalizeReference, splitSentences, normalizeReport, normalizeAnswers, normalizeAnswer };

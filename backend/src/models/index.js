@@ -6,8 +6,9 @@ const User = sequelize.define('User', {
   username: { type: DataTypes.STRING(50), allowNull: false, unique: true },
   email: { type: DataTypes.STRING(100), allowNull: false, unique: true },
   password: { type: DataTypes.STRING(255), allowNull: false },
+  credits: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
   nickname: { type: DataTypes.STRING(50), defaultValue: '' },
-  avatar: { type: DataTypes.TEXT('medium'), defaultValue: '' },
+  avatar: { type: DataTypes.TEXT('medium') },
   role: { type: DataTypes.ENUM('user', 'admin', 'super_admin'), defaultValue: 'user' },
   exam_target: { type: DataTypes.STRING(50), defaultValue: '' },
   province: { type: DataTypes.STRING(20), defaultValue: '' },
@@ -16,6 +17,21 @@ const User = sequelize.define('User', {
   total_questions: { type: DataTypes.INTEGER, defaultValue: 0 },
   correct_count: { type: DataTypes.INTEGER, defaultValue: 0 },
 }, { tableName: 'users' });
+
+const CreditLedger = sequelize.define('CreditLedger', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id: { type: DataTypes.INTEGER, allowNull: false },
+  actor_id: { type: DataTypes.INTEGER, allowNull: true },
+  delta: { type: DataTypes.INTEGER, allowNull: false },
+  balance: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false },
+  reason: { type: DataTypes.STRING(200), allowNull: false },
+  request_key: { type: DataTypes.STRING(100), allowNull: false },
+  reference_id: { type: DataTypes.INTEGER, allowNull: true },
+  request_hash: { type: DataTypes.STRING(64), allowNull: true },
+}, { tableName: 'credit_ledger', indexes: [
+  { unique: true, fields: ['user_id', 'request_key'] },
+  { fields: ['user_id', 'created_at'] },
+] });
 
 const ArticleSource = sequelize.define('ArticleSource', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -152,6 +168,11 @@ const RealPaperAttempt = sequelize.define('RealPaperAttempt', {
   total_score: { type: DataTypes.FLOAT, defaultValue: 0 },
   max_score: { type: DataTypes.FLOAT, defaultValue: 0 },
   total_duration: { type: DataTypes.INTEGER, defaultValue: 0 },
+  paper_report: { type: DataTypes.JSON },
+  paper_report_status: { type: DataTypes.ENUM('pending', 'generating', 'ready', 'failed'), defaultValue: 'pending' },
+  paper_report_error: { type: DataTypes.TEXT },
+  paper_report_token: { type: DataTypes.STRING(32) },
+  target_score: { type: DataTypes.FLOAT },
   submitted_at: { type: DataTypes.DATE, defaultValue: DataTypes.NOW },
   completed_at: { type: DataTypes.DATE },
   error_message: { type: DataTypes.TEXT },
@@ -285,6 +306,78 @@ const EssayReference = sequelize.define('EssayReference', {
   reference: { type: DataTypes.JSON, allowNull: false },
 }, { tableName: 'essay_references', indexes: [{ unique: true, fields: ['question_id', 'fingerprint', 'model'] }] });
 
+const AiRequestLog = sequelize.define('AiRequestLog', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  purpose: { type: DataTypes.STRING(80), allowNull: false },
+  url: { type: DataTypes.STRING(1000), allowNull: false },
+  method: { type: DataTypes.STRING(10), allowNull: false, defaultValue: 'POST' },
+  model: { type: DataTypes.STRING(100), defaultValue: '' },
+  request_body: { type: DataTypes.TEXT('long'), allowNull: false },
+  response_body: { type: DataTypes.TEXT('long') },
+  http_status: { type: DataTypes.INTEGER },
+  status: { type: DataTypes.ENUM('pending', 'success', 'failed'), defaultValue: 'pending' },
+  duration_ms: { type: DataTypes.INTEGER, defaultValue: 0 },
+  error_message: { type: DataTypes.TEXT },
+  user_id: { type: DataTypes.INTEGER },
+  attempt_id: { type: DataTypes.INTEGER },
+  attempt_answer_id: { type: DataTypes.INTEGER },
+}, {
+  tableName: 'ai_request_logs',
+  indexes: [
+    { fields: ['status', 'created_at'] },
+    { fields: ['attempt_id'] },
+    { fields: ['user_id', 'created_at'] },
+  ],
+});
+
+const Feedback = sequelize.define('Feedback', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  user_id: { type: DataTypes.INTEGER, allowNull: false },
+  category: { type: DataTypes.ENUM('suggestion', 'bug', 'content', 'other'), defaultValue: 'suggestion' },
+  content: { type: DataTypes.TEXT, allowNull: false },
+  contact: { type: DataTypes.STRING(120), defaultValue: '' },
+  status: { type: DataTypes.ENUM('pending', 'processing', 'resolved', 'closed'), defaultValue: 'pending' },
+  admin_reply: { type: DataTypes.TEXT },
+  handled_by: { type: DataTypes.INTEGER },
+  handled_at: { type: DataTypes.DATE },
+}, {
+  tableName: 'feedbacks',
+  indexes: [
+    { fields: ['status', 'created_at'] },
+    { fields: ['user_id', 'created_at'] },
+  ],
+});
+
+const Announcement = sequelize.define('Announcement', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  title: { type: DataTypes.STRING(200), allowNull: false },
+  content: { type: DataTypes.TEXT('long'), allowNull: false },
+  announcement_type: { type: DataTypes.ENUM('notice', 'update', 'system'), defaultValue: 'notice' },
+  status: { type: DataTypes.ENUM('draft', 'published', 'archived'), defaultValue: 'draft' },
+  published_at: { type: DataTypes.DATE },
+  expires_at: { type: DataTypes.DATE },
+  created_by: { type: DataTypes.INTEGER, allowNull: false },
+}, {
+  tableName: 'announcements',
+  indexes: [
+    { fields: ['status', 'published_at'] },
+    { fields: ['expires_at'] },
+  ],
+});
+
+const AnnouncementRead = sequelize.define('AnnouncementRead', {
+  id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+  announcement_id: { type: DataTypes.INTEGER, allowNull: false },
+  user_id: { type: DataTypes.INTEGER, allowNull: false },
+  read_at: { type: DataTypes.DATE, allowNull: false },
+}, {
+  tableName: 'announcement_reads',
+  indexes: [
+    { unique: true, fields: ['announcement_id', 'user_id'] },
+    { fields: ['user_id', 'read_at'] },
+  ],
+});
+
 // Associations
 ArticleSource.hasMany(Article, { foreignKey: 'source_id' });
 Article.belongsTo(ArticleSource, { foreignKey: 'source_id' });
@@ -305,6 +398,21 @@ RealPaperAttempt.hasMany(RealPaperAttemptAnswer, { foreignKey: 'attempt_id' });
 RealPaperAttemptAnswer.belongsTo(RealPaperAttempt, { foreignKey: 'attempt_id' });
 PaperQuestion.hasMany(RealPaperAttemptAnswer, { foreignKey: 'question_id' });
 RealPaperAttemptAnswer.belongsTo(PaperQuestion, { foreignKey: 'question_id' });
+
+User.hasMany(AiRequestLog, { foreignKey: 'user_id' });
+AiRequestLog.belongsTo(User, { foreignKey: 'user_id' });
+RealPaperAttempt.hasMany(AiRequestLog, { foreignKey: 'attempt_id' });
+AiRequestLog.belongsTo(RealPaperAttempt, { foreignKey: 'attempt_id' });
+RealPaperAttemptAnswer.hasMany(AiRequestLog, { foreignKey: 'attempt_answer_id' });
+AiRequestLog.belongsTo(RealPaperAttemptAnswer, { foreignKey: 'attempt_answer_id' });
+
+User.hasMany(Feedback, { foreignKey: 'user_id' });
+Feedback.belongsTo(User, { foreignKey: 'user_id' });
+
+Announcement.hasMany(AnnouncementRead, { foreignKey: 'announcement_id' });
+AnnouncementRead.belongsTo(Announcement, { foreignKey: 'announcement_id' });
+User.hasMany(AnnouncementRead, { foreignKey: 'user_id' });
+AnnouncementRead.belongsTo(User, { foreignKey: 'user_id' });
 
 User.hasMany(PracticeSession, { foreignKey: 'user_id' });
 PracticeSession.belongsTo(User, { foreignKey: 'user_id' });
@@ -339,7 +447,8 @@ RealPaperAttemptAnswer.hasMany(UserNote, { foreignKey: 'attempt_answer_id' });
 UserNote.belongsTo(RealPaperAttemptAnswer, { foreignKey: 'attempt_answer_id' });
 
 module.exports = {
-  sequelize, User, ArticleSource, Article, Question,
+  sequelize, User, CreditLedger, ArticleSource, Article, Question,
   RealPaper, PaperMaterial, PaperQuestion, RealPaperAttempt, RealPaperAttemptAnswer,
-  PracticeSession, UserAnswer, WrongQuestion, Favorite, UserNote, AiTask, EssayReference
+  PracticeSession, UserAnswer, WrongQuestion, Favorite, UserNote, AiTask, EssayReference,
+  AiRequestLog, Feedback, Announcement, AnnouncementRead
 };

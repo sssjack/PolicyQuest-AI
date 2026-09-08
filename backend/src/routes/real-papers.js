@@ -1,4 +1,6 @@
 const express = require('express');
+const crypto = require('crypto');
+const { PAPER_COST, changeCredits, creditError } = require('../services/credits');
 const { Op } = require('sequelize');
 const {
   RealPaper,
@@ -6,10 +8,11 @@ const {
   PaperQuestion,
   RealPaperAttempt,
   RealPaperAttemptAnswer,
-  sequelize,
+  sequelize, User, CreditLedger,
 } = require('../models');
 const { auth } = require('../middleware/auth');
 const { gradeAttempt } = require('../services/real-paper-grading');
+const { buildGradingResult } = require('../services/essay-annotations');
 
 const router = express.Router();
 
@@ -140,7 +143,7 @@ function mapAttemptAnswer(row) {
     level: answer.level,
     dimensions: answer.dimensions || [],
     evaluation: answer.evaluation || null,
-    report: answer.report || null,
+    report: buildGradingResult(answer.report, answer.user_answer) || null,
     errorMessage: answer.error_message,
     gradedAt: answer.graded_at,
   };
@@ -168,6 +171,7 @@ function mapAttempt(row, includeAnswers = false) {
     submittedAt: attempt.submitted_at,
     completedAt: attempt.completed_at,
     errorMessage: attempt.error_message,
+    paperReportStatus: attempt.paper_report_status,
     answers: includeAnswers ? answers : undefined,
   };
 }
@@ -330,9 +334,49 @@ router.get('/attempts/:id', auth, async (req, res) => {
   }
 });
 
+router.get('/paper-profile', auth, async (req, res) => {
+  try { return res.json({ code: 200, data: await require('../services/essay-paper-report').loadHistory(req.userId) }); }
+  catch { return res.status(500).json({ code: 500, message: '获取整卷能力档案失败' }); }
+});
+
+router.get('/attempts/:id/paper-report', auth, async (req, res) => {
+  try {
+    const attempt = await RealPaperAttempt.findOne({ where: { id: req.params.id, user_id: req.userId, practice_type: 'essay' } });
+    if (!attempt) return res.status(404).json({ code: 404, message: '申论练习不存在' });
+    return res.json({ code: 200, data: await require('../services/essay-paper-report').reportView(attempt) });
+  } catch { return res.status(500).json({ code: 500, message: '获取整卷诊断报告失败' }); }
+});
+
+router.post('/attempts/:id/paper-report', auth, async (req, res) => {
+  try {
+    const attempt = await RealPaperAttempt.findOne({ where: { id: req.params.id, user_id: req.userId, practice_type: 'essay' } });
+    if (!attempt) return res.status(404).json({ code: 404, message: '申论练习不存在' });
+    if (attempt.status !== 'graded') return res.status(409).json({ code: 409, message: '请先完成全部单题批改' });
+    const worker = require('../services/essay-paper-report');
+    try { await worker.loadData(attempt); } catch (e) { return res.status(422).json({ code: 422, message: e.message }); }
+    await RealPaperAttempt.update({ paper_report_status: 'pending', paper_report_error: null }, { where: { id: attempt.id, paper_report_status: 'failed', status: 'graded' } });
+    worker.enqueuePaperReport(attempt.id);
+    return res.status(202).json({ code: 202, message: '整卷诊断已安排生成，单题分数保持不变' });
+  } catch { return res.status(500).json({ code: 500, message: '启动整卷诊断失败' }); }
+});
+
+router.put('/attempts/:id/paper-target', auth, async (req, res) => {
+  try {
+    const attempt = await RealPaperAttempt.findOne({ where: { id: req.params.id, user_id: req.userId, practice_type: 'essay', status: 'graded' } });
+    if (!attempt?.paper_report?.structured) return res.status(404).json({ code: 404, message: '尚无可设置目标的整卷报告' });
+    let goal;
+    try { goal = require('../services/essay-paper-analysis').targetPlan(attempt.paper_report.structured, req.body?.target); }
+    catch (e) { return res.status(400).json({ code: 400, message: e.message }); }
+    if (req.body?.target === undefined) return res.status(400).json({ code: 400, message: '请填写目标分' });
+    await attempt.update({ target_score: goal.target });
+    return res.json({ code: 200, data: goal });
+  } catch { return res.status(500).json({ code: 500, message: '保存目标分失败' }); }
+});
+
 router.post('/attempts', auth, async (req, res) => {
   try {
-    const { paperId, answers = [], totalDuration = 0 } = req.body || {};
+    const { paperId, answers = [], totalDuration = 0, requestId } = req.body || {};
+    if (typeof requestId !== 'string' || !/^[a-zA-Z0-9-]{16,80}$/.test(requestId)) return res.status(400).json({ code: 400, message: '提交标识无效，请刷新后重试，草稿会保留' });
     if (!paperId) {
       return res.status(400).json({ code: 400, message: '缺少真题 ID' });
     }
@@ -365,43 +409,57 @@ router.post('/attempts', auth, async (req, res) => {
       return res.status(400).json({ code: 400, message: '请先填写本卷所有题目后再提交' });
     }
 
+    const requestHash = crypto.createHash('sha256').update(JSON.stringify({ paperId: String(paper.id),
+      answers: questions.map(q => [String(q.id), String(answerMap.get(String(q.id))?.answer || '').trim()]) })).digest('hex');
+    let isNew = false;
     const attempt = await sequelize.transaction(async transaction => {
-    const created = await RealPaperAttempt.create({
-      user_id: req.userId,
-      paper_id: paper.id,
-      practice_type: paper.practice_type,
-      paper_title: paper.title,
-      status: 'grading',
-      total_questions: questions.length,
-      answered_count: questions.length,
-      graded_count: 0,
-      average_score: 0,
-      max_score: questions.reduce((sum, q) => sum + Number(q.score || 100), 0),
-      total_duration: Math.max(0, Number(totalDuration) || 0),
-      submitted_at: new Date(),
-    }, { transaction });
-
-    await RealPaperAttemptAnswer.bulkCreate(questions.map(question => {
-      const answerPayload = answerMap.get(String(question.id)) || {};
-      return {
-        attempt_id: created.id,
+      // 同一用户串行扣费，并在网络重试时返回原作答，防止重复扣分和创建任务。
+      await User.findByPk(req.userId, { transaction, lock: transaction.LOCK.UPDATE });
+      const previous = await CreditLedger.findOne({ where: { user_id: req.userId, request_key: `paper:${requestId}` }, transaction });
+      if (previous) {
+        if (previous.request_hash !== requestHash) throw creditError(409, '提交内容已变化，请刷新后重新提交');
+        return RealPaperAttempt.findByPk(previous.reference_id, { transaction });
+      }
+      const created = await RealPaperAttempt.create({
         user_id: req.userId,
         paper_id: paper.id,
-        question_id: question.id,
-        question_no: question.question_no,
-        question_title: question.title,
-        question_prompt: question.prompt,
-        user_answer: String(answerPayload.answer || '').trim(),
-        duration: Math.max(0, Number(answerPayload.duration) || 0),
-        status: 'pending',
-        max_score: Number(question.score),
-        question_snapshot: question.toJSON(),
-      };
-    }), { transaction });
-    return created;
+        practice_type: paper.practice_type,
+        paper_title: paper.title,
+        status: 'grading',
+        total_questions: questions.length,
+        answered_count: questions.length,
+        graded_count: 0,
+        average_score: 0,
+        max_score: questions.reduce((sum, q) => sum + Number(q.score || 100), 0),
+        total_duration: Math.max(0, Number(totalDuration) || 0),
+        submitted_at: new Date(),
+      }, { transaction });
+
+      await RealPaperAttemptAnswer.bulkCreate(questions.map(question => {
+        const answerPayload = answerMap.get(String(question.id)) || {};
+        return {
+          attempt_id: created.id,
+          user_id: req.userId,
+          paper_id: paper.id,
+          question_id: question.id,
+          question_no: question.question_no,
+          question_title: question.title,
+          question_prompt: question.prompt,
+          user_answer: String(answerPayload.answer || '').trim(),
+          duration: Math.max(0, Number(answerPayload.duration) || 0),
+          status: 'pending',
+          max_score: Number(question.score),
+          question_snapshot: question.toJSON(),
+        };
+      }), { transaction });
+      const entry = await changeCredits({ userId: req.userId, delta: -PAPER_COST,
+        reason: '真题整卷提交', requestKey: `paper:${requestId}`, referenceId: created.id }, transaction);
+      await entry.update({ request_hash: requestHash }, { transaction });
+      isNew = true;
+      return created;
     });
 
-    setImmediate(() => {
+    if (isNew) setImmediate(() => {
       gradeAttempt(attempt.id).catch(error => {
         void RealPaperAttempt.update(
           { status: 'failed', error_message: error.message },
@@ -412,7 +470,7 @@ router.post('/attempts', auth, async (req, res) => {
 
     return res.status(201).json({ code: 201, data: mapAttempt(attempt) });
   } catch (e) {
-    return res.status(500).json({ code: 500, message: '提交真题试卷失败', error: e.message });
+    return res.status(e.status || 500).json({ code: e.status || 500, message: e.status ? e.message : '提交真题试卷失败，请稍后重试' });
   }
 });
 
@@ -421,7 +479,7 @@ router.post('/attempts/:id/regrade', auth, async (req, res) => {
     const attempt = await RealPaperAttempt.findOne({ where: { id: req.params.id, user_id: req.userId } });
     if (!attempt) return res.status(404).json({ code: 404, message: '练习不存在' });
     const claimed = await sequelize.transaction(async transaction => {
-      const [count] = await RealPaperAttempt.update({ status: 'grading', error_message: null }, { where: { id: attempt.id, user_id: req.userId, status: { [Op.ne]: 'grading' } }, transaction });
+      const [count] = await RealPaperAttempt.update({ status: 'grading', error_message: null, paper_report: null, paper_report_status: 'pending', paper_report_token: null, paper_report_error: null, target_score: null }, { where: { id: attempt.id, user_id: req.userId, status: { [Op.ne]: 'grading' } }, transaction });
       if (count) await RealPaperAttemptAnswer.update({ status: 'pending', report: null, evaluation: null, score: null, error_message: null }, { where: { attempt_id: attempt.id, ...(attempt.status === 'failed' ? { status: { [Op.ne]: 'graded' } } : {}) }, transaction });
       return count;
     });

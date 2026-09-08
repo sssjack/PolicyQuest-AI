@@ -5,7 +5,8 @@ const crypto = require('crypto');
 const multer = require('multer');
 const { Op } = require('sequelize');
 const config = require('../config');
-const { User } = require('../models');
+const { User, CreditLedger, sequelize } = require('../models');
+const { INITIAL_CREDITS, creditView } = require('../services/credits');
 const { auth } = require('../middleware/auth');
 const { IMAGE_EXTENSIONS, putObject } = require('../services/oss-storage');
 
@@ -79,11 +80,16 @@ router.post('/register', async (req, res) => {
     if (existEmail) return res.status(400).json({ code: 400, message: '邮箱已注册' });
 
     const hashedPw = await bcrypt.hash(password, 12);
-    const user = await User.create({
-      username, email, password: hashedPw,
-      nickname: nickname || username,
-      exam_target: exam_target || '',
-      province: province || '',
+    const user = await sequelize.transaction(async transaction => {
+      const created = await User.create({
+        username, email, password: hashedPw, credits: INITIAL_CREDITS,
+        nickname: nickname || username,
+        exam_target: exam_target || '',
+        province: province || '',
+      }, { transaction });
+      await CreditLedger.create({ user_id: created.id, delta: INITIAL_CREDITS, balance: INITIAL_CREDITS,
+        reason: '注册赠送：可完成10套真题', request_key: 'registration' }, { transaction });
+      return created;
     });
     const token = jwt.sign({ id: user.id, role: user.role }, config.jwtSecret, { expiresIn: config.jwtExpiresIn });
     res.json({
@@ -91,6 +97,7 @@ router.post('/register', async (req, res) => {
       data: {
         token,
         user: {
+          ...creditView(user),
           id: user.id,
           username: user.username,
           email: user.email,
@@ -132,6 +139,7 @@ router.post('/login', async (req, res) => {
       data: {
         token,
         user: {
+          ...creditView(user),
           id: user.id,
           username: user.username,
           email: user.email,
@@ -153,6 +161,7 @@ router.get('/profile', auth, async (req, res) => {
   res.json({
     code: 200,
     data: {
+      ...creditView(user),
       id: user.id, username: user.username, email: user.email, nickname: user.nickname,
       role: user.role, avatar: user.avatar, exam_target: user.exam_target, province: user.province,
       total_questions: user.total_questions, correct_count: user.correct_count,
@@ -234,6 +243,7 @@ router.put('/profile', auth, async (req, res) => {
       code: 200,
       message: '更新成功',
       data: {
+        ...creditView(req.user),
         id: req.user.id,
         username: req.user.username,
         email: req.user.email,

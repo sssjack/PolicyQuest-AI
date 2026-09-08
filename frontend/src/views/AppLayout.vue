@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import SvgIcon from '../components/SvgIcon.vue'
+import UserAccountMenu from '../components/UserAccountMenu.vue'
 import { useUserStore } from '../store/user'
 
 type NavItem = {
@@ -128,7 +129,7 @@ function logout() {
         <strong>{{ currentItem.label }}</strong>
         <small>{{ currentItem.caption }}</small>
       </div>
-      <button class="mobile-avatar" type="button" @click="router.push('/profile')">{{ userInitial }}</button>
+      <UserAccountMenu />
     </header>
 
     <main class="app-main">
@@ -143,6 +144,7 @@ function logout() {
             <SvgIcon name="practice" :size="18" />
             选择真题
           </button>
+          <UserAccountMenu />
         </div>
       </div>
       <router-view />
@@ -485,8 +487,8 @@ function logout() {
   gap: 10px;
 }
 
-.topline-actions a,
-.topline-actions button {
+.topline-actions > a,
+.topline-actions > button {
   min-height: 40px;
   padding: 0 14px;
   border-radius: 12px;
@@ -500,7 +502,7 @@ function logout() {
   color: var(--text-secondary);
 }
 
-.topline-actions button {
+.topline-actions > button {
   gap: 7px;
   border: 0;
   background: var(--gradient-1);
@@ -534,7 +536,7 @@ function logout() {
     inset: 0 0 auto;
     z-index: 50;
     display: grid;
-    grid-template-columns: 38px minmax(0, 1fr) 36px;
+    grid-template-columns: 38px minmax(0, 1fr) auto;
     align-items: center;
     gap: 10px;
     height: 60px;
