@@ -43,7 +43,7 @@ function showDemo() {
         <h1 id="hero-title">每一次落笔，<br>都<span class="blue-word">更进一步<span class="word-dot">.</span></span></h1>
         <p class="hero-description">让真题成为起点，让 AI 成为教练。<br>从材料里的得分点，到你笔下的好答案。</p>
         <div class="hero-actions">
-          <button class="action-primary" type="button" @click="openPath('/papers?type=essay')">开启今天的练习<el-icon><ArrowRight /></el-icon></button>
+          <button class="action-primary" type="button" @click="openPath('/coach')">开启今天的练习<el-icon><ArrowRight /></el-icon></button>
           <button class="action-text" type="button" @click="showDemo">先看看如何批改<span class="play-icon"><el-icon><Position /></el-icon></span></button>
         </div>
         <div class="hero-proof"><span><el-icon><CircleCheck /></el-icon>按原题分值批改</span><span><el-icon><CircleCheck /></el-icon>每一处修改都有解释</span></div>

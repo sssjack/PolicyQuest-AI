@@ -14,6 +14,7 @@ import {
   type RealPaper,
 } from '../../data/policyQuest'
 import UserAccountMenu from '../../components/UserAccountMenu.vue'
+import PaperSearchResults from '../../components/PaperSearchResults.vue'
 
 type FilterKind = 'recommend' | 'system' | 'region'
 type FilterOption = {
@@ -29,6 +30,17 @@ const router = useRouter()
 const selectedType = ref<PracticeType>(route.query.type === 'interview' ? 'interview' : 'essay')
 const activeFilterKey = ref('recommend')
 const keyword = ref('')
+const searchKeyword = computed(() => typeof route.query.keyword === 'string' ? route.query.keyword.trim() : '')
+watch(searchKeyword, value => { keyword.value = value }, { immediate: true })
+
+function submitSearch() {
+  router.replace({ query: { ...route.query, keyword: keyword.value.trim() || undefined } })
+}
+
+function clearSearch() {
+  keyword.value = ''
+  submitSearch()
+}
 const records = ref<PracticeRecord[]>([])
 const favoriteIds = ref(new Set<string>())
 const papers = ref<RealPaper[]>([])
@@ -121,7 +133,6 @@ const filterOptions = computed<FilterOption[]>(() => {
 
 const activeFilter = computed(() => filterOptions.value.find(item => item.key === activeFilterKey.value) || filterOptions.value[0])
 const filteredPapers = computed(() => {
-  const query = keyword.value.trim().toLowerCase()
   const filter = activeFilter.value
 
   return papers.value.filter(paper => {
@@ -129,13 +140,7 @@ const filteredPapers = computed(() => {
       filter.kind === 'recommend' ||
       (filter.kind === 'system' && (paper.systemLabel === filter.value || paper.system === filter.value)) ||
       (filter.kind === 'region' && paper.region === filter.value)
-    const queryMatch =
-      !query ||
-      [paper.title, paper.region, paper.systemLabel, paper.category, paper.tags.join(' ')]
-        .join(' ')
-        .toLowerCase()
-        .includes(query)
-    return filterMatch && queryMatch && (selectedYear.value === 'all' || String(paper.year) === selectedYear.value) && (selectedCategory.value === 'all' || paper.category === selectedCategory.value)
+    return filterMatch && (selectedYear.value === 'all' || String(paper.year) === selectedYear.value) && (selectedCategory.value === 'all' || paper.category === selectedCategory.value)
   })
 })
 
@@ -248,12 +253,12 @@ function paperMeta(paper: RealPaper) {
         <button type="button" @click="router.push(routeTarget('/coach'))" aria-label="返回学习中心">
           <el-icon><ArrowLeft /></el-icon>
         </button>
-        <span>{{ currentTypeMeta.crumb }}</span>
-        <strong>{{ currentTypeMeta.title }}</strong>
+        <span>{{ searchKeyword ? '全部真题' : currentTypeMeta.crumb }}</span>
+        <strong>{{ searchKeyword ? '试题搜索' : currentTypeMeta.title }}</strong>
       </div>
 
       <section class="filter-panel">
-        <div class="type-row" aria-label="真题类型">
+        <div v-if="!searchKeyword" class="type-row" aria-label="真题类型">
           <button
             v-for="item in typeOptions"
             :key="item.value"
@@ -265,7 +270,7 @@ function paperMeta(paper: RealPaper) {
           </button>
         </div>
 
-        <div class="filter-row" aria-label="真题筛选">
+        <div v-if="!searchKeyword" class="filter-row" aria-label="真题筛选">
           <button
             v-for="item in filterOptions"
             :key="item.key"
@@ -277,13 +282,14 @@ function paperMeta(paper: RealPaper) {
           </button>
         </div>
 
-        <label class="paper-search">
-          <el-icon><Search /></el-icon>
-          <input v-model="keyword" placeholder="搜索真题、地区、系统或关键词" />
-        </label>
+        <form class="paper-search" role="search" @submit.prevent="submitSearch">
+          <input v-model="keyword" aria-label="搜索题目或正文" placeholder="搜索题目或正文" type="search" maxlength="100" @input="!keyword.trim() && clearSearch()" />
+          <button class="search-submit" type="submit" aria-label="搜索"><el-icon><Search /></el-icon></button>
+        </form>
       </section>
 
-      <section class="paper-list-panel">
+      <PaperSearchResults v-if="searchKeyword" class="library-search-results" :keyword="searchKeyword" active-type="all" @clear="clearSearch" />
+      <section v-else class="paper-list-panel">
         <div class="extra-filters">
           <label>年份 <select v-model="selectedYear"><option value="all">全部年份</option><option v-for="year in [...new Set(papers.map(p => p.year))].sort((a,b) => b-a)" :key="year" :value="String(year)">{{ year }}年</option></select></label>
           <label>卷别 <select v-model="selectedCategory"><option value="all">全部卷别</option><option v-for="category in categories" :key="category">{{ category }}</option></select></label>
@@ -329,7 +335,7 @@ function paperMeta(paper: RealPaper) {
 
         <div v-else class="empty-state">
           <strong>{{ loading ? '正在读取真题库' : '没有匹配的真题' }}</strong>
-          <span>{{ loading ? '数据正在从后端真题接口同步。' : '换一个地区、系统或关键词再试。' }}</span>
+          <span>{{ loading ? '数据正在从后端真题接口同步。' : '请调整地区、系统、年份或卷别筛选，或搜索题目和正文。' }}</span>
         </div>
       </section>
     </main>
@@ -501,6 +507,10 @@ function paperMeta(paper: RealPaper) {
   color: #263447;
   font-size: 15px;
 }
+
+.search-submit { display: grid; place-items: center; flex: none; width: 32px; min-height: 36px; padding: 0; border: 0; background: transparent; color: #397bf6; cursor: pointer; font-size: 20px; }
+.paper-search:focus-within { border-color: #397bf6; box-shadow: 0 0 0 3px #397bf61a; }
+.library-search-results { margin-top: 24px; }
 
 .paper-list-panel {
   margin-top: 0;
