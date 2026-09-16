@@ -119,6 +119,7 @@ router.get('/users', adminAuth, async (req, res) => {
     const { page = 1, pageSize = 20, keyword, role, status } = req.query;
     const where = {};
     if (keyword) where[Op.or] = [
+      { phone: { [Op.like]: `%${keyword}%` } },
       { username: { [Op.like]: `%${keyword}%` } },
       { email: { [Op.like]: `%${keyword}%` } },
       { nickname: { [Op.like]: `%${keyword}%` } },

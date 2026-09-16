@@ -269,6 +269,11 @@ watch(
         remoteAttempt.value = null
         await restoreDraftIfNeeded(nextPaper)
       }
+      // 搜索指定的题目优先于草稿页码，保留已恢复的作答内容。
+      if (route.query.questionId && !reviewMode.value) {
+        const targetIndex = paper.value.questions.findIndex(question => question.id === String(route.query.questionId))
+        if (targetIndex >= 0) currentIndex.value = targetIndex
+      }
     } catch {
       ElMessage.error('真题加载失败，请返回题库重试')
     } finally {
@@ -1123,7 +1128,6 @@ async function saveSelectedNote() {
       </article>
 
       <section class="answer-sheet">
-        <p v-if="paper.type === 'essay'" class="source-notice"><a v-if="paper.sourceUrl" :href="paper.sourceUrl" target="_blank" rel="noopener noreferrer">查看原题来源</a> · {{ paper.sourceName }}<strong v-if="paper.tags.includes('仅收录主观题')"> · 本题组仅收录主观题</strong></p>
         <article v-if="hasReviewReport" class="review-source-card">
           <header class="review-source-head">
             <div>
@@ -1413,7 +1417,6 @@ async function saveSelectedNote() {
 
 <style scoped>
 .paper-report-entry{padding:12px 24px;background:#eef4ff;font-size:14px}.paper-report-entry a{color:#3265ed;text-decoration:none}
-.source-notice{padding:12px 18px;margin:0 0 12px;background:#f3f7fc;border-radius:8px;font-size:13px;line-height:1.7;color:#5c6f86}.source-notice a{color:#235dc8}.source-notice strong{color:#9a5816}
 .focus-practice {
   min-height: 100vh;
   padding: 0 24px 28px;
@@ -1830,11 +1833,6 @@ async function saveSelectedNote() {
   grid-template-columns: minmax(420px, 0.92fr) minmax(560px, 1.08fr);
   gap: 22px;
   align-items: start;
-}
-
-.review-stage .source-notice {
-  grid-column: 1 / -1;
-  margin-bottom: 0;
 }
 
 .review-stage .answer-sheet > * {

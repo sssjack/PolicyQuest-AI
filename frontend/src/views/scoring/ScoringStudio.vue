@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref, type Component } from 'vue'
+import { computed, onMounted, ref, watch, type Component } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowRight,
@@ -16,6 +16,7 @@ import {
   UserFilled,
 } from '@element-plus/icons-vue'
 import AbilityRadar from '../../components/AbilityRadar.vue'
+import PaperSearchResults from '../../components/PaperSearchResults.vue'
 import UserAccountMenu from '../../components/UserAccountMenu.vue'
 import { practiceApi, realPaperApi, statsApi } from '../../api'
 import {
@@ -105,6 +106,17 @@ const backendHistory = ref<BackendPracticeSession[]>([])
 const realPaperHistory = ref<BackendRealPaperAttempt[]>([])
 const paperStats = ref<any>(null)
 const searchText = ref('')
+const searchKeyword = computed(() => typeof route.query.keyword === 'string' ? route.query.keyword.trim() : '')
+watch(searchKeyword, value => { searchText.value = value }, { immediate: true })
+
+function submitSearch() {
+  router.replace({ query: { ...route.query, keyword: searchText.value.trim() || undefined } })
+}
+
+function clearSearch() {
+  searchText.value = ''
+  submitSearch()
+}
 const activeType = ref<PaperTypeFilter>('all')
 const loading = ref(true)
 
@@ -181,15 +193,8 @@ const quickStats = computed(() => [
 ])
 
 const visiblePapers = computed(() => {
-  const keyword = searchText.value.trim().toLowerCase()
   return papers.value
     .filter(paper => activeType.value === 'all' || paper.type === activeType.value)
-    .filter(paper => {
-      if (!keyword) return true
-      return [paper.title, paper.region, paper.category, paper.systemLabel, String(paper.year)].some(item =>
-        String(item || '').toLowerCase().includes(keyword),
-      )
-    })
     .slice(0, 5)
 })
 
@@ -388,15 +393,16 @@ async function loadDashboardData() {
         </div>
 
         <div class="head-tools">
-          <label class="search-box">
+          <form class="search-box" role="search" @submit.prevent="submitSearch">
             <span>试题</span>
-            <input v-model="searchText" placeholder="输入真题、地区、岗位关键字" />
-            <el-icon class="search-icon"><Search /></el-icon>
-          </label>
+            <input v-model="searchText" aria-label="搜索题目或正文" maxlength="100" placeholder="搜索题目或正文" type="search" @input="!searchText.trim() && clearSearch()" />
+            <button class="search-submit" type="submit" aria-label="搜索"><el-icon class="search-icon"><Search /></el-icon></button>
+          </form>
         </div>
       </section>
 
-      <div class="coach-grid">
+      <PaperSearchResults v-if="searchKeyword" :keyword="searchKeyword" :active-type="activeType" @clear="clearSearch" />
+      <div v-else class="coach-grid">
         <div class="left-rail">
           <section class="practice-hub">
             <div class="entry-grid">
@@ -754,6 +760,9 @@ async function loadDashboardData() {
   color: #95a0b3;
   font-size: 20px;
 }
+
+.search-submit { display: grid; place-items: center; min-height: 36px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.search-box:focus-within { border-color: #3478f6; box-shadow: 0 0 0 3px #3478f61a; }
 
 .coach-grid {
   display: grid;

@@ -16,6 +16,19 @@ const { buildGradingResult } = require('../services/essay-annotations');
 
 const router = express.Router();
 
+router.get('/search', auth, async (req, res) => {
+  try {
+    const data = await require('../services/paper-search').searchPapers(req.query);
+    return res.json({ code: 200, data });
+  } catch (error) {
+    const status = error.status === 400 ? 400 : 500;
+    return res.status(status).json({
+      code: status,
+      message: status === 400 ? error.message : '搜索暂时失败，请稍后重试',
+    });
+  }
+});
+
 const PAPER_ATTRIBUTES = [
   'id', 'paper_key', 'practice_type', 'title', 'short_title', 'system', 'system_label',
   'region', 'year', 'category', 'paper_code', 'source_name', 'source_url', 'release_date',

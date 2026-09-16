@@ -4,6 +4,7 @@ const routes = [
   { path: '/', name: 'Home', component: () => import('../views/home/HomePage.vue') },
   { path: '/login', name: 'Login', component: () => import('../views/auth/LoginPage.vue') },
   { path: '/register', name: 'Register', component: () => import('../views/auth/RegisterPage.vue') },
+  { path: '/reset-password', name: 'ResetPassword', component: () => import('../views/auth/ResetPasswordPage.vue') },
   { path: '/legacy-home', redirect: '/' },
   { path: '/coach', component: () => import('../views/AppLayout.vue'), meta: { requiresAuth: true }, children: [{ path: '', name: 'PolicyQuestCoach', component: () => import('../views/scoring/ScoringStudio.vue') }] },
   { path: '/papers', component: () => import('../views/AppLayout.vue'), meta: { requiresAuth: true }, children: [{ path: '', name: 'TruePaperLibrary', component: () => import('../views/practice/TruePaperLibrary.vue') }] },
@@ -56,7 +57,7 @@ router.beforeEach((to, _from, next) => {
   const token = localStorage.getItem('pq_token')
   const user = JSON.parse(localStorage.getItem('pq_user') || 'null')
   const previewBypass = import.meta.env.DEV && to.query.preview === '1'
-  if (to.meta.requiresAuth && !token && !previewBypass) return next({ path: '/login', query: { redirect: to.fullPath } })
+  if (to.meta.requiresAuth && !token && !previewBypass) return next('/login')
   if (token && (to.path === '/login' || to.path === '/register')) return next('/coach')
   if (to.meta.requiresAdmin && !previewBypass && (!user || !['admin', 'super_admin'].includes(user.role))) return next('/coach')
   next()

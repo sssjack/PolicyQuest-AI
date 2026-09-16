@@ -4,6 +4,9 @@ import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { ArrowLeft, Camera, Check, Link, Message, User, UserFilled } from '@element-plus/icons-vue'
 import { useUserStore } from '../../store/user'
+import PhoneSecurity from '../../components/PhoneSecurity.vue'
+
+withDefaults(defineProps<{ embedded?: boolean }>(), { embedded: false })
 
 const route = useRoute()
 const router = useRouter()
@@ -30,6 +33,7 @@ const coachTarget = computed(() => ({
 const infoRows = computed(() => [
   { label: '用户名', value: userStore.user?.username || '未设置' },
   { label: '账号角色', value: roleLabel.value },
+  { label: '绑定手机', value: userStore.user?.phone ? `${userStore.user.phone.slice(0, 3)}****${userStore.user.phone.slice(-4)}` : '未绑定' },
   { label: '绑定邮箱', value: form.value.email || '未绑定' },
   { label: '备考方向', value: form.value.exam_target || '未设置' },
   { label: '地区', value: form.value.province || '未设置' },
@@ -100,7 +104,7 @@ async function saveProfile() {
     ElMessage.warning('请填写昵称')
     return
   }
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+  if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     ElMessage.warning('请输入有效邮箱')
     return
   }
@@ -129,8 +133,8 @@ async function saveProfile() {
 </script>
 
 <template>
-  <main class="profile-shell-page">
-    <header class="profile-nav">
+  <div class="profile-shell-page" :class="{ 'profile-embedded': embedded }">
+    <header v-if="!embedded" class="profile-nav">
       <router-link class="brand-link" :to="coachTarget" aria-label="返回学习中心">
         <span class="brand-mark">PQ</span>
         <span>
@@ -145,7 +149,7 @@ async function saveProfile() {
       </button>
     </header>
 
-    <section class="profile-hero">
+    <section v-if="!embedded" class="profile-hero">
       <div>
         <p>PROFILE</p>
         <h1>管理个人信息</h1>
@@ -198,7 +202,7 @@ async function saveProfile() {
           </label>
 
           <label>
-            <span><el-icon><Message /></el-icon>绑定邮箱</span>
+            <span><el-icon><Message /></el-icon>联系邮箱（选填）</span>
             <input v-model="form.email" type="email" placeholder="name@example.com" />
           </label>
 
@@ -219,9 +223,10 @@ async function saveProfile() {
             <strong>{{ row.value }}</strong>
           </div>
         </section>
+        <PhoneSecurity />
       </article>
     </section>
-  </main>
+  </div>
 </template>
 
 <style scoped>
@@ -629,4 +634,14 @@ async function saveProfile() {
     grid-template-columns: 1fr;
   }
 }
+</style>
+
+<style scoped>
+.profile-embedded { min-height: 0; padding: 0; background: none; }
+.profile-embedded .profile-content { width: 100%; margin: 0; grid-template-columns: minmax(0, 1fr); gap: 24px; }
+.profile-embedded .avatar-panel, .profile-embedded .profile-form { min-width: 0; padding: 0; border: 0; box-shadow: none; background: none; }
+.profile-embedded .avatar-panel { padding-bottom: 24px; border-bottom: 1px solid #e8eef7; }
+.profile-embedded .avatar-actions { max-width: 300px; }
+.profile-embedded .info-list strong, .profile-embedded .avatar-panel h2 { overflow-wrap: anywhere; min-width: 0; }
+.profile-embedded .info-list span { flex-shrink: 0; }
 </style>

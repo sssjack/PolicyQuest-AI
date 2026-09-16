@@ -9,6 +9,9 @@ const auth = async (req, res, next) => {
     const decoded = jwt.verify(token, config.jwtSecret);
     const user = await User.findByPk(decoded.id);
     if (!user || user.status !== 'active') return res.status(401).json({ code: 401, message: '用户不存在或已被禁用' });
+    if (Number(decoded.tv || 0) !== Number(user.token_version || 0)) {
+      return res.status(401).json({ code: 401, message: '密码已修改，请重新登录' });
+    }
     req.user = user;
     req.userId = user.id;
     next();

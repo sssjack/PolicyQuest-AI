@@ -89,7 +89,7 @@ onMounted(loadData)
   <div class="page-container admin-page">
     <div class="page-heading"><div><div class="page-kicker">CUSTOMER 360</div><h1 class="section-title">用户与权益</h1><p class="page-subtitle">管理账号状态、学习记录与积分；每套真题消耗10积分，所有调整保留账本。</p></div><span class="count-pill">{{ total }} 个用户</span></div>
     <section class="glass-card filter-card">
-      <el-input v-model="filters.keyword" placeholder="搜索用户名、昵称或邮箱" clearable class="search-input" @change="page = 1; loadData()" />
+      <el-input v-model="filters.keyword" placeholder="搜索手机号、用户名、昵称或邮箱" clearable class="search-input" @change="page = 1; loadData()" />
       <el-select v-model="filters.role" placeholder="角色" clearable @change="page = 1; loadData()"><el-option label="普通用户" value="user" /><el-option label="管理员" value="admin" /><el-option label="超级管理员" value="super_admin" /></el-select>
       <el-select v-model="filters.status" placeholder="状态" clearable @change="page = 1; loadData()"><el-option label="正常" value="active" /><el-option label="禁用" value="banned" /><el-option label="未激活" value="inactive" /></el-select>
       <button class="btn-ghost" @click="filters = { keyword: '', role: '', status: '' }; page = 1; loadData()">重置</button>
@@ -99,7 +99,7 @@ onMounted(loadData)
       <el-table :data="list" v-loading="loading" stripe>
         <el-table-column prop="id" label="ID" width="60" />
         <el-table-column label="用户" min-width="190">
-          <template #default="{ row }"><a class="user-link" @click="showDetail(row)"><b>{{ row.nickname || row.username }}</b><small>{{ row.username }} · {{ row.email }}</small></a></template>
+          <template #default="{ row }"><a class="user-link" @click="showDetail(row)"><b>{{ row.nickname || row.username }}</b><small>{{ row.phone || row.username }}<template v-if="row.email"> · {{ row.email }}</template></small></a></template>
         </el-table-column>
         <el-table-column label="角色" width="100"><template #default="{ row }"><el-tag :type="row.role === 'user' ? 'info' : 'warning'" size="small">{{ row.role === 'user' ? '用户' : row.role === 'admin' ? '管理员' : '超管' }}</el-tag></template></el-table-column>
         <el-table-column label="剩余积分" width="120"><template #default="{ row }"><b>{{ row.credits }}</b><small class="muted-block">可答 {{ Math.floor(row.credits / 10) }} 套</small></template></el-table-column>
@@ -121,7 +121,7 @@ onMounted(loadData)
     <el-drawer v-model="detailVisible" title="用户 360 档案" size="560px" destroy-on-close>
       <div v-if="detailLoading" class="drawer-loading">正在读取用户档案…</div>
       <template v-else-if="detail">
-        <div class="profile-head"><div class="profile-avatar">{{ (detail.user.nickname || detail.user.username || '用').slice(0, 1) }}</div><div><h2>{{ detail.user.nickname || detail.user.username }}</h2><p>{{ detail.user.email }} · 注册于 {{ date(detail.user.created_at) }}</p></div></div>
+        <div class="profile-head"><div class="profile-avatar">{{ (detail.user.nickname || detail.user.username || '用').slice(0, 1) }}</div><div><h2>{{ detail.user.nickname || detail.user.username }}</h2><p>{{ detail.user.phone || detail.user.email || detail.user.username }} · 注册于 {{ date(detail.user.created_at) }}</p></div></div>
         <div class="rights-banner"><div><span>会员权益</span><b>{{ detail.rights.membership === null ? '2.0 待接入' : detail.rights.membership }}</b></div><div><span>体验额度</span><b>{{ detail.rights.trialQuota === null ? '待接入' : detail.rights.trialQuota }}</b></div><div><span>积分余额</span><b>{{ detail.rights.points === null ? '待接入' : detail.rights.points }}</b></div></div>
         <div class="drawer-section"><div class="drawer-section-title">学习摘要</div><div class="mini-stats"><div><b>{{ detail.stats.answers }}</b><span>作答</span></div><div><b>{{ detail.stats.sessions }}</b><span>会话</span></div><div><b>{{ detail.stats.attempts }}</b><span>整卷</span></div></div></div>
         <div class="drawer-section"><div class="drawer-section-title">最近整卷练习</div><div v-if="!detail.attempts.length" class="empty-line">暂无整卷练习记录</div><div v-for="item in detail.attempts" :key="item.id" class="record-line"><div><b>{{ item.paper_title }}</b><small>{{ date(item.submitted_at) }}</small></div><span class="status-pill" :class="item.status">{{ item.status === 'graded' ? `${item.average_score || 0} 分` : item.status === 'failed' ? '批改失败' : '批改中' }}</span></div></div>

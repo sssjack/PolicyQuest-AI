@@ -4,7 +4,9 @@ const sequelize = require('../config/database');
 const User = sequelize.define('User', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
   username: { type: DataTypes.STRING(50), allowNull: false, unique: true },
-  email: { type: DataTypes.STRING(100), allowNull: false, unique: true },
+  email: { type: DataTypes.STRING(100), allowNull: true, unique: true },
+  phone: { type: DataTypes.STRING(11), allowNull: true, unique: true },
+  token_version: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
   password: { type: DataTypes.STRING(255), allowNull: false },
   credits: { type: DataTypes.INTEGER.UNSIGNED, allowNull: false, defaultValue: 0 },
   nickname: { type: DataTypes.STRING(50), defaultValue: '' },
@@ -32,6 +34,25 @@ const CreditLedger = sequelize.define('CreditLedger', {
   { unique: true, fields: ['user_id', 'request_key'] },
   { fields: ['user_id', 'created_at'] },
 ] });
+
+const SmsChallenge = sequelize.define('SmsChallenge', {
+  phone: { type: DataTypes.STRING(11), primaryKey: true },
+  purpose: { type: DataTypes.STRING(16), allowNull: true },
+  user_id: { type: DataTypes.INTEGER, allowNull: true },
+  request_key: { type: DataTypes.STRING(36), allowNull: true },
+  code_hash: { type: DataTypes.STRING(64), allowNull: true },
+  state: { type: DataTypes.STRING(16), allowNull: false, defaultValue: 'empty' },
+  attempts: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+  expires_at: { type: DataTypes.DATE, allowNull: true },
+  sent_at: { type: DataTypes.DATE, allowNull: true },
+  day: { type: DataTypes.STRING(10), allowNull: true },
+  daily_count: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+}, { tableName: 'sms_challenges' });
+
+const SmsQuota = sequelize.define('SmsQuota', {
+  day: { type: DataTypes.STRING(10), primaryKey: true },
+  count: { type: DataTypes.INTEGER, allowNull: false, defaultValue: 0 },
+}, { tableName: 'sms_quotas' });
 
 const ArticleSource = sequelize.define('ArticleSource', {
   id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -447,7 +468,7 @@ RealPaperAttemptAnswer.hasMany(UserNote, { foreignKey: 'attempt_answer_id' });
 UserNote.belongsTo(RealPaperAttemptAnswer, { foreignKey: 'attempt_answer_id' });
 
 module.exports = {
-  sequelize, User, CreditLedger, ArticleSource, Article, Question,
+  sequelize, User, CreditLedger, SmsChallenge, SmsQuota, ArticleSource, Article, Question,
   RealPaper, PaperMaterial, PaperQuestion, RealPaperAttempt, RealPaperAttemptAnswer,
   PracticeSession, UserAnswer, WrongQuestion, Favorite, UserNote, AiTask, EssayReference,
   AiRequestLog, Feedback, Announcement, AnnouncementRead

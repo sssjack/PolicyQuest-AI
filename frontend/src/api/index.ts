@@ -43,6 +43,10 @@ export function requestId() {
 }
 
 export const authApi = {
+  sendCode: (data: { phone: string; purpose: string }) => api.post('/auth/sms-code', data, { timeout: 20000 }),
+  resetPassword: (data: { phone: string; code: string; password: string }) => api.post('/auth/reset-password', data),
+  bindPhoneCode: (data: { phone: string; password: string }) => api.post('/auth/phone/code', data, { timeout: 20000 }),
+  bindPhone: (data: { phone: string; password: string; code: string }) => api.post('/auth/phone', data),
   login: (data: any) => api.post('/auth/login', data),
   register: (data: any) => api.post('/auth/register', data),
   profile: () => api.get('/auth/profile'),
@@ -62,6 +66,8 @@ export const questionApi = {
 }
 
 export const realPaperApi = {
+  search: (params: { keyword: string; essayPage?: number; interviewPage?: number }, signal?: AbortSignal) =>
+    api.get('/real-papers/search', { params, signal }),
   paperReport: (id: string | number) => api.get(`/real-papers/attempts/${id}/paper-report`),
   generatePaperReport: (id: string | number) => api.post(`/real-papers/attempts/${id}/paper-report`),
   paperTarget: (id: string | number, target: number) => api.put(`/real-papers/attempts/${id}/paper-target`, { target }),

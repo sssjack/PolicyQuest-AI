@@ -5,12 +5,13 @@ const crypto = require('crypto');
 const multer = require('multer');
 const { Op } = require('sequelize');
 const config = require('../config');
-const { User, CreditLedger, sequelize } = require('../models');
-const { INITIAL_CREDITS, creditView } = require('../services/credits');
+const { User } = require('../models');
+const { creditView } = require('../services/credits');
 const { auth } = require('../middleware/auth');
 const { IMAGE_EXTENSIONS, putObject } = require('../services/oss-storage');
 
 const router = express.Router();
+const loginLimit = require('express-rate-limit')({ windowMs: 15 * 60000, max: 30, skipSuccessfulRequests: true, message: { code: 429, message: '登录尝试较多，请稍后重试' } });
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
 const avatarUpload = multer({
   storage: multer.memoryStorage(),
@@ -54,86 +55,29 @@ function uploadAvatarFile(req, res, next) {
   });
 }
 
-router.post('/register', async (req, res) => {
-  try {
-    const username = String(req.body.username || '').trim();
-    const email = String(req.body.email || '').trim().toLowerCase();
-    const password = String(req.body.password || '');
-    const nickname = String(req.body.nickname || '').trim();
-    const exam_target = String(req.body.exam_target || '').trim();
-    const province = String(req.body.province || '').trim();
-    if (!username || !email || !password) {
-      return res.status(400).json({ code: 400, message: '用户名、邮箱和密码为必填项' });
-    }
-    if (username.length < 3 || username.length > 24) {
-      return res.status(400).json({ code: 400, message: '用户名需为 3-24 个字符' });
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return res.status(400).json({ code: 400, message: '请输入有效邮箱' });
-    }
-    if (password.length < 6) {
-      return res.status(400).json({ code: 400, message: '密码至少 6 位' });
-    }
-    const existing = await User.findOne({ where: { username } });
-    if (existing) return res.status(400).json({ code: 400, message: '用户名已存在' });
-    const existEmail = await User.findOne({ where: { email } });
-    if (existEmail) return res.status(400).json({ code: 400, message: '邮箱已注册' });
+router.use(require('./phone-auth'));
 
-    const hashedPw = await bcrypt.hash(password, 12);
-    const user = await sequelize.transaction(async transaction => {
-      const created = await User.create({
-        username, email, password: hashedPw, credits: INITIAL_CREDITS,
-        nickname: nickname || username,
-        exam_target: exam_target || '',
-        province: province || '',
-      }, { transaction });
-      await CreditLedger.create({ user_id: created.id, delta: INITIAL_CREDITS, balance: INITIAL_CREDITS,
-        reason: '注册赠送：可完成10套真题', request_key: 'registration' }, { transaction });
-      return created;
-    });
-    const token = jwt.sign({ id: user.id, role: user.role }, config.jwtSecret, { expiresIn: config.jwtExpiresIn });
-    res.json({
-      code: 200, message: '注册成功',
-      data: {
-        token,
-        user: {
-          ...creditView(user),
-          id: user.id,
-          username: user.username,
-          email: user.email,
-          nickname: user.nickname,
-          role: user.role,
-          avatar: user.avatar,
-          exam_target: user.exam_target,
-          province: user.province,
-        }
-      }
-    });
-  } catch (e) {
-    res.status(500).json({ code: 500, message: '注册失败', error: e.message });
-  }
-});
-
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimit, async (req, res) => {
   try {
     const account = String(req.body.username || req.body.account || '').trim();
     const password = String(req.body.password || '');
-    if (!account || !password) return res.status(400).json({ code: 400, message: '请输入用户名/邮箱和密码' });
+    if (!account || !password) return res.status(400).json({ code: 400, message: '请输入手机号或原有账号和密码' });
     const user = await User.findOne({
       where: {
         [Op.or]: [
+          { phone: account },
           { username: account },
           { email: account.toLowerCase() },
         ],
       },
     });
     if (!user) return res.status(400).json({ code: 400, message: '用户名或密码错误' });
-    if (user.status === 'banned') return res.status(403).json({ code: 403, message: '账号已被禁用' });
+    if (user.status !== 'active') return res.status(403).json({ code: 403, message: '账号已被禁用' });
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return res.status(400).json({ code: 400, message: '用户名或密码错误' });
 
     await user.update({ last_login_at: new Date() });
-    const token = jwt.sign({ id: user.id, role: user.role }, config.jwtSecret, { expiresIn: config.jwtExpiresIn });
+    const token = jwt.sign({ id: user.id, role: user.role, tv: user.token_version }, config.jwtSecret, { expiresIn: config.jwtExpiresIn });
     res.json({
       code: 200, message: '登录成功',
       data: {
@@ -142,7 +86,7 @@ router.post('/login', async (req, res) => {
           ...creditView(user),
           id: user.id,
           username: user.username,
-          email: user.email,
+          email: user.email, phone: user.phone,
           nickname: user.nickname,
           role: user.role,
           avatar: user.avatar,
@@ -162,7 +106,7 @@ router.get('/profile', auth, async (req, res) => {
     code: 200,
     data: {
       ...creditView(user),
-      id: user.id, username: user.username, email: user.email, nickname: user.nickname,
+      id: user.id, username: user.username, email: user.email, phone: user.phone, nickname: user.nickname,
       role: user.role, avatar: user.avatar, exam_target: user.exam_target, province: user.province,
       total_questions: user.total_questions, correct_count: user.correct_count,
       accuracy: user.total_questions > 0 ? (user.correct_count / user.total_questions * 100).toFixed(1) : '0.0',
@@ -221,14 +165,14 @@ router.put('/profile', auth, async (req, res) => {
     if (!nickname) {
       return res.status(400).json({ code: 400, message: '昵称不能为空' });
     }
-    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return res.status(400).json({ code: 400, message: '请输入有效邮箱' });
     }
     if (avatar.startsWith('data:')) {
       return res.status(400).json({ code: 400, message: '请先上传头像到 OSS 后再保存' });
     }
 
-    const emailOwner = await User.findOne({
+    const emailOwner = email && await User.findOne({
       where: {
         email,
         id: { [Op.ne]: req.user.id },
@@ -238,7 +182,7 @@ router.put('/profile', auth, async (req, res) => {
       return res.status(400).json({ code: 400, message: '该邮箱已被其他账号绑定' });
     }
 
-    await req.user.update({ nickname, email, avatar, exam_target, province });
+    await req.user.update({ nickname, email: email || null, avatar, exam_target, province });
     res.json({
       code: 200,
       message: '更新成功',
@@ -246,7 +190,7 @@ router.put('/profile', auth, async (req, res) => {
         ...creditView(req.user),
         id: req.user.id,
         username: req.user.username,
-        email: req.user.email,
+        email: req.user.email, phone: req.user.phone,
         nickname: req.user.nickname,
         role: req.user.role,
         avatar: req.user.avatar,
