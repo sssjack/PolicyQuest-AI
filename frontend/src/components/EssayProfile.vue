@@ -1,9 +1,15 @@
 <script setup lang="ts">
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
+import AbilityTree from './AbilityTree.vue'
+import { essayTypeNames, type AbilityNode } from '../data/abilityRating'
 import { realPaperApi } from '../api'
 const data = ref<any>(null)
 const error = ref('')
-const names: Record<string, string> = { summary: '归纳概括', analysis: '综合分析', solution: '提出对策', implementation: '贯彻执行', article: '大作文' }
+const names = essayTypeNames
+const typeNodes = computed<AbilityNode[]>(() => (data.value?.byType || []).map((item: any) => ({
+  id: item.kind, name: names[item.kind] || item.kind, score: item.scoreRate, count: item.count,
+  children: (item.dimensions || []).map((d: any) => ({ id: `${item.kind}:${d.name}`, name: d.name, score: d.scoreRate, count: d.count })),
+})))
 async function load() {
   error.value = ''
   try { const res: any = await realPaperApi.essayProfile(); data.value = res.data }
@@ -23,7 +29,7 @@ onMounted(load)
         <div class="metrics"><div v-for="[label, value, unit] in [['已评答案', data.sampleCount, '题'], ['踩点率', data.hitRate, '%'], ['遗漏率', data.omissionRate, '%'], ['有效覆盖率', data.correctPointRate, '%'], ['平均字数', data.averageWords, '字'], ['超限字数比例', data.overLimitRate, '%']]" :key="String(label)"><small>{{ label }}</small><strong>{{ value ?? '—' }}<em>{{ unit }}</em></strong></div></div>
         <p class="note">踩点率将部分覆盖按半个要点计算；有效覆盖率包含部分覆盖。作文材料覆盖指标仅用于诊断，不代表作文按点计分。</p>
         <h3>常见失分问题</h3><div class="tags"><span v-for="item in data.commonErrors" :key="item.tag">{{ item.tag }} · {{ item.count }}次</span><span v-if="!data.commonErrors.length">暂无重复失分问题</span></div>
-        <h3>题型与维度表现</h3><div class="bars"><label v-for="item in data.byType" :key="item.kind">{{ names[item.kind] }} · {{ item.count }}题 <progress :value="item.scoreRate" max="100" /> {{ item.scoreRate }}%</label><label v-for="item in data.dimensions" :key="item.name">{{ item.name }} <progress :value="item.scoreRate" max="100" /> {{ item.scoreRate }}%</label></div>
+        <h3>题型与维度表现</h3><AbilityTree :nodes="typeNodes" />
         <h3>最近练习趋势</h3><p class="note">不同题目难度不同，得分率变化仅作练习参考。</p>
         <div class="trend"><div v-for="(item, index) in data.trend.slice(-20)" :key="item.answerId" :title="`${names[item.kind]}：${item.scoreRate}%`"><span>{{ item.scoreRate }}%</span><i :style="{ height: `${item.scoreRate}px` }"/><small>{{ Number(index) + 1 }}</small></div></div>
         <h3>针对性训练</h3><ul><li v-for="item in data.recommendations" :key="item.questionId"><router-link :to="{path: `/practice/${item.paperId}`, query: {questionId: item.questionId}}">{{ item.paperTitle }} · {{ item.title }}（{{ item.maxScore }}分）</router-link></li></ul>

@@ -15,12 +15,12 @@ import {
   TrendCharts,
   UserFilled,
 } from '@element-plus/icons-vue'
-import AbilityRadar from '../../components/AbilityRadar.vue'
+import AbilityTree from '../../components/AbilityTree.vue'
+import { abilityLeaves, buildAbilityTree, type AbilityAttempt } from '../../data/abilityRating'
 import PaperSearchResults from '../../components/PaperSearchResults.vue'
 import UserAccountMenu from '../../components/UserAccountMenu.vue'
 import { practiceApi, realPaperApi, statsApi } from '../../api'
 import {
-  aggregateDimensions,
   averageScore,
   buildPracticeHistory,
   mapBackendPaper,
@@ -61,7 +61,7 @@ type BackendPracticeSession = {
   submittedAt?: string
 }
 
-type BackendRealPaperAttempt = {
+type BackendRealPaperAttempt = AbilityAttempt & {
   id: number
   paperId: string | number
   type: PracticeType
@@ -104,6 +104,7 @@ const papers = ref<RealPaper[]>([])
 const overview = ref<BackendOverview | null>(null)
 const backendHistory = ref<BackendPracticeSession[]>([])
 const realPaperHistory = ref<BackendRealPaperAttempt[]>([])
+const abilityAttempts = ref<AbilityAttempt[]>([])
 const paperStats = ref<any>(null)
 const searchText = ref('')
 const searchKeyword = computed(() => typeof route.query.keyword === 'string' ? route.query.keyword.trim() : '')
@@ -143,21 +144,9 @@ const wrongCount = computed(() => overview.value?.wrong_count ?? 0)
 const draftCount = computed(() => drafts.value.length)
 const favoriteCount = computed(() => favorites.value.length)
 
-const dimensions = computed(() => {
-  if (records.value.length) return aggregateDimensions(records.value).slice(0, 5)
-
-  const categoryStats = overview.value?.category_stats
-  if (categoryStats) {
-    const labels: Record<string, string> = { verbal: '规范表达', politics: '政策理解', interview: '面试表达' }
-    return Object.entries(categoryStats).map(([key, value]) => ({
-      name: labels[key] || key,
-      score: Math.round(Number(value.accuracy || 0)),
-    })).slice(0, 5)
-  }
-
-  return []
-})
-const weakest = computed(() => [...dimensions.value].sort((a, b) => a.score - b.score)[0])
+const abilityNodes = computed(() => buildAbilityTree(records.value, abilityAttempts.value))
+const dimensions = computed(() => abilityLeaves(abilityNodes.value))
+const weakest = computed(() => [...dimensions.value].sort((a, b) => (a.score ?? 0) - (b.score ?? 0))[0])
 
 const essayPaper = computed(() => papers.value.find(paper => paper.type === 'essay'))
 
@@ -178,7 +167,7 @@ const entryCards = computed<EntryCard[]>(() => [
   },
   {
     title: '学习报告',
-    subtitle: '能力雷达 · 失分诊断',
+    subtitle: '能力星级 · 失分诊断',
     tone: 'yellow',
     icon: DataAnalysis,
     action: () => router.push(routeTarget('/report')),
@@ -335,7 +324,7 @@ async function loadDashboardData() {
       realPaperApi.stats(),
       statsApi.overview(),
       practiceApi.history({ page: 1, pageSize: 4 }),
-      realPaperApi.attempts({ page: 1, pageSize: 4 }),
+      realPaperApi.attempts({ page: 1, pageSize: 50, includeAnswers: '1' }),
     ])
 
     const nextPapers: RealPaper[] = []
@@ -350,7 +339,11 @@ async function loadDashboardData() {
     if (statsResult.status === 'fulfilled') paperStats.value = (statsResult.value as any).data
     if (overviewResult.status === 'fulfilled') overview.value = (overviewResult.value as any).data
     if (historyResult.status === 'fulfilled') backendHistory.value = ((historyResult.value as any).data?.list || []).slice(0, 4)
-    if (attemptResult.status === 'fulfilled') realPaperHistory.value = ((attemptResult.value as any).data?.list || []).slice(0, 4)
+    if (attemptResult.status === 'fulfilled') {
+      const attempts = (attemptResult.value as any).data?.list || []
+      realPaperHistory.value = attempts.slice(0, 4)
+      abilityAttempts.value = attempts
+    }
   } finally {
     loading.value = false
   }
@@ -484,24 +477,8 @@ async function loadDashboardData() {
               </button>
             </div>
 
-            <div v-if="dimensions.length" class="ability-content">
-              <AbilityRadar :items="dimensions" :height="220" />
-              <div class="weak-list">
-                <div v-for="item in dimensions" :key="item.name" class="weak-row">
-                  <div>
-                    <span>{{ item.name }}</span>
-                    <strong>{{ item.score }}%</strong>
-                  </div>
-                  <i><b :style="{ width: `${item.score}%` }"></b></i>
-                </div>
-              </div>
-            </div>
-
-            <div v-else class="empty-card ability-empty">
-              <strong>等待真实作答数据</strong>
-              <span>完成申论或面试真题评分后，这里会按真实维度生成能力概览。</span>
-              <button type="button" @click="openLibrary()">去真题库</button>
-            </div>
+            <AbilityTree :nodes="abilityNodes" />
+            <p class="ability-scope">根据最近 50 次真题练习及本机练习的已评分答案统计。</p>
           </section>
         </div>
 
@@ -570,6 +547,7 @@ async function loadDashboardData() {
 </template>
 
 <style scoped>
+.ability-scope { color: #8c9ab0; font-size: 12px; line-height: 1.7; }
 .fenbi-coach {
   min-height: 100vh;
   background: #f3f6fb;
@@ -1426,4 +1404,5 @@ async function loadDashboardData() {
 }
 </style>
 
-<style scoped>@media(max-width:430px){.fenbi-brand strong{display:none}}</style>
+<style scoped>
+@media(max-width:430px){.fenbi-brand strong{display:none}}</style>

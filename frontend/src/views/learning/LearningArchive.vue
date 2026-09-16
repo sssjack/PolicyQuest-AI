@@ -8,7 +8,6 @@ import {
   ArrowLeft,
   ArrowRight,
   Calendar,
-  CircleCheck,
   DataAnalysis,
   Delete,
   EditPen,
@@ -21,6 +20,8 @@ import {
   Warning,
 } from '@element-plus/icons-vue'
 import AbilityRadar from '../../components/AbilityRadar.vue'
+import AbilityTree from '../../components/AbilityTree.vue'
+import { buildAbilityTree, abilityLeaves } from '../../data/abilityRating'
 import { notesApi, realPaperApi, wrongbookApi } from '../../api'
 import {
   averageScore,
@@ -265,14 +266,12 @@ const interviewRecords = computed(() => allPracticeRecords.value.filter(record =
 const legacyEssayRecords = computed(() => essayRecords.value.filter(record => record.evaluation.reportVersion !== 'essay-v2'))
 const essayRadarItems = computed(() => aggregateReportDimensions(legacyEssayRecords.value, essayDimensions))
 const interviewRadarItems = computed(() => aggregateReportDimensions(interviewRecords.value, interviewDimensions))
-const dimensionRows = computed(() => [
-  ...buildDimensionRows('旧版申论', essayRadarItems.value, legacyEssayRecords.value.length),
-  ...buildDimensionRows('面试', interviewRadarItems.value, interviewRecords.value.length),
-])
+const abilityNodes = computed(() => buildAbilityTree(records.value, remoteAttempts.value))
+const dimensionRows = computed(() => abilityNodes.value.flatMap(node => abilityLeaves(node.children || []).map(item => ({ ...item, typeLabel: node.name }))))
 const average = computed(() => averageScore(allPracticeRecords.value))
 const essayAverage = computed(() => averageScore(essayRecords.value))
 const interviewAverage = computed(() => averageScore(interviewRecords.value))
-const weakest = computed(() => [...dimensionRows.value].sort((a, b) => a.score - b.score)[0])
+const weakest = computed(() => [...dimensionRows.value].sort((a, b) => (a.score ?? 0) - (b.score ?? 0))[0])
 const scoreAngle = computed(() => `${Math.max(0, Math.min(100, average.value || 0)) * 3.6}deg`)
 const reportInsight = computed(() => {
   if (!allPracticeRecords.value.length) {
@@ -362,16 +361,6 @@ function normalizeScoreDimensions(dimensions?: ScoreDimension[]) {
         name: normalizeScoreDimensionName(item.name),
       }))
     : []
-}
-
-function buildDimensionRows(typeLabel: string, dimensions: ScoreDimension[], sampleCount: number) {
-  return dimensions.map((item, index) => ({
-    ...item,
-    typeLabel,
-    target: Math.min(88, 70 + index * 3),
-    answered: sampleCount,
-    total: Math.max(sampleCount, 1),
-  }))
 }
 
 function normalizeAttemptEvaluation(answer: RemoteAttemptAnswer): EvaluationResult {
@@ -825,10 +814,10 @@ function formatShortDate(value?: string) {
           </article>
 
           <article class="radar-card">
-            <h2>旧版申论能力雷达</h2>
+            <h2>申论综合能力雷达</h2>
             <AbilityRadar v-if="essayRadarItems.length" :items="essayRadarItems" :height="318" />
             <div v-else class="mini-empty">
-              <strong>暂无旧版评分样本；新版能力见上方档案</strong>
+              <strong>暂无综合维度评分样本</strong>
               <span>完成申论真题并提交 AI 评分后生成。</span>
             </div>
             <div class="legend-row">
@@ -851,26 +840,9 @@ function formatShortDate(value?: string) {
           </article>
 
           <article class="accuracy-card">
-            <div class="accuracy-head">
-              <h2>能力概览</h2>
-              <span><i></i> 我的</span>
-              <span><i></i> 目标</span>
-            </div>
-            <div v-if="dimensionRows.length" class="accuracy-list">
-              <div v-for="item in dimensionRows" :key="item.name" class="accuracy-row">
-                <el-icon><CircleCheck /></el-icon>
-                <div>
-                  <strong>{{ item.typeLabel }} · {{ item.name }}</strong>
-                  <small>{{ item.answered }} 次真实评分样本</small>
-                </div>
-                <i class="bar"><b :style="{ width: `${item.score}%` }"></b><em :style="{ left: `${item.target}%` }"></em></i>
-                <span>{{ item.score }}%</span>
-              </div>
-            </div>
-            <div v-else class="mini-empty">
-              <strong>暂无能力维度</strong>
-              <span>系统只会使用真实作答评分记录生成能力概览。</span>
-            </div>
+            <div class="accuracy-head"><h2>能力概览</h2></div>
+            <AbilityTree :nodes="abilityNodes" />
+            <p class="ability-scope">根据最近 50 次真题练习及本机练习的已评分答案统计。</p>
           </article>
         </div>
 
@@ -1095,6 +1067,7 @@ function formatShortDate(value?: string) {
 </template>
 
 <style scoped>
+.ability-scope { color: #8c9ab0; font-size: 12px; line-height: 1.7; }
 .archive-shell {
   min-height: 100vh;
   background: #f3f6fb;
@@ -1111,8 +1084,8 @@ function formatShortDate(value?: string) {
 }
 
 .archive-nav-inner {
-  display: grid;
-  grid-template-columns: 220px minmax(0, 1fr) 64px;
+  display: flex;
+  justify-content: space-between;
   align-items: center;
   width: min(1480px, calc(100vw - 48px));
   height: 100%;
@@ -2146,9 +2119,6 @@ function formatShortDate(value?: string) {
     width: min(100vw - 32px, 980px);
   }
 
-  .archive-nav-inner {
-    grid-template-columns: 190px minmax(0, 1fr) 52px;
-  }
 
   .archive-tabs {
     gap: 14px;
@@ -2184,7 +2154,6 @@ function formatShortDate(value?: string) {
   }
 
   .archive-nav-inner {
-    grid-template-columns: 1fr 42px;
     gap: 10px;
     min-height: 60px;
   }
@@ -2361,4 +2330,5 @@ function formatShortDate(value?: string) {
     text-align: left;
   }
 }
+@media(max-width:430px){.archive-brand strong{display:none}}
 </style>
