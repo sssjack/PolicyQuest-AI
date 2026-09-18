@@ -359,3 +359,29 @@ curl -fsS http://127.0.0.1:3000/api/health
 - 北京时间09:59部署，目录 `/opt/policyquest/releases/20260916-ability-stars-095905`，备份 `/opt/policyquest/backups/20260916-ability-stars-095905/application.tar.gz`。发布前确认无运行中的批改、报告生成及AI任务，仅重启 `policyquest`；75个文件哈希一致、健康检查正常，保留旧静态资源并原子替换入口。
 - 五项本地评分换算、题型维度隔离及现有申论档案检查通过，前端类型检查和生产构建通过。本地及公网生产构建在1440、390、360像素宽度验证分类展开收起、半星、灰星、无数据、键盘和移动布局，无横向溢出或页面异常。浏览器交互使用模拟API数据；另行验证真实鉴权档案接口200，16个样本分属4种题型，各自返回6或7个维度。公网入口哈希与发布包一致。
 - 测试与发布脚本只保留本地，未提交。回滚可恢复本次应用备份并重启 `policyquest`，无需恢复数据库。
+
+## 2026-09-16 批改请求、暂停、划词标注与格子纸
+
+- 修复模型兼容网关 JSON 消息校验导致的 HTTP 400，以及参考答案重试覆盖真实错误的问题。参考答案按三个明确版本生成，修复时携带原题材料并继续执行完整性校验。
+- 顶部计时支持暂停/继续及暂停草稿恢复；材料和题干支持四色高亮、下划线、加粗及选区清除，按账号及试卷保存在当前浏览器。
+- 移除格子纸独立绘制层，原生 textarea 同时承载字形、选区和光标；按实际内容高度及容器变化调整，保留中文输入法组合输入。
+- 北京时间17:26发布，暂存目录 `/opt/policyquest/releases/20260916-practice-fixes`，备份 `/opt/policyquest/backups/20260916-practice-172643`。仅更新两个后端服务文件及前端构建产物，重启 `policyquest`，76个文件哈希校验一致。没有改动数据库结构、密钥或依赖。
+- 前端类型检查、构建及13项后端回归通过；本地2048、1440、390像素及125%缩放验证编辑光标、输入法、标注、换题、暂停恢复与刷新恢复。公网1440像素交互验证使用模拟API数据，真实公网首页及健康接口另行检查均为200。
+- 服务器真实模型以合成答卷完成完整 essay-v2 批改，三种参考答案通过字数及完整性校验。未重新提交已有用户答卷；历史失败记录可通过原有“重试未完成的批改”恢复。
+- 首次发布因旧版 curl 不支持健康探测参数，已自动恢复旧版本；改用兼容 Node 的探测后重新发布成功。回滚时恢复上述备份中的两个后端服务文件和前端 index.html，并重启 policyquest。测试及发布脚本仅保存在本地已忽略目录。
+
+## 2026-09-16 划词工具栏简化
+
+- 将划词标注工具栏改为252×40像素的紧凑浮层：四色小圆点、无独立边框的格式按钮、图标式清除与关闭，减弱外边框和阴影；保留文字提示、键盘焦点和Esc关闭。窄屏位置预留边距，触屏按钮增加高度。
+- 前端构建通过；在应用内浏览器验证窄屏和994像素桌面布局，以及高亮、加粗、下划线叠加、清除和关闭，桌面无横向溢出。
+- 17:40仅发布前端，目录 `/opt/policyquest/releases/20260916-annotation-toolbar-174031`，备份 `/opt/policyquest/backups/20260916-annotation-toolbar-174031/frontend.tar.gz`。74个发布文件校验通过，保留旧哈希资源并原子替换入口，没有重启后端或改动数据库。公网入口与本地构建一致，健康检查200。
+
+## 2026-09-18 真题完成次数显示与筛选对齐
+
+- 真题列表页（`/papers`，历年真题）右侧基于当前账号的真实完成次数显示「完成 X 次」徽标；数据来自新增接口 `GET /api/real-papers/attempts/summary`，按账号聚合 `real_paper_attempts` 中 `status='graded'` 的卷次，跨设备、跨浏览器一致。仍然合并本地 `policyquest_real_practice_records`，保证同一浏览器即写即显示。
+- 筛选条件（年份/卷别/题型）与搜索框在 `.extra-filters` 行内左右对齐，左右缩进 `26px`；搜索结果模式保留顶部搜索框供二次查询。
+- 仅修改 `backend/src/routes/real-papers.js`（新增聚合接口 + 顶部 `fn`/`col` 引入）与 `frontend/src/views/practice/TruePaperLibrary.vue`（合并数据源、调整布局）；前端 API 客户端同步 `attemptSummary`。
+- 发布目录 `/opt/policyquest/releases/20260918-paper-count`；备份 `/opt/policyquest/backups/20260918-paper-count/`（application.tar.gz + env.bak），目录700、文件600。前端先复制带哈希的静态资源，原子替换入口 HTML；后端单独上传 `routes/real-papers.js` 后仅重启 PM2 的 `policyquest`。
+- 本地类型检查、生产构建、Node 16 语法检查通过；公网 `/PolicyQuest/api/health` 返回 200，`/PolicyQuest/` 返回 200，`/PolicyQuest` 301 跳转正常。
+- 接口验收：临时以 `TestAdmin!2026` 登录 admin（验证完成后需告知用户改回原密码），`/api/real-papers/attempts/summary?type=essay` 返回 admin 已批改 5 张卷次（578 完成 3 次、442 完成 2 次、439/438/575 各 1 次），无 token 返回 401。
+

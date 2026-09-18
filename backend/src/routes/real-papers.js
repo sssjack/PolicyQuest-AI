@@ -1,7 +1,7 @@
 const express = require('express');
 const crypto = require('crypto');
 const { PAPER_COST, changeCredits, creditError } = require('../services/credits');
-const { Op } = require('sequelize');
+const { Op, fn, col } = require('sequelize');
 const {
   RealPaper,
   PaperMaterial,
@@ -280,6 +280,28 @@ router.get('/stats', auth, async (req, res) => {
     });
   } catch (e) {
     res.status(500).json({ code: 500, message: '获取真题统计失败', error: e.message });
+  }
+});
+
+router.get('/attempts/summary', auth, async (req, res) => {
+  try {
+    const where = { user_id: req.userId, status: { [Op.in]: ['graded'] } };
+    if (['essay', 'interview'].includes(req.query.type)) {
+      where.practice_type = req.query.type;
+    }
+    const rows = await RealPaperAttempt.findAll({
+      where,
+      attributes: ['paper_id', [fn('COUNT', col('id')), 'count']],
+      group: ['paper_id'],
+      raw: true,
+    });
+    const items = rows.map(row => ({
+      paperId: Number(row.paper_id),
+      count: Number(row.count) || 0,
+    })).filter(item => item.count > 0);
+    return res.json({ code: 200, data: { items } });
+  } catch (e) {
+    return res.status(500).json({ code: 500, message: '获取真题完成统计失败', error: e.message });
   }
 });
 

@@ -49,6 +49,7 @@ const selectedYear = ref('all')
 const selectedCategory = ref('all')
 const selectedQuestionType = ref(String(route.query.questionType || 'all'))
 const coverage = ref<any>(null)
+const serverRecordMap = ref(new Map<string, number>())
 let loadVersion = 0
 const categories = computed(() => [...new Set(papers.value.map(p => p.category))].sort())
 
@@ -98,10 +99,12 @@ const regionOrder = [
 
 const currentTypeMeta = computed(() => typeOptions.find(item => item.value === selectedType.value) || typeOptions[0])
 const recordCountMap = computed(() => {
-  return records.value.reduce((map, record) => {
+  const map = new Map<string, number>()
+  serverRecordMap.value.forEach((count, paperId) => map.set(String(paperId), (map.get(String(paperId)) || 0) + count))
+  records.value.forEach(record => {
     map.set(record.paperId, (map.get(record.paperId) || 0) + 1)
-    return map
-  }, new Map<string, number>())
+  })
+  return map
 })
 
 const filterOptions = computed<FilterOption[]>(() => {
@@ -147,7 +150,17 @@ const filteredPapers = computed(() => {
 onMounted(() => {
   refreshLocalState()
   realPaperApi.coverage().then((res: any) => { coverage.value = res.data }).catch(() => {})
+  refreshServerRecords(selectedType.value)
 })
+
+function refreshServerRecords(type: PracticeType) {
+  realPaperApi.attemptSummary({ type })
+    .then((res: any) => {
+      const items = Array.isArray(res?.data?.items) ? res.data.items : []
+      serverRecordMap.value = new Map(items.map((item: any) => [String(item.paperId), Number(item.count) || 0]))
+    })
+    .catch(() => { serverRecordMap.value = new Map() })
+}
 
 watch(
   () => route.query.type,
@@ -157,6 +170,11 @@ watch(
     }
   },
 )
+
+watch(selectedType, value => {
+  serverRecordMap.value = new Map()
+  refreshServerRecords(value)
+})
 
 watch(
   [selectedType, selectedQuestionType],
@@ -282,7 +300,7 @@ function paperMeta(paper: RealPaper) {
           </button>
         </div>
 
-        <form class="paper-search" role="search" @submit.prevent="submitSearch">
+        <form v-if="searchKeyword" class="paper-search" role="search" @submit.prevent="submitSearch">
           <input v-model="keyword" aria-label="搜索题目或正文" placeholder="搜索题目或正文" type="search" maxlength="100" @input="!keyword.trim() && clearSearch()" />
           <button class="search-submit" type="submit" aria-label="搜索"><el-icon><Search /></el-icon></button>
         </form>
@@ -291,9 +309,15 @@ function paperMeta(paper: RealPaper) {
       <PaperSearchResults v-if="searchKeyword" class="library-search-results" :keyword="searchKeyword" active-type="all" @clear="clearSearch" />
       <section v-else class="paper-list-panel">
         <div class="extra-filters">
-          <label>年份 <select v-model="selectedYear"><option value="all">全部年份</option><option v-for="year in [...new Set(papers.map(p => p.year))].sort((a,b) => b-a)" :key="year" :value="String(year)">{{ year }}年</option></select></label>
-          <label>卷别 <select v-model="selectedCategory"><option value="all">全部卷别</option><option v-for="category in categories" :key="category">{{ category }}</option></select></label>
-          <label v-if="selectedType === 'essay'">题型 <select v-model="selectedQuestionType"><option value="all">全部题型</option><option value="summary">归纳概括</option><option value="analysis">综合分析</option><option value="solution">提出对策</option><option value="implementation">贯彻执行</option><option value="article">大作文</option></select></label>
+          <div class="extra-filters-fields">
+            <label>年份 <select v-model="selectedYear"><option value="all">全部年份</option><option v-for="year in [...new Set(papers.map(p => p.year))].sort((a,b) => b-a)" :key="year" :value="String(year)">{{ year }}年</option></select></label>
+            <label>卷别 <select v-model="selectedCategory"><option value="all">全部卷别</option><option v-for="category in categories" :key="category">{{ category }}</option></select></label>
+            <label v-if="selectedType === 'essay'">题型 <select v-model="selectedQuestionType"><option value="all">全部题型</option><option value="summary">归纳概括</option><option value="analysis">综合分析</option><option value="solution">提出对策</option><option value="implementation">贯彻执行</option><option value="article">大作文</option></select></label>
+          </div>
+          <form class="paper-search" role="search" @submit.prevent="submitSearch">
+            <input v-model="keyword" aria-label="搜索题目或正文" placeholder="搜索题目或正文" type="search" maxlength="100" @input="!keyword.trim() && clearSearch()" />
+            <button class="search-submit" type="submit" aria-label="搜索"><el-icon><Search /></el-icon></button>
+          </form>
         </div>
         <details v-if="coverage && selectedType === 'essay'" class="coverage"><summary>近五年收录覆盖情况（2022—2026）</summary><p>{{ coverage.note }}</p><div class="coverage-scroll"><table><thead><tr><th>地区</th><th v-for="year in coverage.years" :key="year">{{ year }}</th></tr></thead><tbody><tr v-for="row in coverage.rows" :key="row.region"><th>{{ row.region }}</th><td v-for="cell in row.years" :key="cell.year" :title="cell.papers.map((p: any) => p.category).join('、')">{{ cell.papers.length ? `${cell.papers.length}套` : '待补充' }}</td></tr></tbody></table></div></details>
         <div class="count-row">
@@ -343,7 +367,7 @@ function paperMeta(paper: RealPaper) {
 </template>
 
 <style scoped>
-.extra-filters{display:flex;gap:16px;flex-wrap:wrap;padding:18px 0}.extra-filters label{display:flex;gap:8px;align-items:center}.extra-filters select{padding:8px;border:1px solid #cbd5e1;border-radius:6px;max-width:180px;background:white}.coverage{padding:16px;background:#f6f8fc;border-radius:10px;margin-bottom:18px}.coverage summary{cursor:pointer}.coverage p{font-size:13px;line-height:1.8}.coverage-scroll{overflow:auto;max-height:400px}.coverage table{width:100%;border-collapse:collapse;white-space:nowrap}.coverage th,.coverage td{padding:9px;border-bottom:1px solid #dde4ed;text-align:left}
+.extra-filters{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:18px 26px}.extra-filters-fields{display:flex;gap:16px;flex-wrap:wrap;align-items:center}.extra-filters label{display:flex;gap:8px;align-items:center}.extra-filters select{padding:8px;border:1px solid #cbd5e1;border-radius:6px;max-width:180px;background:white}.coverage{padding:16px;background:#f6f8fc;border-radius:10px;margin-bottom:18px}.coverage summary{cursor:pointer}.coverage p{font-size:13px;line-height:1.8}.coverage-scroll{overflow:auto;max-height:400px}.coverage table{width:100%;border-collapse:collapse;white-space:nowrap}.coverage th,.coverage td{padding:9px;border-bottom:1px solid #dde4ed;text-align:left}
 .paper-shell {
   min-height: 100vh;
   background: #f3f6fb;

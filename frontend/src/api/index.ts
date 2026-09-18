@@ -79,6 +79,7 @@ export const realPaperApi = {
   detail: (id: string | number) => api.get(`/real-papers/${id}`),
   stats: () => api.get('/real-papers/stats'),
   attempts: (params: any = {}) => api.get('/real-papers/attempts', { params }),
+  attemptSummary: (params: { type?: 'essay' | 'interview' } = {}) => api.get('/real-papers/attempts/summary', { params }),
   attemptDetail: (id: string | number) => api.get(`/real-papers/attempts/${id}`),
   submitAttempt: (data: any) => api.post('/real-papers/attempts', data),
 }
