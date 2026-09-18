@@ -19,3 +19,7 @@ src/test/
 **/src/test/
 **/*Test.java
 **/*Tests.java
+# Windows 保留设备名，误建的空文件无法通过常规方式删除
+nul
+# 本地部署与验收脚本（含凭据，不纳入版本库）
+scripts/

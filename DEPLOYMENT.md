@@ -385,3 +385,14 @@ curl -fsS http://127.0.0.1:3000/api/health
 - 本地类型检查、生产构建、Node 16 语法检查通过；公网 `/PolicyQuest/api/health` 返回 200，`/PolicyQuest/` 返回 200，`/PolicyQuest` 301 跳转正常。
 - 接口验收：临时以 `TestAdmin!2026` 登录 admin（验证完成后需告知用户改回原密码），`/api/real-papers/attempts/summary?type=essay` 返回 admin 已批改 5 张卷次（578 完成 3 次、442 完成 2 次、439/438/575 各 1 次），无 token 返回 401。
 
+
+## 2026-09-18 真题筛选组件重构与列表分页
+
+- 真题列表的年份／卷别／题型筛选由原生 `select` 改为自定义下拉组件 `frontend/src/components/FilterSelect.vue`：圆角浅底触发器、chevron 旋转、hover／active／展开三态，选中项高亮。
+- 下拉面板改为网格多列弹出（年份 3 列、题型 3 列、卷别 4 列），不再把上百个卷别铺成一长列。选项超过 12 项时面板顶部自动出现关键词过滤框，面试卷别（271 项）可即时缩小范围。
+- 面板定位按触发器位置自动选择左对齐或右对齐，避免溢出视口；移动端降为 2 列并限制宽度，长选项省略号截断。
+- 真题列表由「循环拉取全部页」改为后端分页：每页 20 套，底部提供页码与跳页，计数行同步显示「共 X 套 · 第 N / M 页」。筛选条件变化自动回到第 1 页，同一 tick 内多个条件变化合并为一次请求。
+- 筛选由前端内存过滤改为后端查询参数（`system`／`region`／`year`／`category`／`questionType`），新增 `GET /api/real-papers/filters` 返回当前类型下可选的系统、地区、年份、卷别元数据，供筛选面板与地区标签渲染。地区标签的取值由 `systemLabel` 改为英文 `system` 字段以匹配后端查询。
+- 发布目录 `/opt/policyquest/releases/20260918-paper-filters`；备份 `/opt/policyquest/backups/20260918-paper-filters/frontend.tar.gz` 与 `/opt/policyquest/backups/20260918-paper-filters/real-papers.js.bak`，目录 700、文件 600。后端单独更新 `routes/real-papers.js` 并重启 `policyquest`；前端先复制带哈希资源、再原子替换入口 HTML，保留旧哈希文件。
+- 本地类型检查与生产构建通过；本地构建以真实线上接口在 1440 与 390 像素宽度验证分页、翻页、卷别搜索过滤、年份／题型下拉、移动端面板不溢出。
+- 线上验收：申论列表共 259 套／13 页、每页 20 条，面试列表共 358 套／18 页；地区筛选 34 项；卷别下拉申论 40 项、面试 271 项且带搜索框；选「C卷」返回 17 套、选面试「2月23日上午」返回 2 套；公网首页 200、健康接口 200、`/filters` 鉴权后 200，浏览器控制台无错误。

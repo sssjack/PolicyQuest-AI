@@ -76,6 +76,7 @@ export const realPaperApi = {
   coverage: () => api.get('/real-papers/coverage'),
   regrade: (id: string | number) => api.post(`/real-papers/attempts/${id}/regrade`),
   list: (params: any) => api.get('/real-papers', { params }),
+  filters: (params: { type?: 'essay' | 'interview' } = {}) => api.get('/real-papers/filters', { params }),
   detail: (id: string | number) => api.get(`/real-papers/${id}`),
   stats: () => api.get('/real-papers/stats'),
   attempts: (params: any = {}) => api.get('/real-papers/attempts', { params }),

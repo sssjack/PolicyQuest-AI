@@ -228,6 +228,36 @@ router.get('/', auth, async (req, res) => {
   }
 });
 
+router.get('/filters', auth, async (req, res) => {
+  try {
+    const where = { status: 'approved' };
+    if (['essay', 'interview'].includes(req.query.type)) where.practice_type = req.query.type;
+
+    const rows = await RealPaper.findAll({
+      where,
+      attributes: ['system', 'system_label', 'region', 'year', 'category'],
+      raw: true,
+    });
+
+    const systems = Array.from(
+      rows.reduce((map, row) => {
+        if (row.system) map.set(row.system, row.system_label || row.system);
+        return map;
+      }, new Map()),
+    ).map(([value, label]) => ({ value, label }));
+
+    const regions = Array.from(new Set(rows.map(row => row.region).filter(Boolean)));
+    const years = Array.from(new Set(rows.map(row => Number(row.year)).filter(Number.isFinite)))
+      .sort((a, b) => b - a);
+    const categories = Array.from(new Set(rows.map(row => row.category).filter(Boolean)))
+      .sort((a, b) => String(a).localeCompare(String(b), 'zh-CN'));
+
+    return res.json({ code: 200, data: { systems, regions, years, categories } });
+  } catch (e) {
+    return res.status(500).json({ code: 500, message: '获取筛选项失败', error: e.message });
+  }
+});
+
 router.get('/essay-profile', auth, async (req, res) => {
   try { res.json({ code: 200, data: await require('../services/essay-profile').essayProfile(req.userId) }); }
   catch (error) { res.status(500).json({ code: 500, message: '获取申论错误画像失败' }); }

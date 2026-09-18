@@ -15,6 +15,7 @@ import {
 } from '../../data/policyQuest'
 import UserAccountMenu from '../../components/UserAccountMenu.vue'
 import PaperSearchResults from '../../components/PaperSearchResults.vue'
+import FilterSelect from '../../components/FilterSelect.vue'
 
 type FilterKind = 'recommend' | 'system' | 'region'
 type FilterOption = {
@@ -50,8 +51,36 @@ const selectedCategory = ref('all')
 const selectedQuestionType = ref(String(route.query.questionType || 'all'))
 const coverage = ref<any>(null)
 const serverRecordMap = ref(new Map<string, number>())
+const page = ref(1)
+const pageSize = ref(20)
+const total = ref(0)
+const filterMeta = ref<{
+  systems: Array<{ value: string; label: string }>
+  regions: string[]
+  years: number[]
+  categories: string[]
+}>({ systems: [], regions: [], years: [], categories: [] })
 let loadVersion = 0
-const categories = computed(() => [...new Set(papers.value.map(p => p.category))].sort())
+const categories = computed(() => filterMeta.value.categories)
+
+const yearOptions = computed(() => [
+  { value: 'all', label: '全部年份' },
+  ...filterMeta.value.years.map(year => ({ value: String(year), label: `${year}年` })),
+])
+
+const categoryOptions = computed(() => [
+  { value: 'all', label: '全部卷别' },
+  ...categories.value.map(category => ({ value: category, label: category })),
+])
+
+const questionTypeOptions = [
+  { value: 'all', label: '全部题型' },
+  { value: 'summary', label: '归纳概括' },
+  { value: 'analysis', label: '综合分析' },
+  { value: 'solution', label: '提出对策' },
+  { value: 'implementation', label: '贯彻执行' },
+  { value: 'article', label: '大作文' },
+]
 
 
 const typeOptions = [
@@ -108,19 +137,14 @@ const recordCountMap = computed(() => {
 })
 
 const filterOptions = computed<FilterOption[]>(() => {
-  const systemOptions = Array.from(
-    papers.value.reduce((map, paper) => {
-      map.set(paper.systemLabel || paper.system, paper.systemLabel || paper.system)
-      return map
-    }, new Map<string, string>()),
-  ).map(([value, label]) => ({
-    key: `system:${value}`,
-    label,
+  const systemOptions = filterMeta.value.systems.map(system => ({
+    key: `system:${system.value}`,
+    label: system.label,
     kind: 'system' as const,
-    value,
+    value: system.value,
   }))
 
-  const regionSet = new Set(papers.value.map(paper => paper.region).filter(Boolean))
+  const regionSet = new Set(filterMeta.value.regions)
   const orderedRegions = [
     ...regionOrder.filter(region => regionSet.has(region)),
     ...Array.from(regionSet).filter(region => !regionOrder.includes(region)).sort((a, b) => a.localeCompare(b, 'zh-CN')),
@@ -135,22 +159,13 @@ const filterOptions = computed<FilterOption[]>(() => {
 })
 
 const activeFilter = computed(() => filterOptions.value.find(item => item.key === activeFilterKey.value) || filterOptions.value[0])
-const filteredPapers = computed(() => {
-  const filter = activeFilter.value
-
-  return papers.value.filter(paper => {
-    const filterMatch =
-      filter.kind === 'recommend' ||
-      (filter.kind === 'system' && (paper.systemLabel === filter.value || paper.system === filter.value)) ||
-      (filter.kind === 'region' && paper.region === filter.value)
-    return filterMatch && (selectedYear.value === 'all' || String(paper.year) === selectedYear.value) && (selectedCategory.value === 'all' || paper.category === selectedCategory.value)
-  })
-})
+const filteredPapers = computed(() => papers.value)
 
 onMounted(() => {
   refreshLocalState()
   realPaperApi.coverage().then((res: any) => { coverage.value = res.data }).catch(() => {})
   refreshServerRecords(selectedType.value)
+  loadFilters(selectedType.value)
 })
 
 function refreshServerRecords(type: PracticeType) {
@@ -160,6 +175,49 @@ function refreshServerRecords(type: PracticeType) {
       serverRecordMap.value = new Map(items.map((item: any) => [String(item.paperId), Number(item.count) || 0]))
     })
     .catch(() => { serverRecordMap.value = new Map() })
+}
+
+function loadFilters(type: PracticeType) {
+  realPaperApi.filters({ type })
+    .then((res: any) => {
+      const data = res?.data || {}
+      filterMeta.value = {
+        systems: Array.isArray(data.systems) ? data.systems : [],
+        regions: Array.isArray(data.regions) ? data.regions : [],
+        years: Array.isArray(data.years) ? data.years.map(Number) : [],
+        categories: Array.isArray(data.categories) ? data.categories : [],
+      }
+    })
+    .catch(() => {
+      filterMeta.value = { systems: [], regions: [], years: [], categories: [] }
+    })
+}
+
+async function loadPapers() {
+  const version = ++loadVersion
+  loading.value = true
+  try {
+    const filter = activeFilter.value
+    const params: Record<string, string | number> = {
+      type: selectedType.value,
+      questionType: selectedType.value === 'essay' ? selectedQuestionType.value : 'all',
+      page: page.value,
+      pageSize: pageSize.value,
+    }
+    if (filter?.kind === 'system') params.system = filter.value as string
+    if (filter?.kind === 'region') params.region = filter.value as string
+    if (selectedYear.value !== 'all') params.year = selectedYear.value
+    if (selectedCategory.value !== 'all') params.category = selectedCategory.value
+
+    const res: any = await realPaperApi.list(params)
+    if (version !== loadVersion) return
+    papers.value = (res.data?.list || []).map(mapBackendPaper)
+    total.value = Number(res.data?.total) || 0
+  } catch {
+    if (version === loadVersion) { papers.value = []; total.value = 0; ElMessage.error('题库加载失败，请重试') }
+  } finally {
+    if (version === loadVersion) loading.value = false
+  }
 }
 
 watch(
@@ -174,35 +232,18 @@ watch(
 watch(selectedType, value => {
   serverRecordMap.value = new Map()
   refreshServerRecords(value)
+  loadFilters(value)
+  selectedYear.value = 'all'
+  selectedCategory.value = 'all'
+  activeFilterKey.value = 'recommend'
 })
 
-watch(
-  [selectedType, selectedQuestionType],
-  async ([type, questionType], previous) => {
-    const version = ++loadVersion
-    if (type !== previous?.[0]) { selectedYear.value = 'all'; selectedCategory.value = 'all' }
-    activeFilterKey.value = 'recommend'
-    loading.value = true
-    try {
-      const all: any[] = []
-      let page = 1
-      let total = 1
-      while (all.length < total) {
-        const res: any = await realPaperApi.list({ type, questionType: type === 'essay' ? questionType : 'all', page, pageSize: 300 })
-        const batch = res.data?.list || []
-        total = Number(res.data?.total) || 0
-        all.push(...batch)
-        if (!batch.length) break
-        page += 1
-      }
-      if (version === loadVersion) papers.value = all.map(mapBackendPaper)
-    } catch { ElMessage.error('题库加载失败，请重试')
-    } finally {
-      if (version === loadVersion) loading.value = false
-    }
-  },
-  { immediate: true },
-)
+const filterDeps = [selectedType, selectedQuestionType, selectedYear, selectedCategory, activeFilterKey, pageSize]
+
+// 筛选条件变化时回到第一页；同一 tick 内多个条件变化会被 Vue 合并成一次请求。
+watch(filterDeps, () => { page.value = 1 })
+
+watch([...filterDeps, page], loadPapers, { immediate: true })
 
 watch(
   filterOptions,
@@ -310,9 +351,9 @@ function paperMeta(paper: RealPaper) {
       <section v-else class="paper-list-panel">
         <div class="extra-filters">
           <div class="extra-filters-fields">
-            <label>年份 <select v-model="selectedYear"><option value="all">全部年份</option><option v-for="year in [...new Set(papers.map(p => p.year))].sort((a,b) => b-a)" :key="year" :value="String(year)">{{ year }}年</option></select></label>
-            <label>卷别 <select v-model="selectedCategory"><option value="all">全部卷别</option><option v-for="category in categories" :key="category">{{ category }}</option></select></label>
-            <label v-if="selectedType === 'essay'">题型 <select v-model="selectedQuestionType"><option value="all">全部题型</option><option value="summary">归纳概括</option><option value="analysis">综合分析</option><option value="solution">提出对策</option><option value="implementation">贯彻执行</option><option value="article">大作文</option></select></label>
+            <FilterSelect v-model="selectedYear" label="年份" :options="yearOptions" :columns="3" />
+            <FilterSelect v-model="selectedCategory" label="卷别" :options="categoryOptions" :columns="4" />
+            <FilterSelect v-if="selectedType === 'essay'" v-model="selectedQuestionType" label="题型" :options="questionTypeOptions" :columns="3" />
           </div>
           <form class="paper-search" role="search" @submit.prevent="submitSearch">
             <input v-model="keyword" aria-label="搜索题目或正文" placeholder="搜索题目或正文" type="search" maxlength="100" @input="!keyword.trim() && clearSearch()" />
@@ -321,7 +362,8 @@ function paperMeta(paper: RealPaper) {
         </div>
         <details v-if="coverage && selectedType === 'essay'" class="coverage"><summary>近五年收录覆盖情况（2022—2026）</summary><p>{{ coverage.note }}</p><div class="coverage-scroll"><table><thead><tr><th>地区</th><th v-for="year in coverage.years" :key="year">{{ year }}</th></tr></thead><tbody><tr v-for="row in coverage.rows" :key="row.region"><th>{{ row.region }}</th><td v-for="cell in row.years" :key="cell.year" :title="cell.papers.map((p: any) => p.category).join('、')">{{ cell.papers.length ? `${cell.papers.length}套` : '待补充' }}</td></tr></tbody></table></div></details>
         <div class="count-row">
-          <span>{{ loading ? '加载中' : `共${filteredPapers.length}套` }}</span>
+          <span>{{ loading ? '加载中' : `共${total}套` }}</span>
+          <span v-if="!loading && total" class="count-hint">第 {{ page }} / {{ Math.max(1, Math.ceil(total / pageSize)) }} 页</span>
         </div>
 
         <div v-if="filteredPapers.length" class="paper-list">
@@ -357,6 +399,18 @@ function paperMeta(paper: RealPaper) {
           </article>
         </div>
 
+        <div v-if="!loading && total > pageSize" class="pagination-row">
+          <el-pagination
+            v-model:current-page="page"
+            :page-size="pageSize"
+            :total="total"
+            :pager-count="7"
+            layout="prev, pager, next, jumper"
+            background
+            hide-on-single-page
+          />
+        </div>
+
         <div v-else class="empty-state">
           <strong>{{ loading ? '正在读取真题库' : '没有匹配的真题' }}</strong>
           <span>{{ loading ? '数据正在从后端真题接口同步。' : '请调整地区、系统、年份或卷别筛选，或搜索题目和正文。' }}</span>
@@ -367,7 +421,7 @@ function paperMeta(paper: RealPaper) {
 </template>
 
 <style scoped>
-.extra-filters{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:18px 26px}.extra-filters-fields{display:flex;gap:16px;flex-wrap:wrap;align-items:center}.extra-filters label{display:flex;gap:8px;align-items:center}.extra-filters select{padding:8px;border:1px solid #cbd5e1;border-radius:6px;max-width:180px;background:white}.coverage{padding:16px;background:#f6f8fc;border-radius:10px;margin-bottom:18px}.coverage summary{cursor:pointer}.coverage p{font-size:13px;line-height:1.8}.coverage-scroll{overflow:auto;max-height:400px}.coverage table{width:100%;border-collapse:collapse;white-space:nowrap}.coverage th,.coverage td{padding:9px;border-bottom:1px solid #dde4ed;text-align:left}
+.extra-filters{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;padding:18px 26px}.extra-filters-fields{display:flex;gap:18px;flex-wrap:wrap;align-items:center}.coverage{padding:16px;background:#f6f8fc;border-radius:10px;margin-bottom:18px}.coverage summary{cursor:pointer}.coverage p{font-size:13px;line-height:1.8}.coverage-scroll{overflow:auto;max-height:400px}.coverage table{width:100%;border-collapse:collapse;white-space:nowrap}.coverage th,.coverage td{padding:9px;border-bottom:1px solid #dde4ed;text-align:left}
 .paper-shell {
   min-height: 100vh;
   background: #f3f6fb;
@@ -541,6 +595,10 @@ function paperMeta(paper: RealPaper) {
 }
 
 .count-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   min-height: 46px;
   padding: 0 26px;
   border-top: 1px solid #f4f6fa;
@@ -549,6 +607,50 @@ function paperMeta(paper: RealPaper) {
   color: #a0aabd;
   font-weight: 800;
   line-height: 46px;
+}
+
+.count-hint {
+  color: #b6c0d0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pagination-row {
+  display: flex;
+  justify-content: center;
+  padding: 22px 26px 26px;
+  border-top: 1px solid #eef2f6;
+  background: #ffffff;
+}
+
+.pagination-row :deep(.el-pagination.is-background .el-pager li) {
+  border-radius: 8px;
+  background: #f4f7fd;
+  color: #4a5a75;
+  font-weight: 700;
+}
+
+.pagination-row :deep(.el-pagination.is-background .el-pager li:hover) {
+  background: #e6efff;
+  color: #2a62d8;
+}
+
+.pagination-row :deep(.el-pagination.is-background .el-pager li.is-active) {
+  background: #397bf6;
+  color: #ffffff;
+  box-shadow: 0 6px 14px rgba(57, 123, 246, 0.22);
+}
+
+.pagination-row :deep(.el-pagination.is-background .btn-prev),
+.pagination-row :deep(.el-pagination.is-background .btn-next) {
+  border-radius: 8px;
+  background: #f4f7fd;
+  color: #4a5a75;
+}
+
+.pagination-row :deep(.el-pagination .el-input__wrapper) {
+  border-radius: 8px;
+  box-shadow: 0 0 0 1px #dbe3ef inset;
 }
 
 .paper-list {
@@ -672,6 +774,16 @@ function paperMeta(paper: RealPaper) {
   .paper-list {
     padding-left: 14px;
     padding-right: 14px;
+  }
+
+  .extra-filters {
+    gap: 12px;
+    padding: 14px;
+  }
+
+  .extra-filters-fields {
+    width: 100%;
+    gap: 12px;
   }
 
   .type-row,
